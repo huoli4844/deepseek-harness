@@ -5,6 +5,7 @@
   "description": "DeepSeek Harness profile with YuanShu platform integration",
   "type": "module",
   "dependencies": {
-    "@deepseek-ai/dsh-yuanshu-gateway": "workspace:^"
+    "@deepseek-ai/dsh-yuanshu-gateway": "workspace:^",
+    "@deepseek-ai/dsh-yuanshu-tool": "workspace:^"
   }
 }
