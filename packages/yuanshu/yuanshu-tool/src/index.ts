@@ -60,5 +60,3 @@ export function apply(ctx: Context, config: Config): void {
     return () => {}
   }, 'yuanshu-tool: register')
 }
-
-export default apply

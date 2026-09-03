@@ -64,5 +64,3 @@ async function writeJSON(res: ServerResponse, value: unknown, status = 200): Pro
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
   res.end(output)
 }
-
-export default apply
