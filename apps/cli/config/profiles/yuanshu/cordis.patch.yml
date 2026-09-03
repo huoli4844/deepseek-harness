@@ -6,3 +6,9 @@
   config:
     baseURL: http://localhost:8081
     prefix: /yuanshu-api
+
+- id: yuanshu-tool
+  name: '@deepseek-ai/dsh-yuanshu-tool'
+  config:
+    baseURL: http://localhost:8081
+    defaultWorkerType: general_assistant

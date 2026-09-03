@@ -425,7 +425,8 @@
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
       "@deepseek-ai/dsh-workspace/invariant": ["./packages/workspace/workspace/src/invariant.ts"],
       "@deepseek-ai/dsh-yuanshu-gateway": ["./packages/yuanshu/yuanshu-gateway/src"],
-      "@deepseek-ai/dsh-yuanshu-client": ["./packages/yuanshu/yuanshu-client/src"]
+      "@deepseek-ai/dsh-yuanshu-client": ["./packages/yuanshu/yuanshu-client/src"],
+      "@deepseek-ai/dsh-yuanshu-tool": ["./packages/yuanshu/yuanshu-tool/src"]
       // END generated package aliases
     }
   }

@@ -331,6 +331,7 @@
     { "path": "./packages/lsp/tool-lsp" },
     { "path": "./packages/yuanshu/yuanshu-client" },
     { "path": "./packages/yuanshu/yuanshu-gateway" },
+    { "path": "./packages/yuanshu/yuanshu-tool" },
     { "path": "./apps/cli" }
   ]
 }
