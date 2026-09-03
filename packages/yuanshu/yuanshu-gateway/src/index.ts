@@ -56,9 +56,7 @@ export function apply(ctx: Context, config: Config): void {
       await writeJSON(res, { error: error instanceof Error ? error.message : String(error) }, 502)
     }
   } }
-  ctx.inject(['webServer'], (webCtx) => {
-    webCtx.effect(() => webCtx.webServer.register(route), 'yuanshu-gateway: route')
-  })
+  ctx.effect(() => ctx.webServer.register(route), 'yuanshu-gateway: route')
 }
 
 async function writeJSON(res: ServerResponse, value: unknown, status = 200): Promise<void> {
