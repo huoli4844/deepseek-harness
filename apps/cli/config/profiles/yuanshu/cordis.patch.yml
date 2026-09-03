@@ -1,0 +1,8 @@
+# YuanShu platform integration overlay
+# Connects deepseek-harness to local YuanShu server at http://localhost:8081
+
+- id: yuanshu-gateway
+  name: '@deepseek-ai/dsh-yuanshu-gateway'
+  config:
+    baseURL: http://localhost:8081
+    prefix: /yuanshu-api
