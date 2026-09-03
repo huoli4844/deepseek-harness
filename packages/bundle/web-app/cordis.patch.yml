@@ -123,6 +123,25 @@
         compressionLevel: 1
         compressionThresholdBytes: 1024
 
+    # YuanShu Platform gateway: proxies requests from the harness web server
+    # to the 元枢 platform backend API at localhost:8081.
+    # TEMPORARILY DISABLED: causes "DeepSeek request extension preparation failed"
+    # - id: yuanshu-gateway
+    #   name: '@deepseek-ai/dsh-yuanshu-gateway'
+    #   inject: [webServer]
+    #   config:
+    #     baseURL: http://localhost:8081
+    #     prefix: /yuanshu-api
+
+    # YuanShu Platform tool: exposes a `yuanshu_agent` tool that forwards
+    # questions to 元枢 platform agents (智能问数, 知识库问答, etc.).
+    - id: yuanshu-tool
+      name: '@deepseek-ai/dsh-yuanshu-tool'
+      inject: [tools]
+      config:
+        baseURL: http://localhost:8081
+        defaultWorkerType: general_assistant
+
     # Web glue owned by this bundle: resolves the built frontend dist (an
     # assembly fact of dsh-web-app, never user config), mounts the
     # frontend-static fallback owner, registers the web-surface prompt
