@@ -10,6 +10,9 @@
   "plugins": {
     "@deepseek-ai/dsh-yuanshu-gateway": {
       "version": "workspace:^"
+    },
+    "@deepseek-ai/dsh-yuanshu-tool": {
+      "version": "workspace:^"
     }
   }
 }
