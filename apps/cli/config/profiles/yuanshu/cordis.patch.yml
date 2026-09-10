@@ -1,5 +1,6 @@
-# YuanShu platform integration overlay
-# Connects deepseek-harness to local YuanShu server at http://localhost:8081
+- id: session-persistence-jsonl
+  name: '@deepseek-ai/dsh-session-persistence-jsonl'
+  disabled: true
 
 - id: yuanshu-gateway
   name: '@deepseek-ai/dsh-yuanshu-gateway'
