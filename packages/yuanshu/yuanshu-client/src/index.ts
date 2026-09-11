@@ -289,17 +289,17 @@ export class YuanShuClient {
 
   /**
    * Ask a knowledge question (synchronous).
-   * Maps to POST /knowledge-bases/qa/ask on the YuanShu backend.
+   * Maps to POST /api/v1/knowledge-bases/qa/ask on the YuanShu backend.
    */
   async askQuestion(request: AskKnowledgeQuestionRequest): Promise<AskKnowledgeQuestionResponse> {
-    return this.request<AskKnowledgeQuestionResponse>('/knowledge-bases/qa/ask', {
+    return this.request<AskKnowledgeQuestionResponse>('/api/v1/knowledge-bases/qa/ask', {
       method: 'POST', body: request,
     })
   }
 
   /**
    * Ask a knowledge question with SSE streaming response.
-   * Maps to POST /knowledge-bases/qa/ask/stream on the YuanShu backend.
+   * Maps to POST /api/v1/knowledge-bases/qa/ask/stream on the YuanShu backend.
    *
    * Yields events of type:
    *   - "agent_event": RuntimeEvent projection (run_id, type, status, target, timestamp)
@@ -307,7 +307,7 @@ export class YuanShuClient {
    *   - "error": Error object with message
    */
   async *askQuestionStream(request: AskKnowledgeQuestionRequest, signal?: AbortSignal): AsyncIterable<YuanShuSseEvent> {
-    const response = await this.raw('/knowledge-bases/qa/ask/stream', {
+    const response = await this.raw('/api/v1/knowledge-bases/qa/ask/stream', {
       method: 'POST', body: request, ...(signal === undefined ? {} : { signal }),
     })
     if (!response.body) throw new YuanShuError('YuanShu returned an empty SSE body', response.status)
@@ -316,51 +316,51 @@ export class YuanShuClient {
 
   /**
    * List knowledge Q&A sessions for the current user.
-   * Maps to GET /knowledge-bases/qa/sessions.
+   * Maps to GET /api/v1/knowledge-bases/qa/sessions.
    */
   listQASessions(limit?: number): Promise<KnowledgeQASession[]> {
     const params = limit !== undefined ? `?limit=${limit}` : ''
-    return this.request<KnowledgeQASession[]>(`/knowledge-bases/qa/sessions${params}`)
+    return this.request<KnowledgeQASession[]>(`/api/v1/knowledge-bases/qa/sessions${params}`)
   }
 
   /**
    * Get conversation turns for a knowledge Q&A session.
-   * Maps to GET /knowledge-bases/qa/sessions/:session_id/turns.
+   * Maps to GET /api/v1/knowledge-bases/qa/sessions/:session_id/turns.
    */
   getQASessionTurns(sessionId: string, limit?: number): Promise<KnowledgeQATurn[]> {
     const params = limit !== undefined ? `?limit=${limit}` : ''
-    return this.request<KnowledgeQATurn[]>(`/knowledge-bases/qa/sessions/${encodeURIComponent(sessionId)}/turns${params}`)
+    return this.request<KnowledgeQATurn[]>(`/api/v1/knowledge-bases/qa/sessions/${encodeURIComponent(sessionId)}/turns${params}`)
   }
 
   /**
    * Get the readiness status of knowledge collections for QA.
-   * Maps to GET /knowledge-bases/qa/readiness.
+   * Maps to GET /api/v1/knowledge-bases/qa/readiness.
    */
   getQAReadiness(collectionIds?: number[]): Promise<QAReadinessResponse> {
     const params = collectionIds !== undefined && collectionIds.length > 0
       ? `?collection_ids=${collectionIds.join(',')}`
       : ''
-    return this.request<QAReadinessResponse>(`/knowledge-bases/qa/readiness${params}`)
+    return this.request<QAReadinessResponse>(`/api/v1/knowledge-bases/qa/readiness${params}`)
   }
 
   /**
    * List knowledge collections.
-   * Maps to GET /knowledges on the YuanShu backend.
+   * Maps to GET /api/v1/knowledges on the YuanShu backend.
    */
   listKnowledgeCollections(keyword?: string, limit?: number): Promise<KnowledgeCollection[]> {
     const params = new URLSearchParams()
     if (keyword) params.set('keyword', keyword)
     if (limit) params.set('limit', String(limit))
     const qs = params.toString()
-    return this.request<KnowledgeCollection[]>(`/knowledges${qs ? `?${qs}` : ''}`)
+    return this.request<KnowledgeCollection[]>(`/api/v1/knowledges${qs ? `?${qs}` : ''}`)
   }
 
   /**
    * Get a knowledge document by ID.
-   * Maps to GET /knowledges/:id.
+   * Maps to GET /api/v1/knowledges/:id.
    */
   getKnowledgeDocument(id: number): Promise<KnowledgeDocument> {
-    return this.request<KnowledgeDocument>(`/knowledges/${id}`)
+    return this.request<KnowledgeDocument>(`/api/v1/knowledges/${id}`)
   }
 
   // ── Internal helpers ─────────────────────────────────────────────────────
