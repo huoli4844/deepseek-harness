@@ -13,3 +13,9 @@
   config:
     baseURL: http://localhost:8081
     defaultWorkerType: general_assistant
+
+- id: yuanshu-qa-tool
+  name: '@deepseek-ai/dsh-yuanshu-qa-tool'
+  config:
+    baseURL: http://localhost:8081
+    streaming: false

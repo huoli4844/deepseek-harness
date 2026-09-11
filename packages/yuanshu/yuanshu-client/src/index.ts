@@ -38,6 +38,141 @@ export interface YuanShuSseEvent {
   readonly data: unknown
 }
 
+// ── Knowledge Q&A types ──────────────────────────────────────────────────────
+
+export interface KnowledgeCollection {
+  readonly id: number
+  readonly name: string
+  readonly primary_tag?: string
+  readonly status?: number
+  readonly document_count?: number
+}
+
+export interface KnowledgeQASession {
+  readonly session_id: string
+  readonly question: string
+  readonly user_id: number
+  readonly created_at: string
+  readonly updated_at: string
+  readonly last_turn_id?: string
+}
+
+export interface KnowledgeQATurn {
+  readonly turn_id: string
+  readonly session_id: string
+  readonly question: string
+  readonly answer?: string
+  readonly status?: string
+  readonly created_at: string
+}
+
+export interface KnowledgeCitation {
+  readonly evidence_id: string
+  readonly document_id: string
+  readonly node_id?: string
+  readonly title?: string
+  readonly content_preview?: string
+  readonly relevance_score?: number
+  readonly collection_id?: number
+}
+
+export interface AskKnowledgeQuestionRequest {
+  readonly question: string
+  readonly session_id?: string
+  readonly collection_ids?: number[]
+  readonly application_id?: number
+  readonly primary_tag?: string
+  readonly limit?: number
+  readonly thinking_mode?: 'none' | 'light' | 'medium' | 'heavy' | 'ultra'
+}
+
+export interface AskKnowledgeQuestionResponse {
+  readonly session_id: string
+  readonly turn_id: string
+  readonly trace_id: string
+  readonly execution_trace_id: string
+  readonly answer_trace_id: string
+  readonly agent_definition_id?: number
+  readonly agent_execution_id?: number
+  readonly application_id?: number
+  readonly application_manifest_hash?: string
+  readonly agent_name: string
+  readonly agent_mode: string
+  readonly answer: string
+  readonly answer_mode: string
+  readonly answer_artifact_id?: string
+  readonly answer_key?: string
+  readonly knowledge_release_id?: string
+  readonly semantic_key?: string
+  readonly answer_artifact_reused: boolean
+  readonly synthesis_error?: string
+  readonly decision_id?: number
+  readonly decision_lineage_id?: number
+  readonly citations: KnowledgeCitation[]
+  readonly citation_validation?: string
+  readonly system_facts?: Record<string, unknown>
+  readonly action?: string
+  readonly diagnostics?: Record<string, unknown>
+  readonly retrieval_trace?: {
+    readonly trace_id: string
+    readonly query: string
+    readonly result_count: number
+    readonly duration_ms: number
+    readonly retrieval_mode: string
+    readonly fallback_terms?: string[]
+    readonly vector_error?: string
+  }
+  readonly evidence_sufficiency?: string
+  readonly fallback_terms?: string[]
+  readonly retrieval_error?: string
+  readonly rewrite?: {
+    readonly queries: string[]
+    readonly model_name?: string
+    readonly error?: string
+    readonly claims?: string[]
+    readonly claim_coverage?: string
+    readonly supplemental_queries?: string[]
+    readonly supplemental_rounds?: number
+    readonly supplemental_stop_reason?: string
+    readonly evidence_sufficiency?: string
+  }
+  readonly route?: {
+    readonly route: string
+    readonly confidence?: number
+    readonly reason?: string
+  }
+  readonly created_at: string
+}
+
+export interface QAReadinessResponse {
+  readonly collections: Array<{
+    readonly collection_id: number
+    readonly collection_name: string
+    readonly primary_tag: string
+    readonly status: string
+    readonly indexed: boolean
+    readonly document_count: number
+    readonly vector_count: number
+    readonly readiness: 'ready' | 'partial' | 'unready'
+    readonly issues?: string[]
+  }>
+  readonly overall_readiness: 'ready' | 'partial' | 'unready'
+  readonly missing_collections?: number[]
+  readonly total_collections: number
+  readonly indexed_collections: number
+}
+
+export interface KnowledgeDocument {
+  readonly id: number
+  readonly name: string
+  readonly collection_id: number
+  readonly file_type?: string
+  readonly file_size?: number
+  readonly status?: number
+  readonly created_at: string
+  readonly updated_at: string
+}
+
 export class YuanShuError extends Error {
   readonly status: number
   readonly code: number | string | undefined
@@ -89,6 +224,8 @@ export class YuanShuClient {
     return { token: this.token, tenantId: this.tenantId }
   }
 
+  // ── Authentication & Tenants ─────────────────────────────────────────────
+
   async login(username: string, password: string): Promise<unknown> {
     const data = await this.request<unknown>('/api/v1/login', { method: 'POST', body: { username, password } })
     if (data && typeof data === 'object') {
@@ -107,6 +244,8 @@ export class YuanShuClient {
     this.tenantId = tenantId
     return this.request('/api/v1/user/tenant', { method: 'POST', body: { tenant_id: tenantId } })
   }
+
+  // ── Capability Discovery ─────────────────────────────────────────────────
 
   async listCapabilities(): Promise<YuanShuCapability[]> {
     const endpoints: Array<[YuanShuCapability['kind'], string]> = [
@@ -132,6 +271,8 @@ export class YuanShuClient {
     return results.flat()
   }
 
+  // ── Worker Execution ─────────────────────────────────────────────────────
+
   async executeWorker(request: YuanShuExecuteRequest): Promise<unknown> {
     return this.request(`/api/v1/workers/${encodeURIComponent(request.worker_type)}/execute`, { method: 'POST', body: request })
   }
@@ -143,6 +284,86 @@ export class YuanShuClient {
     if (!response.body) throw new YuanShuError('YuanShu returned an empty SSE body', response.status)
     yield* parseSse(response.body)
   }
+
+  // ── Knowledge Q&A ────────────────────────────────────────────────────────
+
+  /**
+   * Ask a knowledge question (synchronous).
+   * Maps to POST /knowledge-bases/qa/ask on the YuanShu backend.
+   */
+  async askQuestion(request: AskKnowledgeQuestionRequest): Promise<AskKnowledgeQuestionResponse> {
+    return this.request<AskKnowledgeQuestionResponse>('/knowledge-bases/qa/ask', {
+      method: 'POST', body: request,
+    })
+  }
+
+  /**
+   * Ask a knowledge question with SSE streaming response.
+   * Maps to POST /knowledge-bases/qa/ask/stream on the YuanShu backend.
+   *
+   * Yields events of type:
+   *   - "agent_event": RuntimeEvent projection (run_id, type, status, target, timestamp)
+   *   - "complete": Final AskKnowledgeQuestionResponse
+   *   - "error": Error object with message
+   */
+  async *askQuestionStream(request: AskKnowledgeQuestionRequest, signal?: AbortSignal): AsyncIterable<YuanShuSseEvent> {
+    const response = await this.raw('/knowledge-bases/qa/ask/stream', {
+      method: 'POST', body: request, ...(signal === undefined ? {} : { signal }),
+    })
+    if (!response.body) throw new YuanShuError('YuanShu returned an empty SSE body', response.status)
+    yield* parseSse(response.body)
+  }
+
+  /**
+   * List knowledge Q&A sessions for the current user.
+   * Maps to GET /knowledge-bases/qa/sessions.
+   */
+  listQASessions(limit?: number): Promise<KnowledgeQASession[]> {
+    const params = limit !== undefined ? `?limit=${limit}` : ''
+    return this.request<KnowledgeQASession[]>(`/knowledge-bases/qa/sessions${params}`)
+  }
+
+  /**
+   * Get conversation turns for a knowledge Q&A session.
+   * Maps to GET /knowledge-bases/qa/sessions/:session_id/turns.
+   */
+  getQASessionTurns(sessionId: string, limit?: number): Promise<KnowledgeQATurn[]> {
+    const params = limit !== undefined ? `?limit=${limit}` : ''
+    return this.request<KnowledgeQATurn[]>(`/knowledge-bases/qa/sessions/${encodeURIComponent(sessionId)}/turns${params}`)
+  }
+
+  /**
+   * Get the readiness status of knowledge collections for QA.
+   * Maps to GET /knowledge-bases/qa/readiness.
+   */
+  getQAReadiness(collectionIds?: number[]): Promise<QAReadinessResponse> {
+    const params = collectionIds !== undefined && collectionIds.length > 0
+      ? `?collection_ids=${collectionIds.join(',')}`
+      : ''
+    return this.request<QAReadinessResponse>(`/knowledge-bases/qa/readiness${params}`)
+  }
+
+  /**
+   * List knowledge collections.
+   * Maps to GET /knowledges on the YuanShu backend.
+   */
+  listKnowledgeCollections(keyword?: string, limit?: number): Promise<KnowledgeCollection[]> {
+    const params = new URLSearchParams()
+    if (keyword) params.set('keyword', keyword)
+    if (limit) params.set('limit', String(limit))
+    const qs = params.toString()
+    return this.request<KnowledgeCollection[]>(`/knowledges${qs ? `?${qs}` : ''}`)
+  }
+
+  /**
+   * Get a knowledge document by ID.
+   * Maps to GET /knowledges/:id.
+   */
+  getKnowledgeDocument(id: number): Promise<KnowledgeDocument> {
+    return this.request<KnowledgeDocument>(`/knowledges/${id}`)
+  }
+
+  // ── Internal helpers ─────────────────────────────────────────────────────
 
   private async request<T>(path: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
     return readResponse<T>(await this.raw(path, options))

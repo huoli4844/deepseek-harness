@@ -6,7 +6,8 @@
   "type": "module",
   "dependencies": {
     "@deepseek-ai/dsh-yuanshu-gateway": "workspace:^",
-    "@deepseek-ai/dsh-yuanshu-tool": "workspace:^"
+    "@deepseek-ai/dsh-yuanshu-tool": "workspace:^",
+    "@deepseek-ai/dsh-yuanshu-qa-tool": "workspace:^"
   },
   "dsh": {
     "profile": {
