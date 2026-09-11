@@ -13,6 +13,9 @@
     },
     "@deepseek-ai/dsh-yuanshu-tool": {
       "version": "workspace:^"
+    },
+    "@deepseek-ai/dsh-yuanshu-qa-tool": {
+      "version": "workspace:^"
     }
   }
 }
