@@ -16,14 +16,14 @@ export interface Config {
   /** Default worker type for the generic yuanshu_agent tool (not used here). */
   readonly defaultWorkerType?: string
   /** Whether to use streaming mode. When true, uses SSE stream instead of sync call. */
-  readonly streaming?: boolean
+  readonly streaming: boolean
 }
 
 export const Config: z<Config> = z.object({
   baseURL: z.string().required(),
   token: z.string(),
   defaultWorkerType: z.string(),
-  streaming: z.boolean().optional(),
+  streaming: z.boolean().default(false),
 })
 
 /**
@@ -114,33 +114,34 @@ export function apply(ctx: Context, config: Config): void {
       },
     },
     execute: async (args) => {
-      const request: AskKnowledgeQuestionRequest = {
-        question: String(args.question ?? '').trim(),
-        ...(args.session_id ? { session_id: String(args.session_id) } : {}),
-        ...(args.collection_ids && Array.isArray(args.collection_ids) && args.collection_ids.length > 0
-          ? { collection_ids: args.collection_ids as number[] }
-          : {}),
-        ...(args.application_id ? { application_id: args.application_id as number } : {}),
-        ...(args.thinking_mode ? { thinking_mode: args.thinking_mode as AskKnowledgeQuestionRequest['thinking_mode'] } : {}),
+      const question = String(args.question ?? '').trim()
+      if (!question) {
+        throw new Error('yuanshu_qa: question is required and must be non-empty')
       }
 
-      if (!request.question) {
-        throw new Error('yuanshu_qa: question is required and must be non-empty')
+      const request: AskKnowledgeQuestionRequest = Object.assign({
+        question,
+      }, args.session_id ? { session_id: String(args.session_id) as string } : {} as Partial<AskKnowledgeQuestionRequest>)
+      if (args.collection_ids && Array.isArray(args.collection_ids) && args.collection_ids.length > 0) {
+        ;(request as { collection_ids?: number[] }).collection_ids = args.collection_ids.filter((v): v is number => typeof v === 'number')
+      }
+      if (args.application_id) {
+        ;(request as { application_id?: number }).application_id = Number(args.application_id)
+      }
+      if (args.thinking_mode) {
+        ;(request as { thinking_mode?: 'none' | 'light' | 'medium' | 'heavy' | 'ultra' }).thinking_mode = args.thinking_mode as 'none' | 'light' | 'medium' | 'heavy' | 'ultra'
       }
 
       let result: AskKnowledgeQuestionResponse
       try {
         if (config.streaming) {
-          // Streaming mode: collect all events and return final answer
-          const events = []
+          const events: Array<{ event: string; data: unknown }> = []
           for await (const event of client.askQuestionStream(request)) {
             events.push(event)
           }
-          // Find the "complete" event to extract the answer
           const completeEvent = events.find(e => e.event === 'complete')
           if (completeEvent && typeof completeEvent.data === 'object') {
-            const data = completeEvent.data as AskKnowledgeQuestionResponse
-            result = data
+            result = completeEvent.data as AskKnowledgeQuestionResponse
           } else {
             result = {
               session_id: '',
