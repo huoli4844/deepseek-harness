@@ -1,0 +1,34 @@
+/* ============================================================
+   元枢 (Star Pivot) — Global styles for login page
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* Override TDesign form styles for login layout */
+.login-form {
+  :deep(.t-form__item) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.t-form__label) {
+    display: none;
+  }
+}

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -58,10 +61,26 @@ function parseQuery(url: string): Record<string, string> {
   return params
 }
 
+/** Resolve the YuanShu auth token: config > env var > shared token file. */
+function resolveToken(config: Config): string | undefined {
+  if (config.token) return config.token
+  const envToken = process.env.YUANSHU_TOKEN
+  if (envToken) return envToken
+  const tokenFile = join(homedir(), '.dsh', 'yuanshu-token')
+  try {
+    const fileToken = readFileSync(tokenFile, 'utf8').trim()
+    if (fileToken) return fileToken
+  } catch {
+    // File doesn't exist or unreadable — fall through
+  }
+  return undefined
+}
+
 export function apply(ctx: Context, config: Config): void {
+  const token = resolveToken(config)
   const client = new YuanShuClient({
     baseURL: config.baseURL,
-    ...(config.token === undefined ? {} : { token: config.token }),
+    ...(token ? { token } : {}),
   })
   const prefix = config.prefix ?? '/yuanshu-api'
   const route: WebRoute = { kind: 'prefix', path: prefix, handler: async (req, res) => {
