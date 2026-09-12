@@ -1,0 +1,2335 @@
+/* ============================================================
+   元枢 (Star Pivot) — 22 套配色主题
+   ============================================================
+   用法：<html data-theme="azure"> 或 <html data-theme="sakura" theme-mode="dark">
+   ============================================================ */
+
+/* ---------- 0. 默认主题 (Azure 天蓝) — 沿用当前 :root ---------- */
+
+/* ============================================================
+   1. Azure 天蓝 — 专业沉稳（默认）
+   ============================================================ */
+:root,
+:root[data-theme="azure"] {
+  --td-brand-color: #2468f2;
+  --td-brand-color-hover: #3b7bf7;
+  --td-brand-color-focus: rgb(36 104 242 / 10%);
+  --td-brand-color-active: #1a56db;
+  --td-brand-color-light: rgb(36 104 242 / 6%);
+  --td-success-color: #00a870;
+  --td-warning-color: #ed7b2f;
+  --td-error-color: #e34d59;
+  --td-info-color: #2468f2;
+  --td-text-color-primary: #1d2129;
+  --td-text-color-secondary: #4e5969;
+  --td-text-color-placeholder: #86909c;
+  --td-text-color-disabled: #c9cdd4;
+  --td-bg-color-page: #f0f2f5;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f7f8fa;
+  --td-bg-color-component: #f7f8fa;
+  --td-border-level-1-color: #e5e6eb;
+  --sp-sidebar-bg: #1b1b2f;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(36 104 242 / 20%);
+}
+
+:root[data-theme="azure"][theme-mode="dark"] {
+  --td-brand-color: #4f8cff;
+  --td-brand-color-hover: #6ba3ff;
+  --td-brand-color-focus: rgb(79 140 255 / 20%);
+  --td-brand-color-active: #3570e8;
+  --td-brand-color-light: rgb(79 140 255 / 8%);
+  --td-success-color: #00d68f;
+  --td-warning-color: #f09040;
+  --td-error-color: #f06060;
+  --td-info-color: #4f8cff;
+  --td-text-color-primary: #e8eaed;
+  --td-text-color-secondary: #b0b8c4;
+  --td-text-color-placeholder: #7a8290;
+  --td-text-color-disabled: #505866;
+  --td-bg-color-page: #14141f;
+  --td-bg-color-container: #1e1e30;
+  --td-bg-color-secondarycontainer: #262640;
+  --td-bg-color-component: #262640;
+  --td-border-level-1-color: #333350;
+  --sp-sidebar-bg: #12121c;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(79 140 255 / 25%);
+}
+
+/* ============================================================
+   2. Jade 翠玉 — 自然清爽
+   ============================================================ */
+:root[data-theme="jade"] {
+  --td-brand-color: #00a870;
+  --td-brand-color-hover: #14c27e;
+  --td-brand-color-focus: rgb(0 168 112 / 10%);
+  --td-brand-color-active: #00945e;
+  --td-brand-color-light: rgb(0 168 112 / 6%);
+  --td-success-color: #00a870;
+  --td-warning-color: #e89030;
+  --td-error-color: #e34d59;
+  --td-info-color: #2080d0;
+  --td-text-color-primary: #1a2a1e;
+  --td-text-color-secondary: #4a5a4e;
+  --td-text-color-placeholder: #809a88;
+  --td-text-color-disabled: #c0d0c8;
+  --td-bg-color-page: #ecf5f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f8f4;
+  --td-bg-color-component: #f0f8f4;
+  --td-border-level-1-color: #d8e8e0;
+  --sp-sidebar-bg: #1a2a1e;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(0 168 112 / 20%);
+}
+
+:root[data-theme="jade"][theme-mode="dark"] {
+  --td-brand-color: #20d090;
+  --td-brand-color-hover: #40e8a8;
+  --td-brand-color-focus: rgb(32 208 144 / 20%);
+  --td-brand-color-active: #10b878;
+  --td-brand-color-light: rgb(32 208 144 / 8%);
+  --td-success-color: #20d090;
+  --td-warning-color: #f0a040;
+  --td-error-color: #f06060;
+  --td-info-color: #4090e0;
+  --td-text-color-primary: #d8eae0;
+  --td-text-color-secondary: #a0b8a8;
+  --td-text-color-placeholder: #709080;
+  --td-text-color-disabled: #486050;
+  --td-bg-color-page: #0e1e14;
+  --td-bg-color-container: #182a1e;
+  --td-bg-color-secondarycontainer: #203828;
+  --td-bg-color-component: #203828;
+  --td-border-level-1-color: #2a4830;
+  --sp-sidebar-bg: #0c1810;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(32 208 144 / 25%);
+}
+
+/* ============================================================
+   3. Amber 琥珀 — 温暖活力
+   ============================================================ */
+:root[data-theme="amber"] {
+  --td-brand-color: #e88420;
+  --td-brand-color-hover: #f09840;
+  --td-brand-color-focus: rgb(232 132 32 / 10%);
+  --td-brand-color-active: #d07010;
+  --td-brand-color-light: rgb(232 132 32 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #d08020;
+  --td-error-color: #d04040;
+  --td-info-color: #5888c8;
+  --td-text-color-primary: #2a1e10;
+  --td-text-color-secondary: #5a4e3a;
+  --td-text-color-placeholder: #9a8a70;
+  --td-text-color-disabled: #c8c0b0;
+  --td-bg-color-page: #f8f2ea;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #faf4ec;
+  --td-bg-color-component: #faf4ec;
+  --td-border-level-1-color: #e8e0d4;
+  --sp-sidebar-bg: #2a1e10;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(232 132 32 / 20%);
+}
+
+:root[data-theme="amber"][theme-mode="dark"] {
+  --td-brand-color: #f0a040;
+  --td-brand-color-hover: #f8b860;
+  --td-brand-color-focus: rgb(240 160 64 / 20%);
+  --td-brand-color-active: #e08828;
+  --td-brand-color-light: rgb(240 160 64 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #e09830;
+  --td-error-color: #e05050;
+  --td-info-color: #6898d8;
+  --td-text-color-primary: #f0e8dc;
+  --td-text-color-secondary: #b8a890;
+  --td-text-color-placeholder: #887a68;
+  --td-text-color-disabled: #5a5044;
+  --td-bg-color-page: #1e160c;
+  --td-bg-color-container: #2a2218;
+  --td-bg-color-secondarycontainer: #382e20;
+  --td-bg-color-component: #382e20;
+  --td-border-level-1-color: #483e30;
+  --sp-sidebar-bg: #16120a;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(240 160 64 / 25%);
+}
+
+/* ============================================================
+   4. Orchid 紫兰 — 优雅知性
+   ============================================================ */
+:root[data-theme="orchid"] {
+  --td-brand-color: #7c3aed;
+  --td-brand-color-hover: #915cf0;
+  --td-brand-color-focus: rgb(124 58 237 / 10%);
+  --td-brand-color-active: #6d28d9;
+  --td-brand-color-light: rgb(124 58 237 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #d08020;
+  --td-error-color: #d04040;
+  --td-info-color: #5888c8;
+  --td-text-color-primary: #1a1028;
+  --td-text-color-secondary: #4a3e5a;
+  --td-text-color-placeholder: #8a7a9a;
+  --td-text-color-disabled: #c0b8c8;
+  --td-bg-color-page: #f0ecf5;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f4f0fa;
+  --td-bg-color-component: #f4f0fa;
+  --td-border-level-1-color: #e0d8e8;
+  --sp-sidebar-bg: #1a1028;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(124 58 237 / 20%);
+}
+
+:root[data-theme="orchid"][theme-mode="dark"] {
+  --td-brand-color: #9b6ef0;
+  --td-brand-color-hover: #b088f5;
+  --td-brand-color-focus: rgb(155 110 240 / 20%);
+  --td-brand-color-active: #8850ea;
+  --td-brand-color-light: rgb(155 110 240 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #e09830;
+  --td-error-color: #e05050;
+  --td-info-color: #78a8e0;
+  --td-text-color-primary: #e8dcf0;
+  --td-text-color-secondary: #b0a0c0;
+  --td-text-color-placeholder: #807090;
+  --td-text-color-disabled: #504860;
+  --td-bg-color-page: #120c1e;
+  --td-bg-color-container: #1c1430;
+  --td-bg-color-secondarycontainer: #281e40;
+  --td-bg-color-component: #281e40;
+  --td-border-level-1-color: #383050;
+  --sp-sidebar-bg: #0e0818;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(155 110 240 / 25%);
+}
+
+/* ============================================================
+   5. Crimson 赤红 — 热情力量
+   ============================================================ */
+:root[data-theme="crimson"] {
+  --td-brand-color: #d03050;
+  --td-brand-color-hover: #e04860;
+  --td-brand-color-focus: rgb(208 48 80 / 10%);
+  --td-brand-color-active: #b82840;
+  --td-brand-color-light: rgb(208 48 80 / 6%);
+  --td-success-color: #388060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c03030;
+  --td-info-color: #5078b8;
+  --td-text-color-primary: #2a1018;
+  --td-text-color-secondary: #5a3a42;
+  --td-text-color-placeholder: #9a7280;
+  --td-text-color-disabled: #c8b0b8;
+  --td-bg-color-page: #f8ecf0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #faf0f4;
+  --td-bg-color-component: #faf0f4;
+  --td-border-level-1-color: #e8d8e0;
+  --sp-sidebar-bg: #2a1018;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(208 48 80 / 20%);
+}
+
+:root[data-theme="crimson"][theme-mode="dark"] {
+  --td-brand-color: #e05068;
+  --td-brand-color-hover: #e87080;
+  --td-brand-color-focus: rgb(224 80 104 / 20%);
+  --td-brand-color-active: #d03850;
+  --td-brand-color-light: rgb(224 80 104 / 8%);
+  --td-success-color: #48a070;
+  --td-warning-color: #d88830;
+  --td-error-color: #d04040;
+  --td-info-color: #6888c8;
+  --td-text-color-primary: #f0dce0;
+  --td-text-color-secondary: #b8a0a8;
+  --td-text-color-placeholder: #887080;
+  --td-text-color-disabled: #584850;
+  --td-bg-color-page: #1e0c14;
+  --td-bg-color-container: #2a1420;
+  --td-bg-color-secondarycontainer: #38202c;
+  --td-bg-color-component: #38202c;
+  --td-border-level-1-color: #483040;
+  --sp-sidebar-bg: #160810;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(224 80 104 / 25%);
+}
+
+/* ============================================================
+   6. Slate 石板 — 极简高级（类比 shadcn/ui）
+   ============================================================ */
+:root[data-theme="slate"] {
+  --td-brand-color: #1e293b;
+  --td-brand-color-hover: #334155;
+  --td-brand-color-focus: rgb(30 41 59 / 10%);
+  --td-brand-color-active: #0f172a;
+  --td-brand-color-light: rgb(30 41 59 / 6%);
+  --td-success-color: #2d7a5a;
+  --td-warning-color: #b86a20;
+  --td-error-color: #b03030;
+  --td-info-color: #3b6ba0;
+  --td-text-color-primary: #0f172a;
+  --td-text-color-secondary: #475569;
+  --td-text-color-placeholder: #94a3b8;
+  --td-text-color-disabled: #cbd5e1;
+  --td-bg-color-page: #f1f5f9;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f8fafc;
+  --td-bg-color-component: #f8fafc;
+  --td-border-level-1-color: #e2e8f0;
+  --sp-sidebar-bg: #0f172a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(30 41 59 / 25%);
+}
+
+:root[data-theme="slate"][theme-mode="dark"] {
+  --td-brand-color: #e2e8f0;
+  --td-brand-color-hover: #f1f5f9;
+  --td-brand-color-focus: rgb(226 232 240 / 15%);
+  --td-brand-color-active: #cbd5e1;
+  --td-brand-color-light: rgb(226 232 240 / 6%);
+  --td-success-color: #5cb890;
+  --td-warning-color: #d89040;
+  --td-error-color: #d04848;
+  --td-info-color: #60a0d8;
+  --td-text-color-primary: #f1f5f9;
+  --td-text-color-secondary: #94a3b8;
+  --td-text-color-placeholder: #64748b;
+  --td-text-color-disabled: #475569;
+  --td-bg-color-page: #0f172a;
+  --td-bg-color-container: #1e293b;
+  --td-bg-color-secondarycontainer: #1e293b;
+  --td-bg-color-component: #1e293b;
+  --td-border-level-1-color: #334155;
+  --sp-sidebar-bg: #0a0f1a;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(226 232 240 / 15%);
+}
+
+/* ============================================================
+   7. Ocean 深海 — 深邃开阔
+   ============================================================ */
+:root[data-theme="ocean"] {
+  --td-brand-color: #0a7e9c;
+  --td-brand-color-hover: #2098b8;
+  --td-brand-color-focus: rgb(10 126 156 / 10%);
+  --td-brand-color-active: #086a84;
+  --td-brand-color-light: rgb(10 126 156 / 6%);
+  --td-success-color: #2a8a60;
+  --td-warning-color: #c07820;
+  --td-error-color: #c04040;
+  --td-info-color: #3070b0;
+  --td-text-color-primary: #0a1a20;
+  --td-text-color-secondary: #3a5a62;
+  --td-text-color-placeholder: #7a9aa8;
+  --td-text-color-disabled: #b8d0d8;
+  --td-bg-color-page: #eaf2f5;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f6f8;
+  --td-bg-color-component: #f0f6f8;
+  --td-border-level-1-color: #d0e0e8;
+  --sp-sidebar-bg: #0a1a20;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(10 126 156 / 20%);
+}
+
+:root[data-theme="ocean"][theme-mode="dark"] {
+  --td-brand-color: #20a0c0;
+  --td-brand-color-hover: #40b8d8;
+  --td-brand-color-focus: rgb(32 160 192 / 20%);
+  --td-brand-color-active: #1088a8;
+  --td-brand-color-light: rgb(32 160 192 / 8%);
+  --td-success-color: #40a878;
+  --td-warning-color: #d08830;
+  --td-error-color: #d04848;
+  --td-info-color: #4080c8;
+  --td-text-color-primary: #d8eaf0;
+  --td-text-color-secondary: #98b8c4;
+  --td-text-color-placeholder: #689098;
+  --td-text-color-disabled: #406870;
+  --td-bg-color-page: #08141a;
+  --td-bg-color-container: #10202a;
+  --td-bg-color-secondarycontainer: #182e38;
+  --td-bg-color-component: #182e38;
+  --td-border-level-1-color: #284048;
+  --sp-sidebar-bg: #060e12;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(32 160 192 / 25%);
+}
+
+/* ============================================================
+   8. Sunset 日落 — 浪漫暖色
+   ============================================================ */
+:root[data-theme="sunset"] {
+  --td-brand-color: #e06040;
+  --td-brand-color-hover: #f07858;
+  --td-brand-color-focus: rgb(224 96 64 / 10%);
+  --td-brand-color-active: #c84e30;
+  --td-brand-color-light: rgb(224 96 64 / 6%);
+  --td-success-color: #3a8a60;
+  --td-warning-color: #d08020;
+  --td-error-color: #d04040;
+  --td-info-color: #5880b8;
+  --td-text-color-primary: #2a1410;
+  --td-text-color-secondary: #5a3e38;
+  --td-text-color-placeholder: #9a7a6e;
+  --td-text-color-disabled: #c8b8b0;
+  --td-bg-color-page: #faf0ea;
+  --td-bg-color-container: #fff8f4;
+  --td-bg-color-secondarycontainer: #fcf2ec;
+  --td-bg-color-component: #fcf2ec;
+  --td-border-level-1-color: #e8dcd4;
+  --sp-sidebar-bg: #2a1410;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(224 96 64 / 20%);
+}
+
+:root[data-theme="sunset"][theme-mode="dark"] {
+  --td-brand-color: #f08060;
+  --td-brand-color-hover: #f89878;
+  --td-brand-color-focus: rgb(240 128 96 / 20%);
+  --td-brand-color-active: #e06848;
+  --td-brand-color-light: rgb(240 128 96 / 8%);
+  --td-success-color: #48a870;
+  --td-warning-color: #d88830;
+  --td-error-color: #d84848;
+  --td-info-color: #6890d0;
+  --td-text-color-primary: #f0e0d8;
+  --td-text-color-secondary: #b8a098;
+  --td-text-color-placeholder: #887068;
+  --td-text-color-disabled: #584840;
+  --td-bg-color-page: #1e0e0a;
+  --td-bg-color-container: #2a1814;
+  --td-bg-color-secondarycontainer: #382420;
+  --td-bg-color-component: #382420;
+  --td-border-level-1-color: #483430;
+  --sp-sidebar-bg: #160a06;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(240 128 96 / 25%);
+}
+
+/* ============================================================
+   9. Forest 森林 — 沉稳自然
+   ============================================================ */
+:root[data-theme="forest"] {
+  --td-brand-color: #3a7a3a;
+  --td-brand-color-hover: #509450;
+  --td-brand-color-focus: rgb(58 122 58 / 10%);
+  --td-brand-color-active: #2e662e;
+  --td-brand-color-light: rgb(58 122 58 / 6%);
+  --td-success-color: #2a8a5a;
+  --td-warning-color: #b87020;
+  --td-error-color: #b83838;
+  --td-info-color: #4070a0;
+  --td-text-color-primary: #1a2016;
+  --td-text-color-secondary: #4a5444;
+  --td-text-color-placeholder: #808a78;
+  --td-text-color-disabled: #bcc8b8;
+  --td-bg-color-page: #ecf0ea;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f4ec;
+  --td-bg-color-component: #f0f4ec;
+  --td-border-level-1-color: #d8e0d4;
+  --sp-sidebar-bg: #1a2016;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(58 122 58 / 20%);
+}
+
+:root[data-theme="forest"][theme-mode="dark"] {
+  --td-brand-color: #58a058;
+  --td-brand-color-hover: #70b870;
+  --td-brand-color-focus: rgb(88 160 88 / 20%);
+  --td-brand-color-active: #408840;
+  --td-brand-color-light: rgb(88 160 88 / 8%);
+  --td-success-color: #40a870;
+  --td-warning-color: #c88028;
+  --td-error-color: #c84040;
+  --td-info-color: #5080b8;
+  --td-text-color-primary: #dce8da;
+  --td-text-color-secondary: #a0b09e;
+  --td-text-color-placeholder: #70886e;
+  --td-text-color-disabled: #486646;
+  --td-bg-color-page: #0e1a0e;
+  --td-bg-color-container: #182618;
+  --td-bg-color-secondarycontainer: #203420;
+  --td-bg-color-component: #203420;
+  --td-border-level-1-color: #2e462e;
+  --sp-sidebar-bg: #0a140a;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(88 160 88 / 25%);
+}
+
+/* ============================================================
+   10. Sakura 樱花 — 柔和甜美
+   ============================================================ */
+:root[data-theme="sakura"] {
+  --td-brand-color: #d06080;
+  --td-brand-color-hover: #e07898;
+  --td-brand-color-focus: rgb(208 96 128 / 10%);
+  --td-brand-color-active: #c05070;
+  --td-brand-color-light: rgb(208 96 128 / 6%);
+  --td-success-color: #38906a;
+  --td-warning-color: #c88030;
+  --td-error-color: #c04848;
+  --td-info-color: #5880b0;
+  --td-text-color-primary: #2a1420;
+  --td-text-color-secondary: #5a3e4e;
+  --td-text-color-placeholder: #9a7a8a;
+  --td-text-color-disabled: #c8b8c0;
+  --td-bg-color-page: #faeef4;
+  --td-bg-color-container: #fff8fa;
+  --td-bg-color-secondarycontainer: #fcf0f6;
+  --td-bg-color-component: #fcf0f6;
+  --td-border-level-1-color: #e8dce2;
+  --sp-sidebar-bg: #2a1420;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(208 96 128 / 20%);
+}
+
+:root[data-theme="sakura"][theme-mode="dark"] {
+  --td-brand-color: #e08098;
+  --td-brand-color-hover: #ea98b0;
+  --td-brand-color-focus: rgb(224 128 152 / 20%);
+  --td-brand-color-active: #d06880;
+  --td-brand-color-light: rgb(224 128 152 / 8%);
+  --td-success-color: #48a878;
+  --td-warning-color: #d89038;
+  --td-error-color: #d05050;
+  --td-info-color: #6890c8;
+  --td-text-color-primary: #f0dce6;
+  --td-text-color-secondary: #b8a0ac;
+  --td-text-color-placeholder: #88707e;
+  --td-text-color-disabled: #58485a;
+  --td-bg-color-page: #1e0e18;
+  --td-bg-color-container: #2a1824;
+  --td-bg-color-secondarycontainer: #382430;
+  --td-bg-color-component: #382430;
+  --td-border-level-1-color: #483448;
+  --sp-sidebar-bg: #160a12;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(224 128 152 / 25%);
+}
+
+/* ============================================================
+   11. Midnight 午夜 — 深邃高级（暗色为主）
+   ============================================================ */
+:root[data-theme="midnight"] {
+  --td-brand-color: #3a5ae8;
+  --td-brand-color-hover: #5874f0;
+  --td-brand-color-focus: rgb(58 90 232 / 10%);
+  --td-brand-color-active: #2a48d0;
+  --td-brand-color-light: rgb(58 90 232 / 6%);
+  --td-success-color: #30a078;
+  --td-warning-color: #d08a30;
+  --td-error-color: #d04848;
+  --td-info-color: #5080c8;
+  --td-text-color-primary: #1a1a2a;
+  --td-text-color-secondary: #4a4e5e;
+  --td-text-color-placeholder: #8a8e9e;
+  --td-text-color-disabled: #c0c4d0;
+  --td-bg-color-page: #eaeef5;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f4fa;
+  --td-bg-color-component: #f0f4fa;
+  --td-border-level-1-color: #d8dce8;
+  --sp-sidebar-bg: #0a0a1a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(58 90 232 / 20%);
+}
+
+:root[data-theme="midnight"][theme-mode="dark"] {
+  --td-brand-color: #6080f0;
+  --td-brand-color-hover: #8098f5;
+  --td-brand-color-focus: rgb(96 128 240 / 20%);
+  --td-brand-color-active: #4868e8;
+  --td-brand-color-light: rgb(96 128 240 / 8%);
+  --td-success-color: #48b888;
+  --td-warning-color: #e09a40;
+  --td-error-color: #e05858;
+  --td-info-color: #6090d8;
+  --td-text-color-primary: #d8dcee;
+  --td-text-color-secondary: #989cb0;
+  --td-text-color-placeholder: #68708a;
+  --td-text-color-disabled: #40486a;
+  --td-bg-color-page: #0a0a18;
+  --td-bg-color-container: #12122a;
+  --td-bg-color-secondarycontainer: #1a1e3a;
+  --td-bg-color-component: #1a1e3a;
+  --td-border-level-1-color: #2a2e4a;
+  --sp-sidebar-bg: #060610;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(96 128 240 / 25%);
+}
+
+/* ============================================================
+   12. Gold 经典 — 藏蓝金典（商务奢华）
+   ============================================================ */
+:root[data-theme="gold"] {
+  --td-brand-color: #1a3a5a;
+  --td-brand-color-hover: #2a5070;
+  --td-brand-color-focus: rgb(26 58 90 / 10%);
+  --td-brand-color-active: #0e2840;
+  --td-brand-color-light: rgb(26 58 90 / 6%);
+  --td-success-color: #2a8a60;
+  --td-warning-color: #b88020;
+  --td-error-color: #b84040;
+  --td-info-color: #c8a030;
+  --td-text-color-primary: #1a1a14;
+  --td-text-color-secondary: #4a4a42;
+  --td-text-color-placeholder: #8a8a7a;
+  --td-text-color-disabled: #c0c0b8;
+  --td-bg-color-page: #f2f0ea;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f8f4ec;
+  --td-bg-color-component: #f8f4ec;
+  --td-border-level-1-color: #e0dcd0;
+  --sp-sidebar-bg: #0e1a28;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(200 160 48 / 15%);
+}
+
+:root[data-theme="gold"][theme-mode="dark"] {
+  --td-brand-color: #c8a030;
+  --td-brand-color-hover: #d8b048;
+  --td-brand-color-focus: rgb(200 160 48 / 20%);
+  --td-brand-color-active: #b89020;
+  --td-brand-color-light: rgb(200 160 48 / 8%);
+  --td-success-color: #40a878;
+  --td-warning-color: #d89830;
+  --td-error-color: #d05050;
+  --td-info-color: #d8b048;
+  --td-text-color-primary: #e0dcd0;
+  --td-text-color-secondary: #a8a494;
+  --td-text-color-placeholder: #7a7868;
+  --td-text-color-disabled: #505046;
+  --td-bg-color-page: #0e1014;
+  --td-bg-color-container: #1a1c22;
+  --td-bg-color-secondarycontainer: #24282e;
+  --td-bg-color-component: #24282e;
+  --td-border-level-1-color: #343840;
+  --sp-sidebar-bg: #080a0e;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(200 160 48 / 20%);
+}
+
+/* ============================================================
+   13. Burgundy 勃艮第 — 酒红奢华
+   ============================================================ */
+:root[data-theme="burgundy"] {
+  --td-brand-color: #722f37;
+  --td-brand-color-hover: #8a4545;
+  --td-brand-color-focus: rgb(114 47 55 / 10%);
+  --td-brand-color-active: #5e2228;
+  --td-brand-color-light: rgb(114 47 55 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #2a1a1a;
+  --td-text-color-secondary: #5a3a3a;
+  --td-text-color-placeholder: #8a6a6a;
+  --td-text-color-disabled: #c0b0b0;
+  --td-bg-color-page: #f8f0f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #faf4f4;
+  --td-bg-color-component: #faf4f4;
+  --td-border-level-1-color: #e8d8d8;
+  --sp-sidebar-bg: #2a1a1a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(114 47 55 / 20%);
+}
+
+:root[data-theme="burgundy"][theme-mode="dark"] {
+  --td-brand-color: #a0454e;
+  --td-brand-color-hover: #b85a62;
+  --td-brand-color-focus: rgb(160 69 78 / 20%);
+  --td-brand-color-active: #883038;
+  --td-brand-color-light: rgb(160 69 78 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #e8d8da;
+  --td-text-color-secondary: #b8a0a2;
+  --td-text-color-placeholder: #886a6e;
+  --td-text-color-disabled: #584448;
+  --td-bg-color-page: #160a0c;
+  --td-bg-color-container: #221214;
+  --td-bg-color-secondarycontainer: #2c1a1e;
+  --td-bg-color-component: #2c1a1e;
+  --td-border-level-1-color: #3a2428;
+  --sp-sidebar-bg: #100608;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(160 69 78 / 25%);
+}
+
+/* ============================================================
+   14. Chanel 香奈儿 — 黑白经典
+   ============================================================ */
+:root[data-theme="chanel"] {
+  --td-brand-color: #1a1a1a;
+  --td-brand-color-hover: #333;
+  --td-brand-color-focus: rgb(26 26 26 / 10%);
+  --td-brand-color-active: #000;
+  --td-brand-color-light: rgb(26 26 26 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #1a1a1a;
+  --td-text-color-secondary: #4a4a4a;
+  --td-text-color-placeholder: #8a8a8a;
+  --td-text-color-disabled: #c0c0c0;
+  --td-bg-color-page: #f5f5f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #fafaf5;
+  --td-bg-color-component: #fafaf5;
+  --td-border-level-1-color: #e0e0d8;
+  --sp-sidebar-bg: #1a1a1a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(26 26 26 / 20%);
+}
+
+:root[data-theme="chanel"][theme-mode="dark"] {
+  --td-brand-color: #e8e8e0;
+  --td-brand-color-hover: #f5f5f0;
+  --td-brand-color-focus: rgb(232 232 224 / 20%);
+  --td-brand-color-active: #d0d0c8;
+  --td-brand-color-light: rgb(232 232 224 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #e8e8e0;
+  --td-text-color-secondary: #b0b0aa;
+  --td-text-color-placeholder: #80807a;
+  --td-text-color-disabled: #50504c;
+  --td-bg-color-page: #0a0a0a;
+  --td-bg-color-container: #141414;
+  --td-bg-color-secondarycontainer: #1e1e1e;
+  --td-bg-color-component: #1e1e1e;
+  --td-border-level-1-color: #303030;
+  --sp-sidebar-bg: #000;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(232 232 224 / 25%);
+}
+
+/* ============================================================
+   15. Olive 橄榄 — 军旅中性
+   ============================================================ */
+:root[data-theme="olive"] {
+  --td-brand-color: #6b6f42;
+  --td-brand-color-hover: #828655;
+  --td-brand-color-focus: rgb(107 111 66 / 10%);
+  --td-brand-color-active: #565a32;
+  --td-brand-color-light: rgb(107 111 66 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #2a2a1e;
+  --td-text-color-secondary: #5a5a48;
+  --td-text-color-placeholder: #8a8a72;
+  --td-text-color-disabled: #c0c0b0;
+  --td-bg-color-page: #f0efe8;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f5f4ec;
+  --td-bg-color-component: #f5f4ec;
+  --td-border-level-1-color: #d8d8c8;
+  --sp-sidebar-bg: #2a2a1e;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(107 111 66 / 20%);
+}
+
+:root[data-theme="olive"][theme-mode="dark"] {
+  --td-brand-color: #8a8e5a;
+  --td-brand-color-hover: #a0a46e;
+  --td-brand-color-focus: rgb(138 142 90 / 20%);
+  --td-brand-color-active: #727646;
+  --td-brand-color-light: rgb(138 142 90 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #d8dac8;
+  --td-text-color-secondary: #a8aa98;
+  --td-text-color-placeholder: #787a6a;
+  --td-text-color-disabled: #50544a;
+  --td-bg-color-page: #0e100a;
+  --td-bg-color-container: #1a1c14;
+  --td-bg-color-secondarycontainer: #24281e;
+  --td-bg-color-component: #24281e;
+  --td-border-level-1-color: #30342a;
+  --sp-sidebar-bg: #080a06;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(138 142 90 / 25%);
+}
+
+/* ============================================================
+   16. DustyRose 豆沙粉 — 温柔知性
+   ============================================================ */
+:root[data-theme="dustyrose"] {
+  --td-brand-color: #c0807e;
+  --td-brand-color-hover: #d49694;
+  --td-brand-color-focus: rgb(192 128 126 / 10%);
+  --td-brand-color-active: #a86a68;
+  --td-brand-color-light: rgb(192 128 126 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #2a1a1a;
+  --td-text-color-secondary: #5a4a4a;
+  --td-text-color-placeholder: #8a7a7a;
+  --td-text-color-disabled: #c0b8b8;
+  --td-bg-color-page: #f9f0f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #fcf4f4;
+  --td-bg-color-component: #fcf4f4;
+  --td-border-level-1-color: #e8d8d8;
+  --sp-sidebar-bg: #2a1a1a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(192 128 126 / 20%);
+}
+
+:root[data-theme="dustyrose"][theme-mode="dark"] {
+  --td-brand-color: #d49898;
+  --td-brand-color-hover: #e0b0b0;
+  --td-brand-color-focus: rgb(212 152 152 / 20%);
+  --td-brand-color-active: #c08080;
+  --td-brand-color-light: rgb(212 152 152 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #f0e0e0;
+  --td-text-color-secondary: #c0a8a8;
+  --td-text-color-placeholder: #907878;
+  --td-text-color-disabled: #584848;
+  --td-bg-color-page: #1a1010;
+  --td-bg-color-container: #261a1a;
+  --td-bg-color-secondarycontainer: #322424;
+  --td-bg-color-component: #322424;
+  --td-border-level-1-color: #3a2a2a;
+  --sp-sidebar-bg: #100808;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(212 152 152 / 25%);
+}
+
+/* ============================================================
+   17. Terracotta 陶土红 — 地中海暖阳
+   ============================================================ */
+:root[data-theme="terracotta"] {
+  --td-brand-color: #cc6651;
+  --td-brand-color-hover: #e07a64;
+  --td-brand-color-focus: rgb(204 102 81 / 10%);
+  --td-brand-color-active: #b8523e;
+  --td-brand-color-light: rgb(204 102 81 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #2a1e18;
+  --td-text-color-secondary: #5a4a40;
+  --td-text-color-placeholder: #8a7a70;
+  --td-text-color-disabled: #c0b8b0;
+  --td-bg-color-page: #f8f0ea;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #fcf4ee;
+  --td-bg-color-component: #fcf4ee;
+  --td-border-level-1-color: #e0d0c8;
+  --sp-sidebar-bg: #2a1e18;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(204 102 81 / 20%);
+}
+
+:root[data-theme="terracotta"][theme-mode="dark"] {
+  --td-brand-color: #e08068;
+  --td-brand-color-hover: #ea947c;
+  --td-brand-color-focus: rgb(224 128 104 / 20%);
+  --td-brand-color-active: #d06850;
+  --td-brand-color-light: rgb(224 128 104 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #f0e0d8;
+  --td-text-color-secondary: #c0b0a8;
+  --td-text-color-placeholder: #90807a;
+  --td-text-color-disabled: #58504c;
+  --td-bg-color-page: #1a0e0a;
+  --td-bg-color-container: #261812;
+  --td-bg-color-secondarycontainer: #32221c;
+  --td-bg-color-component: #32221c;
+  --td-border-level-1-color: #3a2a24;
+  --sp-sidebar-bg: #100806;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(224 128 104 / 25%);
+}
+
+/* ============================================================
+   18. Lavender 薰衣草 — 淡紫优雅
+   ============================================================ */
+:root[data-theme="lavender"] {
+  --td-brand-color: #9a7eb8;
+  --td-brand-color-hover: #b094cc;
+  --td-brand-color-focus: rgb(154 126 184 / 10%);
+  --td-brand-color-active: #8268a2;
+  --td-brand-color-light: rgb(154 126 184 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #1e1a2a;
+  --td-text-color-secondary: #4e4a5a;
+  --td-text-color-placeholder: #7e7a8a;
+  --td-text-color-disabled: #b8b8c0;
+  --td-bg-color-page: #f2ecf8;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f6f2fc;
+  --td-bg-color-component: #f6f2fc;
+  --td-border-level-1-color: #d8d0e8;
+  --sp-sidebar-bg: #1e1a2a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(154 126 184 / 20%);
+}
+
+:root[data-theme="lavender"][theme-mode="dark"] {
+  --td-brand-color: #b098cc;
+  --td-brand-color-hover: #c4acd8;
+  --td-brand-color-focus: rgb(176 152 204 / 20%);
+  --td-brand-color-active: #9c84b8;
+  --td-brand-color-light: rgb(176 152 204 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #e0d8f0;
+  --td-text-color-secondary: #b0a8c0;
+  --td-text-color-placeholder: #807890;
+  --td-text-color-disabled: #50485a;
+  --td-bg-color-page: #100a1a;
+  --td-bg-color-container: #1c1428;
+  --td-bg-color-secondarycontainer: #281e36;
+  --td-bg-color-component: #281e36;
+  --td-border-level-1-color: #32284a;
+  --sp-sidebar-bg: #0a0612;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(176 152 204 / 25%);
+}
+
+/* ============================================================
+   19. Camel 驼色 — 暖棕经典
+   ============================================================ */
+:root[data-theme="camel"] {
+  --td-brand-color: #bd9a7a;
+  --td-brand-color-hover: #d4b08e;
+  --td-brand-color-focus: rgb(189 154 122 / 10%);
+  --td-brand-color-active: #a88464;
+  --td-brand-color-light: rgb(189 154 122 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #2a221a;
+  --td-text-color-secondary: #5a5248;
+  --td-text-color-placeholder: #8a8276;
+  --td-text-color-disabled: #c0b8b0;
+  --td-bg-color-page: #f5f0ea;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #faf4ee;
+  --td-bg-color-component: #faf4ee;
+  --td-border-level-1-color: #e0d8cc;
+  --sp-sidebar-bg: #2a221a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(189 154 122 / 20%);
+}
+
+:root[data-theme="camel"][theme-mode="dark"] {
+  --td-brand-color: #d4b090;
+  --td-brand-color-hover: #e0c0a0;
+  --td-brand-color-focus: rgb(212 176 144 / 20%);
+  --td-brand-color-active: #c8a080;
+  --td-brand-color-light: rgb(212 176 144 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #e8e0d8;
+  --td-text-color-secondary: #b8b0a8;
+  --td-text-color-placeholder: #88807a;
+  --td-text-color-disabled: #58504c;
+  --td-bg-color-page: #14100a;
+  --td-bg-color-container: #201a14;
+  --td-bg-color-secondarycontainer: #2c241e;
+  --td-bg-color-component: #2c241e;
+  --td-border-level-1-color: #38302a;
+  --sp-sidebar-bg: #0a0806;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(212 176 144 / 25%);
+}
+
+/* ============================================================
+   20. Denim 丹宁蓝 — 复古牛仔
+   ============================================================ */
+:root[data-theme="denim"] {
+  --td-brand-color: #4267ac;
+  --td-brand-color-hover: #587ec4;
+  --td-brand-color-focus: rgb(66 103 172 / 10%);
+  --td-brand-color-active: #345294;
+  --td-brand-color-light: rgb(66 103 172 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #1a1e2a;
+  --td-text-color-secondary: #4a4e5a;
+  --td-text-color-placeholder: #7a7e8a;
+  --td-text-color-disabled: #b8bcc0;
+  --td-bg-color-page: #eef0f5;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f4f5f8;
+  --td-bg-color-component: #f4f5f8;
+  --td-border-level-1-color: #d0d8e0;
+  --sp-sidebar-bg: #1a1e2a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(66 103 172 / 20%);
+}
+
+:root[data-theme="denim"][theme-mode="dark"] {
+  --td-brand-color: #6080c0;
+  --td-brand-color-hover: #7898d4;
+  --td-brand-color-focus: rgb(96 128 192 / 20%);
+  --td-brand-color-active: #4868a8;
+  --td-brand-color-light: rgb(96 128 192 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #d8e0f0;
+  --td-text-color-secondary: #a8b0c0;
+  --td-text-color-placeholder: #788090;
+  --td-text-color-disabled: #485060;
+  --td-bg-color-page: #080e1a;
+  --td-bg-color-container: #12182a;
+  --td-bg-color-secondarycontainer: #1c2238;
+  --td-bg-color-component: #1c2238;
+  --td-border-level-1-color: #2a3048;
+  --sp-sidebar-bg: #040810;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(96 128 192 / 25%);
+}
+
+/* ============================================================
+   21. Mint 薄荷 — 清新爽朗
+   ============================================================ */
+:root[data-theme="mint"] {
+  --td-brand-color: #5bb8a0;
+  --td-brand-color-hover: #74ccb4;
+  --td-brand-color-focus: rgb(91 184 160 / 10%);
+  --td-brand-color-active: #44a08a;
+  --td-brand-color-light: rgb(91 184 160 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #1a2a22;
+  --td-text-color-secondary: #4a5a52;
+  --td-text-color-placeholder: #7a8a82;
+  --td-text-color-disabled: #b8c8c0;
+  --td-bg-color-page: #ecf5f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f8f4;
+  --td-bg-color-component: #f0f8f4;
+  --td-border-level-1-color: #d0e8e0;
+  --sp-sidebar-bg: #1a2a22;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(91 184 160 / 20%);
+}
+
+:root[data-theme="mint"][theme-mode="dark"] {
+  --td-brand-color: #78ccb8;
+  --td-brand-color-hover: #90dcc8;
+  --td-brand-color-focus: rgb(120 204 184 / 20%);
+  --td-brand-color-active: #60b8a4;
+  --td-brand-color-light: rgb(120 204 184 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #d8f0e8;
+  --td-text-color-secondary: #a8c0b8;
+  --td-text-color-placeholder: #789088;
+  --td-text-color-disabled: #486058;
+  --td-bg-color-page: #081410;
+  --td-bg-color-container: #12201c;
+  --td-bg-color-secondarycontainer: #1c2c28;
+  --td-bg-color-component: #1c2c28;
+  --td-border-level-1-color: #2a3c38;
+  --sp-sidebar-bg: #040c0a;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(120 204 184 / 25%);
+}
+
+/* ============================================================
+   22. Charcoal 烟灰 — 都市极简
+   ============================================================ */
+:root[data-theme="charcoal"] {
+  --td-brand-color: #404854;
+  --td-brand-color-hover: #58606c;
+  --td-brand-color-focus: rgb(64 72 84 / 10%);
+  --td-brand-color-active: #2e3642;
+  --td-brand-color-light: rgb(64 72 84 / 6%);
+  --td-success-color: #38a060;
+  --td-warning-color: #c87820;
+  --td-error-color: #c04040;
+  --td-info-color: #5070a0;
+  --td-text-color-primary: #1a1e24;
+  --td-text-color-secondary: #4a4e54;
+  --td-text-color-placeholder: #7a7e84;
+  --td-text-color-disabled: #b8bcc0;
+  --td-bg-color-page: #f0f0f2;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f4f4f6;
+  --td-bg-color-component: #f4f4f6;
+  --td-border-level-1-color: #d8dce0;
+  --sp-sidebar-bg: #1a1e24;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(64 72 84 / 20%);
+}
+
+:root[data-theme="charcoal"][theme-mode="dark"] {
+  --td-brand-color: #a0a8b4;
+  --td-brand-color-hover: #b8c0cc;
+  --td-brand-color-focus: rgb(160 168 180 / 20%);
+  --td-brand-color-active: #88909c;
+  --td-brand-color-light: rgb(160 168 180 / 8%);
+  --td-success-color: #48b870;
+  --td-warning-color: #d89038;
+  --td-error-color: #d04848;
+  --td-info-color: #6080b8;
+  --td-text-color-primary: #e0e4e8;
+  --td-text-color-secondary: #b0b4b8;
+  --td-text-color-placeholder: #808488;
+  --td-text-color-disabled: #505458;
+  --td-bg-color-page: #0e0e12;
+  --td-bg-color-container: #1a1a22;
+  --td-bg-color-secondarycontainer: #24242e;
+  --td-bg-color-component: #24242e;
+  --td-border-level-1-color: #30303a;
+  --sp-sidebar-bg: #06060a;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(160 168 180 / 25%);
+}
+
+/* Total: 7 new themes appended */
+
+/* ============================================================
+   Mauve 雾粉紫 — 羊绒温柔撞色
+   ============================================================ */
+:root[data-theme="mauve"] {
+  --td-brand-color: #8B6F8E;
+  --td-brand-color-hover: #98809b;
+  --td-brand-color-focus: rgb(139 111 142 / 10%);
+  --td-brand-color-active: #7a617c;
+  --td-brand-color-light: rgb(139 111 142 / 6%);
+  --td-success-color: #6a9e7a;
+  --td-warning-color: #c88848;
+  --td-error-color: #c05050;
+  --td-info-color: #6080a8;
+  --td-text-color-primary: #1d1a18;
+  --td-text-color-secondary: #4a4440;
+  --td-text-color-placeholder: #807870;
+  --td-text-color-disabled: #c0b8b0;
+  --td-bg-color-page: #f2efe8;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f8f5f0;
+  --td-bg-color-component: #f8f5f0;
+  --td-border-level-1-color: #e0dcd4;
+  --sp-sidebar-bg: #29212a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(139 111 142 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #D4A8A0;
+  --sp-accent-hover: #d7aea7;
+  --sp-accent-active: #c39a93;
+  --sp-accent-light: rgb(212 168 160 / 10%);
+}
+
+:root[data-theme="mauve"][theme-mode="dark"] {
+  --td-brand-color: #a28ba4;
+  --td-brand-color-hover: #b09db2;
+  --td-brand-color-focus: rgb(162 139 164 / 20%);
+  --td-brand-color-active: #967d99;
+  --td-brand-color-light: rgb(162 139 164 / 8%);
+  --td-success-color: #78b088;
+  --td-warning-color: #d89850;
+  --td-error-color: #d05858;
+  --td-info-color: #6890b8;
+  --td-text-color-primary: #e0e0dc;
+  --td-text-color-secondary: #b0aca4;
+  --td-text-color-placeholder: #807a72;
+  --td-text-color-disabled: #504a42;
+  --td-bg-color-page: #12100c;
+  --td-bg-color-container: #1c1a16;
+  --td-bg-color-secondarycontainer: #28241e;
+  --td-bg-color-component: #28241e;
+  --td-border-level-1-color: #34302a;
+  --sp-sidebar-bg: #191319;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(162 139 164 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #d9b2ab;
+  --sp-accent-hover: #ddbbb4;
+  --sp-accent-active: #d6ada5;
+  --sp-accent-light: rgb(217 178 171 / 12%);
+}
+
+/* ============================================================
+   Sage 鼠尾草 — 亚麻自然撞色
+   ============================================================ */
+:root[data-theme="sage"] {
+  --td-brand-color: #7B9B8E;
+  --td-brand-color-hover: #8aa79b;
+  --td-brand-color-focus: rgb(123 155 142 / 10%);
+  --td-brand-color-active: #6c887c;
+  --td-brand-color-light: rgb(123 155 142 / 6%);
+  --td-success-color: #58a070;
+  --td-warning-color: #c88838;
+  --td-error-color: #c04848;
+  --td-info-color: #5080a8;
+  --td-text-color-primary: #18201a;
+  --td-text-color-secondary: #405048;
+  --td-text-color-placeholder: #788880;
+  --td-text-color-disabled: #b8c8c0;
+  --td-bg-color-page: #eef2f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f6f2;
+  --td-bg-color-component: #f0f6f2;
+  --td-border-level-1-color: #d8e0dc;
+  --sp-sidebar-bg: #242e2a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(123 155 142 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #D4B0A8;
+  --sp-accent-hover: #d7b6ae;
+  --sp-accent-active: #c3a19a;
+  --sp-accent-light: rgb(212 176 168 / 10%);
+}
+
+:root[data-theme="sage"][theme-mode="dark"] {
+  --td-brand-color: #95afa4;
+  --td-brand-color-hover: #a5bbb2;
+  --td-brand-color-focus: rgb(149 175 164 / 20%);
+  --td-brand-color-active: #88a599;
+  --td-brand-color-light: rgb(149 175 164 / 8%);
+  --td-success-color: #68b880;
+  --td-warning-color: #d89848;
+  --td-error-color: #c85050;
+  --td-info-color: #5890b8;
+  --td-text-color-primary: #dce4e0;
+  --td-text-color-secondary: #acb8b0;
+  --td-text-color-placeholder: #78887c;
+  --td-text-color-disabled: #4a5850;
+  --td-bg-color-page: #0e1410;
+  --td-bg-color-container: #181e1a;
+  --td-bg-color-secondarycontainer: #222a24;
+  --td-bg-color-component: #222a24;
+  --td-border-level-1-color: #2e3832;
+  --sp-sidebar-bg: #161b19;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(149 175 164 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #d9b9b2;
+  --sp-accent-hover: #ddc1bb;
+  --sp-accent-active: #d6b4ad;
+  --sp-accent-light: rgb(217 185 178 / 12%);
+}
+
+/* ============================================================
+   NavyCamel 海军驼 — 风衣经典撞色
+   ============================================================ */
+:root[data-theme="navy-camel"] {
+  --td-brand-color: #3D5A80;
+  --td-brand-color-hover: #546d8f;
+  --td-brand-color-focus: rgb(61 90 128 / 10%);
+  --td-brand-color-active: #354f70;
+  --td-brand-color-light: rgb(61 90 128 / 6%);
+  --td-success-color: #5a9a70;
+  --td-warning-color: #c08038;
+  --td-error-color: #b84848;
+  --td-info-color: #5878a0;
+  --td-text-color-primary: #1a1a1d;
+  --td-text-color-secondary: #48484e;
+  --td-text-color-placeholder: #7a7a84;
+  --td-text-color-disabled: #b8b8c0;
+  --td-bg-color-page: #ececf0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f2f2f6;
+  --td-bg-color-component: #f2f2f6;
+  --td-border-level-1-color: #d8d8e0;
+  --sp-sidebar-bg: #121b26;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(61 90 128 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #C4A882;
+  --sp-accent-hover: #c8ae8c;
+  --sp-accent-active: #b49a77;
+  --sp-accent-light: rgb(196 168 130 / 10%);
+}
+
+:root[data-theme="navy-camel"][theme-mode="dark"] {
+  --td-brand-color: #637b99;
+  --td-brand-color-hover: #7b8ea8;
+  --td-brand-color-focus: rgb(99 123 153 / 20%);
+  --td-brand-color-active: #506a8c;
+  --td-brand-color-light: rgb(99 123 153 / 8%);
+  --td-success-color: #68b080;
+  --td-warning-color: #d09048;
+  --td-error-color: #c85050;
+  --td-info-color: #6088b8;
+  --td-text-color-primary: #e0e0e4;
+  --td-text-color-secondary: #b0b0b8;
+  --td-text-color-placeholder: #808088;
+  --td-text-color-disabled: #505058;
+  --td-bg-color-page: #0e0e12;
+  --td-bg-color-container: #181820;
+  --td-bg-color-secondarycontainer: #22222e;
+  --td-bg-color-component: #22222e;
+  --td-border-level-1-color: #30303a;
+  --sp-sidebar-bg: #0a1017;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(99 123 153 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #cbb291;
+  --sp-accent-hover: #d0bb9d;
+  --sp-accent-active: #c7ad89;
+  --sp-accent-light: rgb(203 178 145 / 12%);
+}
+
+/* ============================================================
+   TealCoral 青珊瑚 — 沙滩阳光撞色
+   ============================================================ */
+:root[data-theme="teal-coral"] {
+  --td-brand-color: #4A8C8C;
+  --td-brand-color-hover: #5f9999;
+  --td-brand-color-focus: rgb(74 140 140 / 10%);
+  --td-brand-color-active: #417b7b;
+  --td-brand-color-light: rgb(74 140 140 / 6%);
+  --td-success-color: #58a070;
+  --td-warning-color: #c88838;
+  --td-error-color: #c04848;
+  --td-info-color: #5080a8;
+  --td-text-color-primary: #18201a;
+  --td-text-color-secondary: #405048;
+  --td-text-color-placeholder: #788880;
+  --td-text-color-disabled: #b8c8c0;
+  --td-bg-color-page: #eef2f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f6f2;
+  --td-bg-color-component: #f0f6f2;
+  --td-border-level-1-color: #d8e0dc;
+  --sp-sidebar-bg: #162a2a;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(74 140 140 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #D4897A;
+  --sp-accent-hover: #d79284;
+  --sp-accent-active: #c37e70;
+  --sp-accent-light: rgb(212 137 122 / 10%);
+}
+
+:root[data-theme="teal-coral"][theme-mode="dark"] {
+  --td-brand-color: #6ea3a3;
+  --td-brand-color-hover: #83b0b0;
+  --td-brand-color-focus: rgb(110 163 163 / 20%);
+  --td-brand-color-active: #5c9797;
+  --td-brand-color-light: rgb(110 163 163 / 8%);
+  --td-success-color: #68b880;
+  --td-warning-color: #d89848;
+  --td-error-color: #c85050;
+  --td-info-color: #5890b8;
+  --td-text-color-primary: #dce4e0;
+  --td-text-color-secondary: #acb8b0;
+  --td-text-color-placeholder: #78887c;
+  --td-text-color-disabled: #4a5850;
+  --td-bg-color-page: #0e1410;
+  --td-bg-color-container: #181e1a;
+  --td-bg-color-secondarycontainer: #222a24;
+  --td-bg-color-component: #222a24;
+  --td-border-level-1-color: #2e3832;
+  --sp-sidebar-bg: #0d1919;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(110 163 163 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #d99789;
+  --sp-accent-hover: #dda297;
+  --sp-accent-active: #d69081;
+  --sp-accent-light: rgb(217 151 137 / 12%);
+}
+
+/* ============================================================
+   Lilac 丁香灰 — 巴黎优雅撞色
+   ============================================================ */
+:root[data-theme="lilac"] {
+  --td-brand-color: #9A8EB8;
+  --td-brand-color-hover: #a69bc0;
+  --td-brand-color-focus: rgb(154 142 184 / 10%);
+  --td-brand-color-active: #877ca1;
+  --td-brand-color-light: rgb(154 142 184 / 6%);
+  --td-success-color: #5a9a70;
+  --td-warning-color: #c08038;
+  --td-error-color: #b84848;
+  --td-info-color: #5878a0;
+  --td-text-color-primary: #1a1a1d;
+  --td-text-color-secondary: #48484e;
+  --td-text-color-placeholder: #7a7a84;
+  --td-text-color-disabled: #b8b8c0;
+  --td-bg-color-page: #ececf0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f2f2f6;
+  --td-bg-color-component: #f2f2f6;
+  --td-border-level-1-color: #d8d8e0;
+  --sp-sidebar-bg: #2e2a37;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(154 142 184 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #A09888;
+  --sp-accent-hover: #a7a091;
+  --sp-accent-active: #938b7d;
+  --sp-accent-light: rgb(160 152 136 / 10%);
+}
+
+:root[data-theme="lilac"][theme-mode="dark"] {
+  --td-brand-color: #aea4c6;
+  --td-brand-color-hover: #bab2ce;
+  --td-brand-color-focus: rgb(174 164 198 / 20%);
+  --td-brand-color-active: #a499bf;
+  --td-brand-color-light: rgb(174 164 198 / 8%);
+  --td-success-color: #68b080;
+  --td-warning-color: #d09048;
+  --td-error-color: #c85050;
+  --td-info-color: #6088b8;
+  --td-text-color-primary: #e0e0e4;
+  --td-text-color-secondary: #b0b0b8;
+  --td-text-color-placeholder: #808088;
+  --td-text-color-disabled: #505058;
+  --td-bg-color-page: #0e0e12;
+  --td-bg-color-container: #181820;
+  --td-bg-color-secondarycontainer: #22222e;
+  --td-bg-color-component: #22222e;
+  --td-border-level-1-color: #30303a;
+  --sp-sidebar-bg: #1b1921;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(174 164 198 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #aba496;
+  --sp-accent-hover: #b4aea2;
+  --sp-accent-active: #a59e8f;
+  --sp-accent-light: rgb(171 164 150 / 12%);
+}
+
+/* ============================================================
+   Clay 陶土粉 — 陶艺大地撞色
+   ============================================================ */
+:root[data-theme="clay"] {
+  --td-brand-color: #C4877A;
+  --td-brand-color-hover: #cb9589;
+  --td-brand-color-focus: rgb(196 135 122 / 10%);
+  --td-brand-color-active: #ac766b;
+  --td-brand-color-light: rgb(196 135 122 / 6%);
+  --td-success-color: #6a9e7a;
+  --td-warning-color: #c88848;
+  --td-error-color: #c05050;
+  --td-info-color: #6080a8;
+  --td-text-color-primary: #1d1a18;
+  --td-text-color-secondary: #4a4440;
+  --td-text-color-placeholder: #807870;
+  --td-text-color-disabled: #c0b8b0;
+  --td-bg-color-page: #f2efe8;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f8f5f0;
+  --td-bg-color-component: #f8f5f0;
+  --td-border-level-1-color: #e0dcd4;
+  --sp-sidebar-bg: #3a2824;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(196 135 122 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #8A9A6A;
+  --sp-accent-hover: #93a275;
+  --sp-accent-active: #7e8d61;
+  --sp-accent-light: rgb(138 154 106 / 10%);
+}
+
+:root[data-theme="clay"][theme-mode="dark"] {
+  --td-brand-color: #cf9f94;
+  --td-brand-color-hover: #d6ada4;
+  --td-brand-color-focus: rgb(207 159 148 / 20%);
+  --td-brand-color-active: #c99387;
+  --td-brand-color-light: rgb(207 159 148 / 8%);
+  --td-success-color: #78b088;
+  --td-warning-color: #d89850;
+  --td-error-color: #d05858;
+  --td-info-color: #6890b8;
+  --td-text-color-primary: #e0e0dc;
+  --td-text-color-secondary: #b0aca4;
+  --td-text-color-placeholder: #807a72;
+  --td-text-color-disabled: #504a42;
+  --td-bg-color-page: #12100c;
+  --td-bg-color-container: #1c1a16;
+  --td-bg-color-secondarycontainer: #28241e;
+  --td-bg-color-component: #28241e;
+  --td-border-level-1-color: #34302a;
+  --sp-sidebar-bg: #231815;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(207 159 148 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #98a67b;
+  --sp-accent-hover: #a3b08a;
+  --sp-accent-active: #91a072;
+  --sp-accent-light: rgb(152 166 123 / 12%);
+}
+
+/* ============================================================
+   Mist 晨雾蓝 — 牛仔周末撞色
+   ============================================================ */
+:root[data-theme="mist"] {
+  --td-brand-color: #6A8AB8;
+  --td-brand-color-hover: #7b98c0;
+  --td-brand-color-focus: rgb(106 138 184 / 10%);
+  --td-brand-color-active: #5d79a1;
+  --td-brand-color-light: rgb(106 138 184 / 6%);
+  --td-success-color: #58a070;
+  --td-warning-color: #c88838;
+  --td-error-color: #c04848;
+  --td-info-color: #5080a8;
+  --td-text-color-primary: #18201a;
+  --td-text-color-secondary: #405048;
+  --td-text-color-placeholder: #788880;
+  --td-text-color-disabled: #b8c8c0;
+  --td-bg-color-page: #eef2f0;
+  --td-bg-color-container: #fff;
+  --td-bg-color-secondarycontainer: #f0f6f2;
+  --td-bg-color-component: #f0f6f2;
+  --td-border-level-1-color: #d8e0dc;
+  --sp-sidebar-bg: #1f2937;
+  --sp-sidebar-hover: rgb(255 255 255 / 6%);
+  --sp-sidebar-active: rgb(106 138 184 / 20%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #C8B896;
+  --sp-accent-hover: #ccbd9e;
+  --sp-accent-active: #b8a98a;
+  --sp-accent-light: rgb(200 184 150 / 10%);
+}
+
+:root[data-theme="mist"][theme-mode="dark"] {
+  --td-brand-color: #87a1c6;
+  --td-brand-color-hover: #99afce;
+  --td-brand-color-focus: rgb(135 161 198 / 20%);
+  --td-brand-color-active: #7895bf;
+  --td-brand-color-light: rgb(135 161 198 / 8%);
+  --td-success-color: #68b880;
+  --td-warning-color: #d89848;
+  --td-error-color: #c85050;
+  --td-info-color: #5890b8;
+  --td-text-color-primary: #dce4e0;
+  --td-text-color-secondary: #acb8b0;
+  --td-text-color-placeholder: #78887c;
+  --td-text-color-disabled: #4a5850;
+  --td-bg-color-page: #0e1410;
+  --td-bg-color-container: #181e1a;
+  --td-bg-color-secondarycontainer: #222a24;
+  --td-bg-color-component: #222a24;
+  --td-border-level-1-color: #2e3832;
+  --sp-sidebar-bg: #131821;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(135 161 198 / 25%);
+
+  /* 撞色强调色 */
+  --sp-accent-color: #cec0a2;
+  --sp-accent-hover: #d4c7ad;
+  --sp-accent-active: #cbbc9c;
+  --sp-accent-light: rgb(206 192 162 / 12%);
+}
+
+/* ============================================================
+   WorldMonitor 世监 — 黑色地图态势
+   从 worldmonitor 默认 dark map token 提炼为元枢系统 token。
+   ============================================================ */
+:root[data-theme="worldmonitor"] {
+  --td-brand-color: #6B8F5E;
+  --td-brand-color-hover: #7fa172;
+  --td-brand-color-focus: rgb(107 143 94 / 12%);
+  --td-brand-color-active: #58784e;
+  --td-brand-color-light: rgb(107 143 94 / 8%);
+  --td-success-color: #6B8F5E;
+  --td-success-color-active: #58784e;
+  --td-warning-color: #C4A35A;
+  --td-error-color: #C48B9F;
+  --td-info-color: #7BA5C4;
+  --td-text-color-primary: #2D3A2E;
+  --td-text-color-secondary: #4A5A4C;
+  --td-text-color-placeholder: #6B7A6D;
+  --td-text-color-disabled: #A8B4AA;
+  --td-bg-color-page: #FAFAF5;
+  --td-bg-color-container: #FFF;
+  --td-bg-color-secondarycontainer: #F5F3EE;
+  --td-bg-color-component: #F2EFE8;
+  --td-border-level-1-color: #DDD9CF;
+  --sp-sidebar-bg: #2D3A2E;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(107 143 94 / 24%);
+  --sp-accent-color: #C4A35A;
+  --sp-accent-hover: #ceb36e;
+  --sp-accent-active: #af914d;
+  --sp-accent-light: rgb(196 163 90 / 12%);
+  --sp-map-bg: #e8f0f8;
+  --sp-map-grid: #b0c8d8;
+  --sp-map-country: #f0e8d8;
+  --sp-map-stroke: #c8b8a8;
+  --sp-map-ocean-label: #7BA5C4;
+}
+
+:root[data-theme="worldmonitor"][theme-mode="dark"] {
+  --td-brand-color: #6DB85C;
+  --td-brand-color-hover: #80c970;
+  --td-brand-color-focus: rgb(109 184 92 / 18%);
+  --td-brand-color-active: #57a348;
+  --td-brand-color-light: rgb(109 184 92 / 10%);
+  --td-success-color: #6DB85C;
+  --td-success-color-active: #57a348;
+  --td-warning-color: #D4B36A;
+  --td-error-color: #D49BAF;
+  --td-info-color: #6BA5C4;
+  --td-text-color-primary: #D4ECD0;
+  --td-text-color-secondary: #A8C8A4;
+  --td-text-color-placeholder: #6E8A6A;
+  --td-text-color-disabled: #405A3C;
+  --td-bg-color-page: #0A0F08;
+  --td-bg-color-container: #111A10;
+  --td-bg-color-secondarycontainer: #162214;
+  --td-bg-color-component: #1C2E1A;
+  --td-border-level-1-color: #2A4028;
+  --sp-sidebar-bg: #070C06;
+  --sp-sidebar-hover: rgb(109 184 92 / 10%);
+  --sp-sidebar-active: rgb(109 184 92 / 24%);
+  --sp-accent-color: #D4B36A;
+  --sp-accent-hover: #ddc17f;
+  --sp-accent-active: #c3a158;
+  --sp-accent-light: rgb(212 179 106 / 14%);
+  --sp-map-bg: #050A04;
+  --sp-map-grid: #0D2A0C;
+  --sp-map-country: #081A08;
+  --sp-map-stroke: #1A4A18;
+  --sp-map-ocean-label: #4C6;
+}
+
+/* 夜视 — 暗绿低光作战 */
+:root[data-theme="nightvision"] {
+  --td-brand-color: #2F6B3A;
+  --td-brand-color-hover: #4e8157;
+  --td-brand-color-focus: rgb(47 107 58 / 12%);
+  --td-brand-color-active: #2a6034;
+  --td-brand-color-light: rgb(47 107 58 / 8%);
+  --td-success-color: #2F6B3A;
+  --td-success-color-active: #2a6034;
+  --td-warning-color: #C48F4A;
+  --td-error-color: #C48F4A;
+  --td-info-color: #5B8FB4;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #25552e;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(47 107 58 / 24%);
+  --sp-accent-color: #C48F4A;
+  --sp-accent-hover: #c99a5c;
+  --sp-accent-active: #b48344;
+  --sp-accent-light: rgb(196 143 74 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #5B8FB4;
+}
+
+:root[data-theme="nightvision"][theme-mode="dark"] {
+  --td-brand-color: #2F6B3A;
+  --td-brand-color-hover: #63906b;
+  --td-brand-color-focus: rgb(47 107 58 / 18%);
+  --td-brand-color-active: #275a31;
+  --td-brand-color-light: rgb(47 107 58 / 10%);
+  --td-success-color: #2F6B3A;
+  --td-success-color-active: #275a31;
+  --td-warning-color: #C48F4A;
+  --td-error-color: #C48F4A;
+  --td-info-color: #5B8FB4;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #25552e;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(47 107 58 / 24%);
+  --sp-accent-color: #C48F4A;
+  --sp-accent-hover: #c99a5c;
+  --sp-accent-active: #b48344;
+  --sp-accent-light: rgb(196 143 74 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #5B8FB4;
+}
+
+/* 战术 — 冷峻铁灰指挥 */
+:root[data-theme="tactical"] {
+  --td-brand-color: #4A5568;
+  --td-brand-color-hover: #656e7e;
+  --td-brand-color-focus: rgb(74 85 104 / 12%);
+  --td-brand-color-active: #424c5d;
+  --td-brand-color-light: rgb(74 85 104 / 8%);
+  --td-success-color: #4A5568;
+  --td-success-color-active: #424c5d;
+  --td-warning-color: #B8975C;
+  --td-error-color: #B8975C;
+  --td-info-color: #6A8FA8;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #3b4453;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(74 85 104 / 24%);
+  --sp-accent-color: #B8975C;
+  --sp-accent-hover: #bfa16c;
+  --sp-accent-active: #a98a54;
+  --sp-accent-light: rgb(184 151 92 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #6A8FA8;
+}
+
+:root[data-theme="tactical"][theme-mode="dark"] {
+  --td-brand-color: #4A5568;
+  --td-brand-color-hover: #777f8d;
+  --td-brand-color-focus: rgb(74 85 104 / 18%);
+  --td-brand-color-active: #3e4858;
+  --td-brand-color-light: rgb(74 85 104 / 10%);
+  --td-success-color: #4A5568;
+  --td-success-color-active: #3e4858;
+  --td-warning-color: #B8975C;
+  --td-error-color: #B8975C;
+  --td-info-color: #6A8FA8;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #3b4453;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(74 85 104 / 24%);
+  --sp-accent-color: #B8975C;
+  --sp-accent-hover: #bfa16c;
+  --sp-accent-active: #a98a54;
+  --sp-accent-light: rgb(184 151 92 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #6A8FA8;
+}
+
+/* 沙漠风暴 — 沙地黄精准打击 */
+:root[data-theme="desertstorm"] {
+  --td-brand-color: #B8956E;
+  --td-brand-color-hover: #c2a483;
+  --td-brand-color-focus: rgb(184 149 110 / 12%);
+  --td-brand-color-active: #a58663;
+  --td-brand-color-light: rgb(184 149 110 / 8%);
+  --td-success-color: #B8956E;
+  --td-success-color-active: #a58663;
+  --td-warning-color: #D4765A;
+  --td-error-color: #D4765A;
+  --td-info-color: #7A9BB8;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #937758;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(184 149 110 / 24%);
+  --sp-accent-color: #D4765A;
+  --sp-accent-hover: #d8836a;
+  --sp-accent-active: #c36c52;
+  --sp-accent-light: rgb(212 118 90 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #7A9BB8;
+}
+
+:root[data-theme="desertstorm"][theme-mode="dark"] {
+  --td-brand-color: #B8956E;
+  --td-brand-color-hover: #c9af92;
+  --td-brand-color-focus: rgb(184 149 110 / 18%);
+  --td-brand-color-active: #9c7e5d;
+  --td-brand-color-light: rgb(184 149 110 / 10%);
+  --td-success-color: #B8956E;
+  --td-success-color-active: #9c7e5d;
+  --td-warning-color: #D4765A;
+  --td-error-color: #D4765A;
+  --td-info-color: #7A9BB8;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #937758;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(184 149 110 / 24%);
+  --sp-accent-color: #D4765A;
+  --sp-accent-hover: #d8836a;
+  --sp-accent-active: #c36c52;
+  --sp-accent-light: rgb(212 118 90 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #7A9BB8;
+}
+
+/* 海豹 — 深海蓝特种作战 */
+:root[data-theme="navyseal"] {
+  --td-brand-color: #2B4C7A;
+  --td-brand-color-hover: #4a668d;
+  --td-brand-color-focus: rgb(43 76 122 / 12%);
+  --td-brand-color-active: #26446d;
+  --td-brand-color-light: rgb(43 76 122 / 8%);
+  --td-success-color: #2B4C7A;
+  --td-success-color-active: #26446d;
+  --td-warning-color: #C4A35A;
+  --td-error-color: #C4A35A;
+  --td-info-color: #6A9FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #223c61;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(43 76 122 / 24%);
+  --sp-accent-color: #C4A35A;
+  --sp-accent-hover: #c9ac6a;
+  --sp-accent-active: #b49552;
+  --sp-accent-light: rgb(196 163 90 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A9FBF;
+}
+
+:root[data-theme="navyseal"][theme-mode="dark"] {
+  --td-brand-color: #2B4C7A;
+  --td-brand-color-hover: #60789b;
+  --td-brand-color-focus: rgb(43 76 122 / 18%);
+  --td-brand-color-active: #244067;
+  --td-brand-color-light: rgb(43 76 122 / 10%);
+  --td-success-color: #2B4C7A;
+  --td-success-color-active: #244067;
+  --td-warning-color: #C4A35A;
+  --td-error-color: #C4A35A;
+  --td-info-color: #6A9FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #223c61;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(43 76 122 / 24%);
+  --sp-accent-color: #C4A35A;
+  --sp-accent-hover: #c9ac6a;
+  --sp-accent-active: #b49552;
+  --sp-accent-light: rgb(196 163 90 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A9FBF;
+}
+
+/* 迷彩 — 丛林伪装中性色 */
+:root[data-theme="camo"] {
+  --td-brand-color: #5A7A4A;
+  --td-brand-color-hover: #728d65;
+  --td-brand-color-focus: rgb(90 122 74 / 12%);
+  --td-brand-color-active: #516d42;
+  --td-brand-color-light: rgb(90 122 74 / 8%);
+  --td-success-color: #5A7A4A;
+  --td-success-color-active: #516d42;
+  --td-warning-color: #BFA060;
+  --td-error-color: #BFA060;
+  --td-info-color: #6A9FA0;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #48613b;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(90 122 74 / 24%);
+  --sp-accent-color: #BFA060;
+  --sp-accent-hover: #c5a96f;
+  --sp-accent-active: #af9358;
+  --sp-accent-light: rgb(191 160 96 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #6A9FA0;
+}
+
+:root[data-theme="camo"][theme-mode="dark"] {
+  --td-brand-color: #5A7A4A;
+  --td-brand-color-hover: #839b77;
+  --td-brand-color-focus: rgb(90 122 74 / 18%);
+  --td-brand-color-active: #4c673e;
+  --td-brand-color-light: rgb(90 122 74 / 10%);
+  --td-success-color: #5A7A4A;
+  --td-success-color-active: #4c673e;
+  --td-warning-color: #BFA060;
+  --td-error-color: #BFA060;
+  --td-info-color: #6A9FA0;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #48613b;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(90 122 74 / 24%);
+  --sp-accent-color: #BFA060;
+  --sp-accent-hover: #c5a96f;
+  --sp-accent-active: #af9358;
+  --sp-accent-light: rgb(191 160 96 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #6A9FA0;
+}
+
+/* 指挥所 — 深蓝灰指挥决策 */
+:root[data-theme="commandpost"] {
+  --td-brand-color: #3D4F6F;
+  --td-brand-color-hover: #5a6984;
+  --td-brand-color-focus: rgb(61 79 111 / 12%);
+  --td-brand-color-active: #364763;
+  --td-brand-color-light: rgb(61 79 111 / 8%);
+  --td-success-color: #3D4F6F;
+  --td-success-color-active: #364763;
+  --td-warning-color: #BFA060;
+  --td-error-color: #BFA060;
+  --td-info-color: #6A9FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #303f58;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(61 79 111 / 24%);
+  --sp-accent-color: #BFA060;
+  --sp-accent-hover: #c5a96f;
+  --sp-accent-active: #af9358;
+  --sp-accent-light: rgb(191 160 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A9FBF;
+}
+
+:root[data-theme="commandpost"][theme-mode="dark"] {
+  --td-brand-color: #3D4F6F;
+  --td-brand-color-hover: #6d7b93;
+  --td-brand-color-focus: rgb(61 79 111 / 18%);
+  --td-brand-color-active: #33435e;
+  --td-brand-color-light: rgb(61 79 111 / 10%);
+  --td-success-color: #3D4F6F;
+  --td-success-color-active: #33435e;
+  --td-warning-color: #BFA060;
+  --td-error-color: #BFA060;
+  --td-info-color: #6A9FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #303f58;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(61 79 111 / 24%);
+  --sp-accent-color: #BFA060;
+  --sp-accent-hover: #c5a96f;
+  --sp-accent-active: #af9358;
+  --sp-accent-light: rgb(191 160 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A9FBF;
+}
+
+/* 暗影行动 — 极黑夜间突袭 */
+:root[data-theme="opdark"] {
+  --td-brand-color: #2A2A2A;
+  --td-brand-color-hover: #494949;
+  --td-brand-color-focus: rgb(42 42 42 / 12%);
+  --td-brand-color-active: #252525;
+  --td-brand-color-light: rgb(42 42 42 / 8%);
+  --td-success-color: #2A2A2A;
+  --td-success-color-active: #252525;
+  --td-warning-color: #B08050;
+  --td-error-color: #B08050;
+  --td-info-color: #5A7A8A;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #121212;
+  --td-bg-color-container: #1A1A1A;
+  --td-bg-color-secondarycontainer: #222;
+  --td-bg-color-component: #2A2A2A;
+  --td-border-level-1-color: #333;
+  --sp-sidebar-bg: #0A0A0A;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(42 42 42 / 24%);
+  --sp-accent-color: #B08050;
+  --sp-accent-hover: #b78c61;
+  --sp-accent-active: #a17549;
+  --sp-accent-light: rgb(176 128 80 / 12%);
+  --sp-map-bg: #0a0a0a;
+  --sp-map-grid: #1a1a1a;
+  --sp-map-country: #141414;
+  --sp-map-stroke: #282828;
+  --sp-map-ocean-label: #5A7A8A;
+}
+
+:root[data-theme="opdark"][theme-mode="dark"] {
+  --td-brand-color: #2A2A2A;
+  --td-brand-color-hover: #5f5f5f;
+  --td-brand-color-focus: rgb(42 42 42 / 18%);
+  --td-brand-color-active: #232323;
+  --td-brand-color-light: rgb(42 42 42 / 10%);
+  --td-success-color: #2A2A2A;
+  --td-success-color-active: #232323;
+  --td-warning-color: #B08050;
+  --td-error-color: #B08050;
+  --td-info-color: #5A7A8A;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #121212;
+  --td-bg-color-container: #1A1A1A;
+  --td-bg-color-secondarycontainer: #222;
+  --td-bg-color-component: #2A2A2A;
+  --td-border-level-1-color: #333;
+  --sp-sidebar-bg: #0A0A0A;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(42 42 42 / 24%);
+  --sp-accent-color: #B08050;
+  --sp-accent-hover: #b78c61;
+  --sp-accent-active: #a17549;
+  --sp-accent-light: rgb(176 128 80 / 12%);
+  --sp-map-bg: #0a0a0a;
+  --sp-map-grid: #1a1a1a;
+  --sp-map-country: #141414;
+  --sp-map-stroke: #282828;
+  --sp-map-ocean-label: #5A7A8A;
+}
+
+/* 无人机 — 灰蓝远程侦察 */
+:root[data-theme="drone"] {
+  --td-brand-color: #5A7B9C;
+  --td-brand-color-hover: #728eaa;
+  --td-brand-color-focus: rgb(90 123 156 / 12%);
+  --td-brand-color-active: #516e8c;
+  --td-brand-color-light: rgb(90 123 156 / 8%);
+  --td-success-color: #5A7B9C;
+  --td-success-color-active: #516e8c;
+  --td-warning-color: #C4A060;
+  --td-error-color: #C4A060;
+  --td-info-color: #7AAFC0;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #48627c;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(90 123 156 / 24%);
+  --sp-accent-color: #C4A060;
+  --sp-accent-hover: #c9a96f;
+  --sp-accent-active: #b49358;
+  --sp-accent-light: rgb(196 160 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #7AAFC0;
+}
+
+:root[data-theme="drone"][theme-mode="dark"] {
+  --td-brand-color: #5A7B9C;
+  --td-brand-color-hover: #839cb4;
+  --td-brand-color-focus: rgb(90 123 156 / 18%);
+  --td-brand-color-active: #4c6884;
+  --td-brand-color-light: rgb(90 123 156 / 10%);
+  --td-success-color: #5A7B9C;
+  --td-success-color-active: #4c6884;
+  --td-warning-color: #C4A060;
+  --td-error-color: #C4A060;
+  --td-info-color: #7AAFC0;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #48627c;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(90 123 156 / 24%);
+  --sp-accent-color: #C4A060;
+  --sp-accent-hover: #c9a96f;
+  --sp-accent-active: #b49358;
+  --sp-accent-light: rgb(196 160 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #7AAFC0;
+}
+
+/* 雷达 — 深绿电子对抗 */
+:root[data-theme="radar"] {
+  --td-brand-color: #3A6B4A;
+  --td-brand-color-hover: #578165;
+  --td-brand-color-focus: rgb(58 107 74 / 12%);
+  --td-brand-color-active: #346042;
+  --td-brand-color-light: rgb(58 107 74 / 8%);
+  --td-success-color: #3A6B4A;
+  --td-success-color-active: #346042;
+  --td-warning-color: #C49F50;
+  --td-error-color: #C49F50;
+  --td-info-color: #5A8FAA;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #2e553b;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(58 107 74 / 24%);
+  --sp-accent-color: #C49F50;
+  --sp-accent-hover: #c9a861;
+  --sp-accent-active: #b49249;
+  --sp-accent-light: rgb(196 159 80 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #5A8FAA;
+}
+
+:root[data-theme="radar"][theme-mode="dark"] {
+  --td-brand-color: #3A6B4A;
+  --td-brand-color-hover: #6b9077;
+  --td-brand-color-focus: rgb(58 107 74 / 18%);
+  --td-brand-color-active: #315a3e;
+  --td-brand-color-light: rgb(58 107 74 / 10%);
+  --td-success-color: #3A6B4A;
+  --td-success-color-active: #315a3e;
+  --td-warning-color: #C49F50;
+  --td-error-color: #C49F50;
+  --td-info-color: #5A8FAA;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #2e553b;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(58 107 74 / 24%);
+  --sp-accent-color: #C49F50;
+  --sp-accent-hover: #c9a861;
+  --sp-accent-active: #b49249;
+  --sp-accent-light: rgb(196 159 80 / 12%);
+  --sp-map-bg: #020a08;
+  --sp-map-grid: #0a2a20;
+  --sp-map-country: #0a2018;
+  --sp-map-stroke: #0f5040;
+  --sp-map-ocean-label: #5A8FAA;
+}
+
+/* 网络战 — 暗紫数字攻防 */
+:root[data-theme="cyber"] {
+  --td-brand-color: #4A2B6F;
+  --td-brand-color-hover: #654a84;
+  --td-brand-color-focus: rgb(74 43 111 / 12%);
+  --td-brand-color-active: #422663;
+  --td-brand-color-light: rgb(74 43 111 / 8%);
+  --td-success-color: #4A2B6F;
+  --td-success-color-active: #422663;
+  --td-warning-color: #C49F60;
+  --td-error-color: #C49F60;
+  --td-info-color: #6A8FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #3b2258;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(74 43 111 / 24%);
+  --sp-accent-color: #C49F60;
+  --sp-accent-hover: #c9a86f;
+  --sp-accent-active: #b49258;
+  --sp-accent-light: rgb(196 159 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A8FBF;
+}
+
+:root[data-theme="cyber"][theme-mode="dark"] {
+  --td-brand-color: #4A2B6F;
+  --td-brand-color-hover: #776093;
+  --td-brand-color-focus: rgb(74 43 111 / 18%);
+  --td-brand-color-active: #3e245e;
+  --td-brand-color-light: rgb(74 43 111 / 10%);
+  --td-success-color: #4A2B6F;
+  --td-success-color-active: #3e245e;
+  --td-warning-color: #C49F60;
+  --td-error-color: #C49F60;
+  --td-info-color: #6A8FBF;
+  --td-text-color-primary: #E8E4DC;
+  --td-text-color-secondary: #D0CCC4;
+  --td-text-color-placeholder: #A0A098;
+  --td-text-color-disabled: #606860;
+  --td-bg-color-page: #1A2332;
+  --td-bg-color-container: #222E3E;
+  --td-bg-color-secondarycontainer: #1E2838;
+  --td-bg-color-component: #283545;
+  --td-border-level-1-color: #344050;
+  --sp-sidebar-bg: #3b2258;
+  --sp-sidebar-hover: rgb(255 255 255 / 8%);
+  --sp-sidebar-active: rgb(74 43 111 / 24%);
+  --sp-accent-color: #C49F60;
+  --sp-accent-hover: #c9a86f;
+  --sp-accent-active: #b49258;
+  --sp-accent-light: rgb(196 159 96 / 12%);
+  --sp-map-bg: #020a18;
+  --sp-map-grid: #0a2030;
+  --sp-map-country: #0a1818;
+  --sp-map-stroke: #0f2840;
+  --sp-map-ocean-label: #6A8FBF;
+}

@@ -142,6 +142,15 @@
         compressionLevel: 1
         compressionThresholdBytes: 1024
 
+    # YuanShu login page: serves the login gate before the DSH web app.
+    # Routes /login → login page, / → redirect to /login.
+    # The login page POSTs to the YuanShu backend API and stores the token.
+    - id: yuanshu-login-server
+      name: '@deepseek-ai/dsh-yuanshu-login-server'
+      inject: [webServer]
+      config:
+        yuanshuApiUrl: http://localhost:8081
+
     # YuanShu Platform gateway: proxies requests from the harness web server
     # to the 元枢 platform backend API at localhost:8081.
     # TEMPORARILY DISABLED: causes "DeepSeek request extension preparation failed"
