@@ -22,7 +22,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import type {} from '@deepseek-ai/dsh-client-connection'
+import type { HostConnectionHandle } from '@deepseek-ai/dsh-client-connection'
+
+// HostConnectionService (the concrete implementation) exposes launchToken
+// but the interface doesn't declare it. Access it through the service.
+interface ConnectionService extends HostConnectionHandle {
+  readonly launchToken: string
+}
 
 export const name = 'yuanshu-login-server'
 export const inject = ['webServer', 'credentials']
@@ -125,13 +131,13 @@ export function apply(ctx: Context, config: Config): void {
     kind: 'exact',
     path: '/yuanshu-token',
     handler: (_req, res) => {
-      const connection = ctx.get('connection')
+      const connection = ctx.get('connection') as ConnectionService | undefined
       if (connection === undefined) {
         res.writeHead(503, { 'content-type': 'application/json' })
         res.end(JSON.stringify({ error: 'connection service not available' }))
         return
       }
-      const token = (connection as Record<string, unknown>).launchToken
+      const token = connection.launchToken
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ token }))
     },

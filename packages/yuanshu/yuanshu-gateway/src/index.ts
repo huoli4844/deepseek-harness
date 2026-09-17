@@ -202,6 +202,11 @@ export function apply(ctx: Context, config: Config): void {
       // /knowledges/:id
       if (relative.startsWith('/knowledges/') && relative.split('/').length === 3) {
         const idStr = relative.split('/')[2]
+        if (idStr === undefined) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'invalid knowledge document id' }))
+          return
+        }
         const id = parseInt(idStr, 10)
         if (Number.isNaN(id) || id <= 0) {
           res.writeHead(400, { 'Content-Type': 'application/json' })
