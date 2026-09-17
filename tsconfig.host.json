@@ -386,6 +386,12 @@
     { "path": "./packages/yuanshu/yuanshu-tool" },
     { "path": "./apps/cli" },
     { "path": "./apps/desktop-host" },
-    { "path": "./apps/desktop" }
+    { "path": "./apps/desktop" },
+    { "path": "./packages/yuanshu/yuanshu-client" },
+    { "path": "./packages/yuanshu/yuanshu-tool" },
+    { "path": "./packages/yuanshu/yuanshu-qa-tool" },
+    { "path": "./packages/yuanshu/yuanshu-login-server" },
+    { "path": "./packages/yuanshu/yuanshu-gateway" },
+    { "path": "./packages/yuanshu/yuanshu-chat-server" }
   ]
 }

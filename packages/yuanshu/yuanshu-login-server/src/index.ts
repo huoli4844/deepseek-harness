@@ -118,7 +118,7 @@ export function apply(ctx: Context, config: Config): void {
     kind: 'exact',
     path: LOGIN_PATH,
     handler: (req, res) => serveRequest(req, res, distRoot, yuanshuApiUrl),
-  }, 'yuanshu-login-server: login page')
+  })
 
   // Expose the DSH launch token for the login page to use after YuanShu auth.
   ctx.webServer.register({
@@ -131,11 +131,11 @@ export function apply(ctx: Context, config: Config): void {
         res.end(JSON.stringify({ error: 'connection service not available' }))
         return
       }
-      const token = connection.launchToken
+      const token = (connection as Record<string, unknown>).launchToken
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ token }))
     },
-  }, 'yuanshu-login-server: DSH launch token endpoint')
+  })
 
   ctx.webServer.register({
     kind: 'exact',
@@ -150,7 +150,7 @@ export function apply(ctx: Context, config: Config): void {
         res.end()
       }
     },
-  }, 'yuanshu-login-server: favicon')
+  })
 
   ctx.webServer.register({
     kind: 'prefix',
@@ -176,7 +176,7 @@ export function apply(ctx: Context, config: Config): void {
         res.end()
       }
     },
-  }, 'yuanshu-login-server: login assets')
+  })
 }
 
 export default { name, inject, Config, apply }

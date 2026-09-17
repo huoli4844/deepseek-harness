@@ -137,10 +137,10 @@ declare global {
     uid: number
     meta: Schemastery.Meta<T>
     type: string
-    sKey?: Schema
-    inner?: Schema
-    list?: Schema[]
-    dict?: Dict<Schema>
+    sKey?: Schema | undefined
+    inner?: Schema | undefined
+    list?: Schema[] | undefined
+    dict?: Dict<Schema> | undefined
     bits?: Dict<number>
     callback?: Function
     constructor?: string | Function
@@ -208,7 +208,7 @@ globalThis.__schemastery_index__ ??= 0
 globalThis.__schemastery_refs__ = undefined
 
 class ValidationError extends TypeError {
-  name = 'ValidationError'
+  override name = 'ValidationError'
 
   constructor(message: string, public options: Schemastery.Options) {
     let prefix = '$'
@@ -248,7 +248,7 @@ const Schema = function (options: Schema) {
       const options = refs[key]!
       options.sKey = getRef(options.sKey)
       options.inner = getRef(options.inner)
-      options.list = options.list && options.list.map(getRef)
+      options.list = options.list?.map(getRef) as Schema[] | undefined
       options.dict = options.dict && valueMap(options.dict, getRef)
     }
     return refs[options.uid!]
@@ -476,7 +476,7 @@ Schema.resolve = function resolve(data, schema, options = {}, strict = false) {
     let current = schema
     let fallback = schema.meta.default
     while (current?.type === 'intersect' && isNullable(fallback)) {
-      current = current.list![0]
+      current = current.list![0]!
       fallback = current?.meta.default
     }
     if (isNullable(fallback)) return [data]

@@ -4,5 +4,19 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../../packages/host/webserver"
+    },
+    {
+      "path": "../../../packages/client/connection/tsconfig.host.json"
+    }
+  ]
 }

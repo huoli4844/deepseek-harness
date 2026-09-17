@@ -41,11 +41,11 @@ export namespace Time {
   export function parseTime(source: string) {
     const capture = timeRegExp.exec(source)
     if (!capture) return 0
-    return (parseFloat(capture[1]) * week || 0)
-      + (parseFloat(capture[2]) * day || 0)
-      + (parseFloat(capture[3]) * hour || 0)
-      + (parseFloat(capture[4]) * minute || 0)
-      + (parseFloat(capture[5]) * second || 0)
+    return (parseFloat(capture[1]!) * week || 0)
+      + (parseFloat(capture[2]!) * day || 0)
+      + (parseFloat(capture[3]!) * hour || 0)
+      + (parseFloat(capture[4]!) * minute || 0)
+      + (parseFloat(capture[5]!) * second || 0)
   }
 
   export function parseDate(date: string) {

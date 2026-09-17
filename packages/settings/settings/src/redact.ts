@@ -17,9 +17,9 @@ interface SchemaNode {
   type?: string
   meta?: { role?: unknown }
   /** `object` properties, keyed by property name. */
-  dict?: Record<string, SchemaNode>
+  dict?: Record<string, SchemaNode> | undefined
   /** `dict`/`array` element schema. */
-  inner?: SchemaNode
+  inner?: SchemaNode | undefined
 }
 
 /** One schema-declared secret position inside a redacted value. */
