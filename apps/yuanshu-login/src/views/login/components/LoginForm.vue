@@ -140,12 +140,26 @@ const finishLogin = async () => {
 
     MessagePlugin.success('登录成功，token 文件已下载。请将文件保存到 ~/.dsh/yuanshu-token/')
   }
-  // Redirect back to DSH
+
+  // Fetch the DSH launch token and redirect with it
+  let dshRedirect = '/'
+  try {
+    const resp = await fetch('/yuanshu-token')
+    if (resp.ok) {
+      const data = await resp.json()
+      if (data.token) {
+        dshRedirect = `/?token=${encodeURIComponent(data.token)}`
+      }
+    }
+  } catch {
+    // Token endpoint unavailable, redirect to root
+  }
+
   const redirect = route.query.redirect as string
   if (redirect && redirect.startsWith('/')) {
     window.location.href = redirect
   } else {
-    window.location.href = '/'
+    window.location.href = dshRedirect
   }
 }
 

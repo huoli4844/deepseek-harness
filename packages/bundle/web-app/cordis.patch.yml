@@ -142,11 +142,13 @@
         compressionThresholdBytes: 1024
 
     # YuanShu login page: serves the login gate before the DSH web app.
-    # Routes /login → login page, / → redirect to /login.
+    # Routes /login → login page, /login-assets/* → static assets.
+    # The / path is handled by frontend-static (fallback seat) which checks
+    # DSH browser authentication; unauthenticated users are redirected to /login.
     # The login page POSTs to the YuanShu backend API and stores the token.
     - id: yuanshu-login-server
       name: '@deepseek-ai/dsh-yuanshu-login-server'
-      inject: [webServer]
+      inject: [webServer, credentials]
       config:
         yuanshuApiUrl: http://localhost:8081
 

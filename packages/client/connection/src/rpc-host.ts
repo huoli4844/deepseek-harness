@@ -109,6 +109,11 @@ export class HostConnectionService extends Service implements HostConnectionHand
     return this.browserAuth.authenticatedUrl(baseUrl)
   }
 
+  /** The process-scoped launch token for URL authentication. */
+  get launchToken(): string {
+    return this.browserAuth.token
+  }
+
   /**
    * Compose one shared-channel Fetch handler from exact routes and its interceptor.
    * @param channel - shared channel mounted by Connection.

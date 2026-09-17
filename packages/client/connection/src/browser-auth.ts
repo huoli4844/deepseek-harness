@@ -18,6 +18,7 @@ const COOKIE_PAYLOAD_VERSION = 1
 const STORED_SECRET_VERSION = 1
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]*$/
 const PROCESS_LAUNCH_TOKENS = new WeakMap<object, string>()
+const LOGIN_PATH = '/login'
 
 interface StoredSecretPayload {
   readonly version: typeof STORED_SECRET_VERSION
@@ -229,6 +230,11 @@ export class BrowserAuth {
     return url.href
   }
 
+  /** The process-scoped launch token for URL authentication. */
+  get token(): string {
+    return this.launchToken
+  }
+
   /**
    * Authenticate an index request. A valid root query token mints the cookie
    * and redirects to clean `/`; a valid cookie lets the caller serve the
@@ -301,13 +307,12 @@ export class BrowserAuth {
       && payload.expiresAt - payload.issuedAt <= this.maxAgeMilliseconds
   }
 
-  private writeUnauthorized(req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {
-    res.writeHead(401, {
+  private writeUnauthorized(_req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {
+    res.writeHead(302, {
       'cache-control': 'no-store',
-      'content-type': 'text/plain; charset=utf-8',
+      'location': LOGIN_PATH,
+      'referrer-policy': 'no-referrer',
     })
-    res.end(req.method === 'HEAD'
-      ? undefined
-      : 'dsh web authentication required; reopen the URL printed by dsh web.\n')
+    res.end()
   }
 }

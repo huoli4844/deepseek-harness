@@ -3,12 +3,15 @@
  *
  * Routes:
  *   /login              → serves the Vue login page
- *   /                   → redirects to /login
  *   /login-assets/*     → serves static JS/CSS/favicon from the login dist
  *
  * The login page authenticates directly against the YuanShu backend
  * at the configured API base URL. On success it stores the token in
  * localStorage and redirects back to / (the DSH web app).
+ *
+ * The / path is NOT registered here — it is handled by the fallback seat
+ * (frontend-static) which checks DSH browser authentication. Unauthenticated
+ * users are redirected to /login by BrowserAuth.
  */
 
 import { dirname, join } from 'node:path'
@@ -19,9 +22,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@deepseek-ai/dsh-client-connection'
 
 export const name = 'yuanshu-login-server'
-export const inject = ['webServer']
+export const inject = ['webServer', 'credentials']
 
 export interface Config {
   /** Path to the built login dist directory. Resolved automatically if not set. */
@@ -62,13 +66,6 @@ const MIME_TYPES: Record<string, string> = {
 function serveRequest(req: IncomingMessage, res: ServerResponse, distRoot: string, yuanshuApiUrl: string): void {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const pathname = url.pathname
-
-  // Root → redirect to login
-  if (pathname === '/' || pathname === '') {
-    res.writeHead(302, { 'Location': LOGIN_PATH })
-    res.end()
-    return
-  }
 
   // Login page
   if (pathname === LOGIN_PATH || pathname === LOGIN_PATH + '/') {
@@ -123,14 +120,22 @@ export function apply(ctx: Context, config: Config): void {
     handler: (req, res) => serveRequest(req, res, distRoot, yuanshuApiUrl),
   }, 'yuanshu-login-server: login page')
 
+  // Expose the DSH launch token for the login page to use after YuanShu auth.
   ctx.webServer.register({
     kind: 'exact',
-    path: '/',
+    path: '/yuanshu-token',
     handler: (_req, res) => {
-      res.writeHead(302, { 'Location': LOGIN_PATH })
-      res.end()
+      const connection = ctx.get('connection')
+      if (connection === undefined) {
+        res.writeHead(503, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ error: 'connection service not available' }))
+        return
+      }
+      const token = connection.launchToken
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ token }))
     },
-  }, 'yuanshu-login-server: redirect root to login')
+  }, 'yuanshu-login-server: DSH launch token endpoint')
 
   ctx.webServer.register({
     kind: 'exact',
