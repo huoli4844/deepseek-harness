@@ -391,7 +391,6 @@
     { "path": "./packages/yuanshu/yuanshu-tool" },
     { "path": "./packages/yuanshu/yuanshu-qa-tool" },
     { "path": "./packages/yuanshu/yuanshu-login-server" },
-    { "path": "./packages/yuanshu/yuanshu-gateway" },
-    { "path": "./packages/yuanshu/yuanshu-chat-server" }
+    { "path": "./packages/yuanshu/yuanshu-gateway" }
   ]
 }

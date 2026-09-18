@@ -152,6 +152,14 @@
       config:
         yuanshuApiUrl: http://localhost:8081
 
+    # YuanShu Chat SPA: serves the user-facing knowledge Q&A web app.
+    # Routes /chat → chat SPA, /chat-assets/* → static assets.
+    - id: yuanshu-chat-server
+      name: '@deepseek-ai/dsh-yuanshu-chat-server'
+      inject: [webServer]
+      config:
+        yuanshuApiUrl: http://localhost:8081
+
     # YuanShu Platform gateway: proxies requests from the harness web server
     # to the 元枢 platform backend API at localhost:8081.
     # TEMPORARILY DISABLED: causes "DeepSeek request extension preparation failed"
@@ -274,6 +282,9 @@
 
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'
+
+    - id: ui-yuanshu-chat
+      name: '@deepseek-ai/dsh-client-ui-yuanshu-chat'
 
     - id: ui-approval
       name: '@deepseek-ai/dsh-client-ui-approval'
