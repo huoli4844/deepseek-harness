@@ -14,13 +14,13 @@ import type z from '@deepseek-ai/schemastery'
  * redactor walks are named; everything else on the instance is ignored.
  */
 interface SchemaNode {
-  type?: string
-  meta?: { role?: unknown }
+  type?: string | undefined
+  meta?: { role?: unknown } | undefined
   /** `object` properties, keyed by property name. */
-  dict?: Record<string, SchemaNode>
+  dict?: Record<string, SchemaNode> | undefined
   /** `dict`/`array` element schema. */
-  inner?: SchemaNode
-  list?: SchemaNode[]
+  inner?: SchemaNode | undefined
+  list?: SchemaNode[] | undefined
 }
 
 /** One schema-declared secret position inside a redacted value. */

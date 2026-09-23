@@ -6,7 +6,7 @@
     "jsx": "react-jsx"
   },
   "references": [
-    { "path": "../ui-conversation" },
+    { "path": "../ui-conversation/tsconfig.client.json" },
     { "path": "../../yuanshu/yuanshu-client" }
   ],
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css"]

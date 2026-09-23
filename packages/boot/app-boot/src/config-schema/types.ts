@@ -63,33 +63,33 @@ export interface ConfigSchemaDump extends ConfigJsonSchemaObject {
 export interface NativeConfigSchema {
   type: string
   meta: {
-    role?: string
+    role?: string | undefined
     extra?: unknown
-    hidden?: boolean
-    disabled?: boolean
-    collapse?: boolean
-    link?: string
-    comment?: string
-    badges?: { text: string; type: string }[]
-    required?: boolean
-    volatile?: boolean
+    hidden?: boolean | undefined
+    disabled?: boolean | undefined
+    collapse?: boolean | undefined
+    link?: string | undefined
+    comment?: string | undefined
+    badges?: { text: string; type: string }[] | undefined
+    required?: boolean | undefined
+    volatile?: boolean | undefined
     default?: unknown
-    min?: number
-    max?: number
-    step?: number
-    pattern?: { source: string; flags?: string }
-    description?: string | Record<string, string>
-    loose?: boolean
+    min?: number | undefined
+    max?: number | undefined
+    step?: number | undefined
+    pattern?: { source: string; flags?: string } | undefined
+    description?: string | Record<string, string> | undefined
+    loose?: boolean | undefined
   }
-  dict?: Record<string, NativeConfigSchema>
-  inner?: NativeConfigSchema
-  sKey?: NativeConfigSchema
-  list?: NativeConfigSchema[]
+  dict?: Record<string, NativeConfigSchema> | undefined
+  inner?: NativeConfigSchema | undefined
+  sKey?: NativeConfigSchema | undefined
+  list?: NativeConfigSchema[] | undefined
   value?: unknown
   builder?: unknown
 }
 
 /** Collected declaration used only while constructing the JSON Schema document. */
 export interface CollectedConfigEntry extends ConfigSchemaEntry {
-  native?: NativeConfigSchema
+  native?: NativeConfigSchema | undefined
 }
