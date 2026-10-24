@@ -6,6 +6,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { SdkUserQuestionBridge } from './user-questions.ts'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -29,6 +30,12 @@ import type {
   SessionEventNotification,
   SessionPromptParams,
   SessionPromptResult,
+  SessionCancelParams,
+  SessionDisposeParams,
+  SessionReplayParams,
+  SessionReplayResult,
+  SessionResult,
+  SessionResultParams,
   SessionResumeParams,
   SessionWaitParams,
   SessionWorkingDirectoryParams,
@@ -41,9 +48,14 @@ import type {
 
 interface SessionRecord {
   handle: AgentHandle
+  runId: string | undefined
   /** Latest live failure not superseded by a subsequently committed terminal. */
   failure: { readonly error: unknown; readonly atOffset: SessionLogOffset } | undefined
+  inputs: Map<string, { hash: string; receipt: Promise<SessionPromptResult> }>
 }
+
+const MAX_REPLAY_EVENTS = 4096
+const DEFAULT_REPLAY_LIMIT = 512
 
 function encodedImage(block: SessionPromptParams['contentBlocks'][number]): block is SdkEncodedImageBlock {
   return block.type === 'image' && 'data' in block
@@ -93,6 +105,7 @@ export class HarnessSdkJsonRpcServer {
   private maxTokens: number | undefined
   private llmFiber: { dispose(): Promise<void> } | undefined
   private readonly sessions = new Map<string, SessionRecord>()
+  private readonly eventHistory = new Map<string, SessionEventNotification[]>()
   private readonly sessionCreations = new Map<string, Promise<SessionRecord>>()
   private readonly disposers: (() => void)[] = []
   private shutdownTask: Promise<Record<string, never>> | undefined
@@ -158,6 +171,12 @@ export class HarnessSdkJsonRpcServer {
         record.failure = undefined
       }
       const payload: SessionEventNotification = { sessionId: String(session.id), event }
+      if (this.sessions.has(String(session.id))) {
+        const history = this.eventHistory.get(String(session.id)) ?? []
+        history.push(payload)
+        if (history.length > MAX_REPLAY_EVENTS) history.splice(0, history.length - MAX_REPLAY_EVENTS)
+        this.eventHistory.set(String(session.id), history)
+      }
       this.transport.notify('session.event', payload)
     }))
     this.disposers.push(ctx.on('agent/error', ({ agent, error }) => {
@@ -252,7 +271,38 @@ export class HarnessSdkJsonRpcServer {
    */
   async prompt(params: SessionPromptParams): Promise<SessionPromptResult> {
     if (!this.initialized) throw new Error('SDK server is not initialized')
+    if (params.runId !== undefined && (typeof params.runId !== 'string' || params.runId.trim() === '')) {
+      throw new TypeError('session/prompt runId must be a non-empty string')
+    }
     const rec = await this.getOrCreateSession(params.sessionId)
+    if (rec.runId !== undefined && params.runId !== undefined && rec.runId !== params.runId) {
+      throw new Error(`SDK session is already bound to another run: ${params.sessionId}`)
+    }
+    rec.runId ??= params.runId
+    const idempotencyKey = params.idempotencyKey
+    if (idempotencyKey !== undefined && (typeof idempotencyKey !== 'string' || idempotencyKey.trim() === '')) {
+      throw new TypeError('session/prompt idempotencyKey must be a non-empty string')
+    }
+    const inputHash = createHash('sha256').update(JSON.stringify(params.contentBlocks)).digest('hex')
+    if (idempotencyKey !== undefined) {
+      const previous = rec.inputs.get(idempotencyKey)
+      if (previous !== undefined) {
+        if (previous.hash !== inputHash) throw new Error('idempotency key was already used with different prompt content')
+        return previous.receipt
+      }
+      const receipt = this.enqueuePrompt(rec, params)
+      rec.inputs.set(idempotencyKey, { hash: inputHash, receipt })
+      try {
+        return await receipt
+      } catch (error) {
+        if (rec.inputs.get(idempotencyKey)?.receipt === receipt) rec.inputs.delete(idempotencyKey)
+        throw error
+      }
+    }
+    return this.enqueuePrompt(rec, params)
+  }
+
+  private async enqueuePrompt(rec: SessionRecord, params: SessionPromptParams): Promise<SessionPromptResult> {
     // An agent-loop-only reload disposes the loop's agents while this record
     // survives; a retained agent accepts followup() silently, so validate the
     // record against the live registry before delivery.
@@ -317,6 +367,73 @@ export class HarnessSdkJsonRpcServer {
         if (rec.failure !== undefined) throw rec.failure.error
         return {}
       }
+    }
+  }
+
+  async cancel(params: SessionCancelParams): Promise<Record<string, never>> {
+    const rec = this.sessions.get(params.sessionId)
+    if (rec === undefined) throw new Error(`unknown SDK session: ${params.sessionId}`)
+    this.assertLiveAgent(rec, params.sessionId)
+    rec.handle.agent.cancel({ kind: 'user' })
+    await rec.handle.agent.whenIdle()
+    await this.ctx.get('subagents')?.drainDescendants([rec.handle.agent])
+    this.assertLiveAgent(rec, params.sessionId)
+    return {}
+  }
+
+  async dispose(params: SessionDisposeParams): Promise<Record<string, never>> {
+    const rec = this.sessions.get(params.sessionId)
+    if (rec === undefined) return {}
+    if (rec.handle.agent.status === 'running') {
+      rec.handle.agent.cancel({ kind: 'user' })
+      await rec.handle.agent.whenIdle()
+    }
+    await this.ctx.get('subagents')?.drainDescendants([rec.handle.agent])
+    if (this.sessions.get(params.sessionId) === rec) this.sessions.delete(params.sessionId)
+    await rec.handle.dispose()
+    this.eventHistory.delete(params.sessionId)
+    return {}
+  }
+
+  replay(params: SessionReplayParams): SessionReplayResult {
+    if (!Number.isSafeInteger(params.afterSeq) || params.afterSeq < 0) {
+      throw new TypeError('session/replay afterSeq must be a non-negative safe integer')
+    }
+    const limit = params.limit ?? DEFAULT_REPLAY_LIMIT
+    if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_REPLAY_EVENTS) {
+      throw new TypeError(`session/replay limit must be between 1 and ${MAX_REPLAY_EVENTS}`)
+    }
+    if (!this.sessions.has(params.sessionId)) throw new Error(`unknown SDK session: ${params.sessionId}`)
+    const history = this.eventHistory.get(params.sessionId) ?? []
+    const oldestSeq = history[0]?.event.seq
+    const latestSeq = history.at(-1)?.event.seq ?? 0
+    const truncated = oldestSeq !== undefined && params.afterSeq < oldestSeq - 1
+    return {
+      events: history.filter(item => item.event.seq > params.afterSeq).slice(0, limit),
+      ...(oldestSeq === undefined ? {} : { oldestSeq }),
+      latestSeq,
+      truncated,
+    }
+  }
+
+  result(params: SessionResultParams): SessionResult {
+    if (!this.sessions.has(params.sessionId)) throw new Error(`unknown SDK session: ${params.sessionId}`)
+    const history = this.eventHistory.get(params.sessionId) ?? []
+    const end = [...history].reverse().find(item => item.event.type === 'turn/end')
+    if (end === undefined) throw new Error(`session has no completed turn: ${params.sessionId}`)
+    const turnEnd = end.event
+    if (turnEnd.type !== 'turn/end') throw new Error('invalid projected turn end')
+    const assistant = [...history].reverse().find(item => item.event.type === 'assistant/message'
+      && item.event.data.turn === turnEnd.data.turn)
+    const answer = assistant?.event.type === 'assistant/message' ? [...assistant.event.data.message.content] : []
+    const stopReason = turnEnd.data.reason.kind
+    const status = successStatus(stopReason, this.options)
+    const usage = assistant?.event.type === 'assistant/message' ? assistant.event.data.usage : undefined
+    return {
+      status,
+      stopReason,
+      answer,
+      ...(usage === undefined ? {} : { usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens } }),
     }
   }
 
@@ -389,6 +506,7 @@ export class HarnessSdkJsonRpcServer {
     this.scheduledSessions.clear()
     const records = [...this.sessions.values()]
     this.sessions.clear()
+    this.eventHistory.clear()
     const failures: unknown[] = []
     while (this.disposers.length > 0) {
       try {
@@ -439,6 +557,29 @@ export class HarnessSdkJsonRpcServer {
         const sessionId = params?.sessionId
         if (typeof sessionId !== 'string') throw new TypeError('session/wait requires a sessionId string')
         return this.wait({ sessionId })
+      }
+      case 'session/cancel': {
+        const sessionId = params?.sessionId
+        if (typeof sessionId !== 'string' || sessionId.length === 0) throw new TypeError('session/cancel requires a non-empty sessionId string')
+        const reason = params?.reason
+        return this.cancel({ sessionId, ...(typeof reason === 'string' ? { reason } : {}) })
+      }
+      case 'session/dispose': {
+        const sessionId = params?.sessionId
+        if (typeof sessionId !== 'string' || sessionId.length === 0) throw new TypeError('session/dispose requires a non-empty sessionId string')
+        return this.dispose({ sessionId })
+      }
+      case 'session/replay': {
+        const sessionId = params?.sessionId
+        if (typeof sessionId !== 'string' || sessionId.length === 0) throw new TypeError('session/replay requires a non-empty sessionId string')
+        const afterSeq = params?.afterSeq
+        const limit = params?.limit
+        return this.replay({ sessionId, afterSeq: afterSeq as number, ...(limit === undefined ? {} : { limit: limit as number }) })
+      }
+      case 'session/result': {
+        const sessionId = params?.sessionId
+        if (typeof sessionId !== 'string' || sessionId.length === 0) throw new TypeError('session/result requires a non-empty sessionId string')
+        return this.result({ sessionId })
       }
       case 'session/working-directory/get':
       case 'session/working-directory/set': {
@@ -508,7 +649,7 @@ export class HarnessSdkJsonRpcServer {
       meta: { cwd: this.cwd },
       agentOptions,
     }))
-    const rec: SessionRecord = { handle, failure: undefined }
+    const rec: SessionRecord = { handle, runId: undefined, failure: undefined, inputs: new Map() }
     this.sessions.set(sessionId, rec)
     return rec
   }

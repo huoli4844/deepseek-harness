@@ -67,6 +67,10 @@ export interface InitializeResult {
 export interface SessionPromptParams {
   /** The SDK-side session id; an unknown id lazily creates the agent+session pair. */
   sessionId: string
+  /** The host's AgentRun identity, fixed for the lifetime of this Session. */
+  runId?: string
+  /** Host-generated business key. Within one SDK server lifetime, same-key/same-content retries return the original receipt. */
+  idempotencyKey?: string
   /** The prompt content blocks, sent verbatim as the user message. */
   contentBlocks: SdkPromptContentBlock[]
 }
@@ -99,6 +103,43 @@ export interface SessionResumeParams {
 export interface SessionWaitParams {
   /** An SDK-owned session id; waiting never creates a session. */
   sessionId: string
+}
+
+/** Cancel active work for one SDK-owned Session and wait until it is idle. */
+export interface SessionCancelParams {
+  sessionId: string
+  reason?: string
+}
+
+/** Dispose one SDK-owned Session and release its Agent handle. */
+export interface SessionDisposeParams {
+  sessionId: string
+}
+
+/** Replay Session events strictly after the supplied sequence cursor. */
+export interface SessionReplayParams {
+  sessionId: string
+  afterSeq: number
+  limit?: number
+}
+
+export interface SessionReplayResult {
+  events: SessionEventNotification[]
+  oldestSeq?: number
+  latestSeq: number
+  truncated: boolean
+}
+
+/** Structured output of the most recently completed Session turn. */
+export interface SessionResultParams {
+  sessionId: string
+}
+
+export interface SessionResult {
+  status: SdkRunStatus
+  stopReason: string
+  answer: ContentBlock[]
+  usage?: { inputTokens?: number; outputTokens?: number }
 }
 
 /** Session whose effective working directory is requested; an unknown id creates the Session. */
@@ -179,6 +220,10 @@ export interface HarnessSdkRequestMap {
   'session/prompt': { params: SessionPromptParams; result: SessionPromptResult }
   'session/resume': { params: SessionResumeParams; result: Record<string, never> }
   'session/wait': { params: SessionWaitParams; result: Record<string, never> }
+  'session/cancel': { params: SessionCancelParams; result: Record<string, never> }
+  'session/dispose': { params: SessionDisposeParams; result: Record<string, never> }
+  'session/replay': { params: SessionReplayParams; result: SessionReplayResult }
+  'session/result': { params: SessionResultParams; result: SessionResult }
   'session/working-directory/get': { params: SessionWorkingDirectoryParams; result: SessionWorkingDirectoryResult }
   'session/working-directory/set': { params: SessionWorkingDirectorySetParams; result: SessionWorkingDirectoryResult }
   'shutdown': { params: undefined; result: Record<string, never> }

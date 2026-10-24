@@ -43,6 +43,10 @@ Both wire ends share one method set: client-to-server requests, opt-in server-to
 | client→server | `session/prompt` | `SessionPromptParams` → `SessionPromptResult` (durable enqueue receipt) |
 | client→server | `session/resume` | `SessionResumeParams` → `{}` |
 | client→server | `session/wait` | `SessionWaitParams` → `{}` |
+| client→server | `session/cancel` | `SessionCancelParams` → `{}` |
+| client→server | `session/dispose` | `SessionDisposeParams` → `{}` |
+| client→server | `session/replay` | `SessionReplayParams` → `SessionReplayResult` |
+| client→server | `session/result` | `SessionResultParams` → `SessionResult` |
 | client→server | `session/working-directory/get` | `SessionWorkingDirectoryParams` → `SessionWorkingDirectoryResult` |
 | client→server | `session/working-directory/set` | `SessionWorkingDirectorySetParams` → `SessionWorkingDirectoryResult` |
 | client→server | `shutdown` | no params → `{}` |
@@ -59,6 +63,8 @@ Both wire ends share one method set: client-to-server requests, opt-in server-to
 `session/wait` accepts `{ sessionId }` for an existing SDK-owned session and returns `{}` after the root stays idle and progressing managed descendant work finishes. Idle descendants with parked input remain resident without blocking this wait. Unknown ids and live Agent failures without a newer committed terminal are rejected. Notifications committed during the wait precede its response on the same transport; raw `session.status` transitions retain their whole-agent meaning.
 
 `session/resume` accepts a non-empty persisted `{ sessionId }` and returns `{}` after restoring that exact session. It requires initialization and the original persistence store, sends no new input, and rejects missing, unreadable, incompatible, or occupied sessions without creating a replacement. Historical events remain in the stored log; notifications report newly committed events.
+
+`session/prompt` accepts optional host-owned `runId` and `idempotencyKey`. A Session binds to its first run id; retries with a new run id fail. Idempotency is scoped to that Session and SDK server process lifetime: the same key and prompt content return the original receipt, while reusing a key with different content fails. `session/cancel` cancels active work and drains managed descendants; `session/dispose` releases one owned Session and is idempotent. `session/replay` returns events after `afterSeq` from a bounded in-process projection (up to 4096 retained events); `truncated: true` means the requested cursor is too old. This replay projection is process-local and is not a substitute for durable persistence across runtime restarts. `session/result` returns the most recently completed turn's assistant content, stop reason, status, and available token usage.
 
 <a id="native-user-questions"></a>
 ### Native user questions

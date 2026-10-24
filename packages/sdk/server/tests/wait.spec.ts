@@ -96,6 +96,36 @@ describe('SDK session/wait with parked child input', () => {
 })
 
 describe('SDK session/wait failures', () => {
+  it('deduplicates identified prompts and exposes structured results with replay cursors', async () => {
+    const { server, dispose } = await setup()
+    try {
+      const params = {
+        sessionId: 'identified-input',
+        runId: 'run-42',
+        idempotencyKey: 'run-42-input-1',
+        contentBlocks: [{ type: 'text' as const, text: 'answer this once' }],
+      }
+      const [first, retry] = await Promise.all([server.prompt(params), server.prompt(params)])
+      expect(retry).toEqual(first)
+      await server.wait({ sessionId: params.sessionId })
+
+      const replay = server.replay({ sessionId: params.sessionId, afterSeq: 0 })
+      expect(replay.truncated).toBe(false)
+      expect(replay.events.filter(item => item.event.type === 'user/message')).toHaveLength(1)
+      expect(replay.events.at(-1)?.event.seq).toBe(replay.latestSeq)
+
+      expect(server.result({ sessionId: params.sessionId })).toMatchObject({
+        status: 'ok', stopReason: 'completed', answer: [{ type: 'text', text: 'answer' }],
+      })
+      await expect(server.prompt({ ...params, runId: 'run-43', idempotencyKey: 'run-43-input-1' }))
+        .rejects.toThrow('SDK session is already bound to another run')
+      await expect(server.prompt({ ...params, contentBlocks: [{ type: 'text', text: 'different' }] }))
+        .rejects.toThrow('idempotency key was already used with different prompt content')
+    } finally {
+      await dispose()
+    }
+  })
+
   it('keeps an unowned descendant failure separate from the SDK root outcome', async () => {
     const { ctx, server, dispose } = await setup()
     try {
