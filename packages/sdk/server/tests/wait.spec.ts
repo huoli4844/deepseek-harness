@@ -109,6 +109,9 @@ describe('SDK session/wait failures', () => {
       expect(retry).toEqual(first)
       await server.wait({ sessionId: params.sessionId })
 
+      const fromBeginning = server.replay({ sessionId: params.sessionId, afterSeq: -1, limit: 1 })
+      expect(fromBeginning.events[0]?.event.seq).toBe(0)
+      expect(fromBeginning.truncated).toBe(false)
       const replay = server.replay({ sessionId: params.sessionId, afterSeq: 0 })
       expect(replay.truncated).toBe(false)
       expect(replay.events.filter(item => item.event.type === 'user/message')).toHaveLength(1)
@@ -121,6 +124,22 @@ describe('SDK session/wait failures', () => {
         .rejects.toThrow('SDK session is already bound to another run')
       await expect(server.prompt({ ...params, contentBlocks: [{ type: 'text', text: 'different' }] }))
         .rejects.toThrow('idempotency key was already used with different prompt content')
+      expect(() => server.replay({ sessionId: params.sessionId, afterSeq: -2 })).toThrow('afterSeq')
+      expect(() => server.replay({ sessionId: params.sessionId, afterSeq: 0, limit: 4097 })).toThrow('limit')
+    } finally {
+      await dispose()
+    }
+  })
+
+  it('cancels an owned session and disposes it idempotently', async () => {
+    const { server, dispose } = await setup()
+    try {
+      await server.prompt({ sessionId: 'cancel-dispose', contentBlocks: [{ type: 'text', text: 'finish first' }] })
+      await server.wait({ sessionId: 'cancel-dispose' })
+      await expect(server.cancel({ sessionId: 'cancel-dispose', reason: 'host timeout' })).resolves.toEqual({})
+      await expect(server.dispose({ sessionId: 'cancel-dispose' })).resolves.toEqual({})
+      await expect(server.dispose({ sessionId: 'cancel-dispose' })).resolves.toEqual({})
+      expect(() => server.replay({ sessionId: 'cancel-dispose', afterSeq: 0 })).toThrow('unknown SDK session')
     } finally {
       await dispose()
     }

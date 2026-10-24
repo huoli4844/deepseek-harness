@@ -119,6 +119,7 @@ export interface SessionDisposeParams {
 /** Replay Session events strictly after the supplied sequence cursor. */
 export interface SessionReplayParams {
   sessionId: string
+  /** Use -1 to replay from the first event (sequence zero). */
   afterSeq: number
   limit?: number
 }

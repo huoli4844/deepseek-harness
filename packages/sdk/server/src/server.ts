@@ -396,8 +396,8 @@ export class HarnessSdkJsonRpcServer {
   }
 
   replay(params: SessionReplayParams): SessionReplayResult {
-    if (!Number.isSafeInteger(params.afterSeq) || params.afterSeq < 0) {
-      throw new TypeError('session/replay afterSeq must be a non-negative safe integer')
+    if (!Number.isSafeInteger(params.afterSeq) || params.afterSeq < -1) {
+      throw new TypeError('session/replay afterSeq must be an integer greater than or equal to -1')
     }
     const limit = params.limit ?? DEFAULT_REPLAY_LIMIT
     if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_REPLAY_EVENTS) {
