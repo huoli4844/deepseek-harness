@@ -22,6 +22,7 @@ import type {} from '@deepseek-ai/dsh-schedule'
 import type SubagentRuntime from '@deepseek-ai/dsh-subagent'
 import type { SubagentRunEndInfo } from '@deepseek-ai/dsh-subagent'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import * as McpClient from '@deepseek-ai/dsh-mcp-client'
 import type {
   ApprovalRequestParams,
   InitializeParams,
@@ -30,6 +31,7 @@ import type {
   SessionEventNotification,
   SessionPromptParams,
   SessionPromptResult,
+  SessionCreateParams,
   SessionCancelParams,
   SessionDisposeParams,
   SessionReplayParams,
@@ -320,6 +322,39 @@ export class HarnessSdkJsonRpcServer {
   }
 
   /**
+   * 为元枢当前 Run 创建全新的 Agent Session，并将 MCP Client 只安装在该
+   * Agent 的工具 scope 中。桥接令牌仅经宿主与 Runtime 私有协议传递，不能
+   * 注入提示词；只接受 loopback HTTP，确保平台能力端点不会变成任意远程代理。
+   * Session 创建失败时由 Agent 工厂回滚其 scope，宿主随后应回收不确定的进程。
+   */
+  async create(params: SessionCreateParams): Promise<Record<string, never>> {
+    if (!this.initialized) throw new Error('SDK server is not initialized')
+    if (this.shuttingDown) throw new Error('SDK server is shutting down')
+    if (typeof params.sessionId !== 'string' || params.sessionId.trim() === '') {
+      throw new TypeError('session/create requires a non-empty sessionId')
+    }
+    if (typeof params.runId !== 'string' || params.runId.trim() === '') {
+      throw new TypeError('session/create requires a non-empty runId')
+    }
+    const bridge = params.capabilityBridge
+    if (bridge === undefined || typeof bridge.url !== 'string' || typeof bridge.token !== 'string' || bridge.token.length < 32) {
+      throw new TypeError('session/create requires a host-owned capability bridge')
+    }
+    const endpoint = new URL(bridge.url)
+    if (endpoint.username !== '' || endpoint.password !== '') {
+      throw new TypeError('session/create capability bridge must not embed URL credentials')
+    }
+    if (endpoint.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname)) {
+      throw new TypeError('session/create capability bridge must use loopback HTTP')
+    }
+    if (this.sessions.has(params.sessionId) || this.sessionCreations.has(params.sessionId)) {
+      throw new Error(`SDK session already exists: ${params.sessionId}`)
+    }
+    await this.openSession(params.sessionId, false, params.runId, bridge)
+    return {}
+  }
+
+  /**
    * Restore a persisted session and repair its interrupted final turn without sending input.
    * Uses the initialized model route while preserving the stored session identity and directory.
    * Rejects missing, unreadable, or already owned sessions; never creates a replacement.
@@ -544,6 +579,8 @@ export class HarnessSdkJsonRpcServer {
     switch (method) {
       case 'initialize':
         return this.initialize(params as unknown as InitializeParams)
+      case 'session/create':
+        return this.create(params as unknown as SessionCreateParams)
       case 'session/prompt':
         return this.prompt(params as unknown as SessionPromptParams)
       case 'session/resume': {
@@ -609,8 +646,8 @@ export class HarnessSdkJsonRpcServer {
     return this.openSession(sessionId, false)
   }
 
-  private openSession(sessionId: string, resume: boolean): Promise<SessionRecord> {
-    const creation = this.createSession(sessionId, resume)
+  private openSession(sessionId: string, resume: boolean, runId?: string, capabilityBridge?: SessionCreateParams['capabilityBridge']): Promise<SessionRecord> {
+    const creation = this.createSession(sessionId, resume, runId, capabilityBridge)
     this.sessionCreations.set(sessionId, creation)
     void creation.then(
       () => { this.sessionCreations.delete(sessionId) },
@@ -619,7 +656,7 @@ export class HarnessSdkJsonRpcServer {
     return creation
   }
 
-  private async createSession(sessionId: string, resume: boolean): Promise<SessionRecord> {
+  private async createSession(sessionId: string, resume: boolean, runId?: string, capabilityBridge?: SessionCreateParams['capabilityBridge']): Promise<SessionRecord> {
     // No preset composition: this server's compositions keep the model-facing
     // rows in the host plane, so this agent reads them from the global layer. A
     // deployment that configures a roster has to join one here first
@@ -648,8 +685,20 @@ export class HarnessSdkJsonRpcServer {
       sessionId: brandString<SessionId>(sessionId),
       meta: { cwd: this.cwd },
       agentOptions,
+      ...(capabilityBridge === undefined ? {} : {
+        setup: async (agentCtx) => {
+          await agentCtx.plugin(McpClient, {
+            transport: 'streamable-http',
+            serverName: 'yuanshu_runtime',
+            url: capabilityBridge.url,
+            headers: { Authorization: `Bearer ${capabilityBridge.token}` },
+            failOnStartupError: true,
+            reconnect: { enabled: false },
+          })
+        },
+      }),
     }))
-    const rec: SessionRecord = { handle, runId: undefined, failure: undefined, inputs: new Map() }
+    const rec: SessionRecord = { handle, runId, failure: undefined, inputs: new Map() }
     this.sessions.set(sessionId, rec)
     return rec
   }

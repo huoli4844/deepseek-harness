@@ -31,6 +31,8 @@ kind: "package-reference"
 
 `session/resume` 在初始化后接受持久化的 `{ sessionId }`，待其 Agent 就绪后返回 `{}`。它通过 `agents.resume()` 加载历史、修复最后一个被中断的轮次，并保留存储的起始目录和当前有效目录，同时将初始化时选定的模型路由记录为 Session 选择。省略推理强度时，仅在路由相同的情况下保留已保存的显式强度。它不发送新输入。会话缺失、不可读、不兼容或被占用时，请求失败且不创建替代会话。对正在恢复的标识发送提示词时，会等待恢复完成；shutdown 会等待进行中的恢复并释放其 Agent。历史事件保留在日志中，不会作为新通知重新发送。恢复期间记录的模型选择会在恢复响应前发出新的 `session.event` 通知。
 
+宿主可以使用 `session/create` 创建绑定 `runId` 的全新 Session，并传入只监听 loopback 的 Streamable HTTP MCP Bridge 地址及短期 Bearer 凭据。服务器只在该 Agent 的 scope 内安装 MCP Client；销毁 Session 时一并释放 Agent 与其 scoped Client。此方法面向受信任的宿主 Runtime 协议，不应暴露给普通客户端，也不能把跨 Run 的用户对话 Session 传入该方法。
+
 插件在注册提醒激活处理方后发布 `sdkSessionActivation` 就绪标记；SDK 组合让 Schedule 依赖此标记，而非 Web Session controller。定时提醒也通过同一个 SDK Session 所有者投递。启动时已到期的提醒等待 SDK 成功初始化，再使用初始化指定的提供方、模型、推理强度和输出上限恢复会话。客户端可以首次接管提醒恢复的 Session；并发的提醒与客户端恢复共用一个 handle。关闭时释放等待初始化的提醒，并等待已经接纳的恢复完成。
 
 `session/working-directory/get` 接收 `{ sessionId }`；`session/working-directory/set` 接收 `{ sessionId, path }`。两者均返回 `{ cwd }`，并可创建未知 Session，而不启动模型轮次。读取通过工作目录服务恢复缺失目录；修改保留起始目录元数据与权限，并通过已记录的用户上下文告知模型。

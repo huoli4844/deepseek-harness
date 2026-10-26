@@ -1,5 +1,6 @@
 import { MESSAGES_RESPONSE } from './messages-response.ts'
 import { mountWorkingDirectoryFixture } from '../../../subagent/subagent/tests/working-directory-fixture.ts'
+import { startHttpMcpFixture } from '../../../mcp/mcp-client/tests/http-fixture.ts'
 import { createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { createServer } from 'node:http'
@@ -131,6 +132,73 @@ async function settleSubagent(
 }
 
 describe('HarnessSdkJsonRpcServer', () => {
+  it('accepts only host-owned loopback bridges when creating an isolated Run Session', async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-session-create-'))
+    const ctx = await makeHarness(storageDir)
+    const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())
+    try {
+      await expect(server.handleRequest('session/create', {
+        sessionId: 'run-session', runId: 'run-1',
+        capabilityBridge: { url: 'https://example.com/mcp', token: 'x'.repeat(64) },
+      })).rejects.toThrow('not initialized')
+      ctx.llm.registerAdapter(['mock'], new MockAdapter([]))
+      await server.initialize({ cwd: storageDir, provider: 'mock', model: 'mock' })
+      await expect(server.handleRequest('session/create', {
+        sessionId: 'run-session', runId: 'run-1',
+        capabilityBridge: { url: 'https://example.com/mcp', token: 'x'.repeat(64) },
+      })).rejects.toThrow('loopback HTTP')
+      await expect(server.handleRequest('session/create', {
+        sessionId: 'run-session', runId: 'run-1',
+        capabilityBridge: { url: 'http://user:pass@127.0.0.1:1234/mcp', token: 'x'.repeat(64) },
+      })).rejects.toThrow('URL credentials')
+      await expect(server.handleRequest('session/create', {
+        sessionId: 'run-session', runId: 'run-1',
+        capabilityBridge: { url: 'http://127.0.0.1:1234/mcp', token: 'short' },
+      })).rejects.toThrow('host-owned capability bridge')
+      expect(ctx.agents.list()).toEqual([])
+    } finally {
+      await server.shutdown()
+      await ctx.fiber.dispose()
+      await rm(storageDir, { recursive: true, force: true })
+    }
+  })
+
+  it('mounts and releases a distinct MCP bridge for each created Run Session', async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-session-bridge-'))
+    const fixture = await startHttpMcpFixture()
+    const ctx = await makeHarness(storageDir)
+    const adapter = new MockAdapter([textResponse('first'), textResponse('second')])
+    ctx.llm.registerAdapter(['mock'], adapter)
+    const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())
+    const createSession = (sessionId: string, runId: string, token: string) => server.create({
+      sessionId,
+      runId,
+      capabilityBridge: { url: fixture.url, token },
+    })
+    try {
+      await server.initialize({ cwd: storageDir, provider: 'mock', model: 'mock' })
+      await createSession('run-session-1', 'run-1', 'a'.repeat(64))
+      await server.prompt({ sessionId: 'run-session-1', runId: 'run-1', contentBlocks: [{ type: 'text', text: 'first' }] })
+      await server.wait({ sessionId: 'run-session-1' })
+      expect(adapter.requests[0]?.tools?.map(tool => tool.name)).toContain('mcp__yuanshu_runtime__ping')
+      await server.dispose({ sessionId: 'run-session-1' })
+      expect(ctx.agents.get(SessionId('run-session-1'))).toBeUndefined()
+
+      await createSession('run-session-2', 'run-2', 'b'.repeat(64))
+      await server.prompt({ sessionId: 'run-session-2', runId: 'run-2', contentBlocks: [{ type: 'text', text: 'second' }] })
+      await server.wait({ sessionId: 'run-session-2' })
+      expect(adapter.requests[1]?.tools?.map(tool => tool.name)).toContain('mcp__yuanshu_runtime__ping')
+      expect(fixture.authorization).toContain('Bearer ' + 'a'.repeat(64))
+      expect(fixture.authorization).toContain('Bearer ' + 'b'.repeat(64))
+      await server.dispose({ sessionId: 'run-session-2' })
+    } finally {
+      await server.shutdown()
+      await ctx.fiber.dispose()
+      await fixture.close()
+      await rm(storageDir, { recursive: true, force: true })
+    }
+  }, 30_000)
+
   it('waits only for an existing SDK-owned session and includes a child-triggered root turn', async () => {
     const storageDir = await mkdtemp(join(tmpdir(), 'dsh-jsonrpc-wait-'))
     const ctx = await makeHarness(storageDir)

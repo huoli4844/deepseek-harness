@@ -41,6 +41,7 @@ Both wire ends share one method set: client-to-server requests, opt-in server-to
 |---|---|---|
 | client→server | `initialize` | `InitializeParams` → `InitializeResult` |
 | client→server | `session/prompt` | `SessionPromptParams` → `SessionPromptResult` (durable enqueue receipt) |
+| client→server | `session/create` | `SessionCreateParams` → `{}` (create an isolated Agent Session bound to a host-owned loopback MCP bridge) |
 | client→server | `session/resume` | `SessionResumeParams` → `{}` |
 | client→server | `session/wait` | `SessionWaitParams` → `{}` |
 | client→server | `session/cancel` | `SessionCancelParams` → `{}` |

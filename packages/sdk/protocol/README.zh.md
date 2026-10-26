@@ -41,8 +41,13 @@ kind: "package-library"
 |---|---|---|
 | client→server | `initialize` | `InitializeParams` → `InitializeResult` |
 | client→server | `session/prompt` | `SessionPromptParams` → `SessionPromptResult`（持久入队回执） |
+| client→server | `session/create` | `SessionCreateParams` → `{}`（创建独立 Agent Session，并绑定宿主提供的 loopback MCP Bridge） |
 | client→server | `session/resume` | `SessionResumeParams` → `{}` |
 | client→server | `session/wait` | `SessionWaitParams` → `{}` |
+| client→server | `session/cancel` | `SessionCancelParams` → `{}` |
+| client→server | `session/dispose` | `SessionDisposeParams` → `{}` |
+| client→server | `session/replay` | `SessionReplayParams` → `SessionReplayResult` |
+| client→server | `session/result` | `SessionResultParams` → `SessionResult` |
 | 客户端→服务端 | `session/working-directory/get` | `SessionWorkingDirectoryParams` → `SessionWorkingDirectoryResult` |
 | 客户端→服务端 | `session/working-directory/set` | `SessionWorkingDirectorySetParams` → `SessionWorkingDirectoryResult` |
 | client→server | `shutdown` | 无参数 → `{}` |

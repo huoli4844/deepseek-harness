@@ -93,6 +93,24 @@ export interface SessionPromptResult {
   messageId: string
 }
 
+/** 由宿主为单个 Run 创建、仅挂载到对应 Agent scope 的能力桥接端点。 */
+export interface SessionCapabilityBridge {
+  /** 由宿主拥有并监听 loopback 地址的 Streamable HTTP MCP 端点。 */
+  url: string
+  /** 随机短期 Bearer 凭据，只能通过宿主与 Runtime 的私有协议传递。 */
+  token: string
+}
+
+/** 创建拥有独立对话状态和宿主工具集的 Agent Session。 */
+export interface SessionCreateParams {
+  /** 此次 Run 对应的唯一 Harness Session 标识。 */
+  sessionId: string
+  /** 元枢 AgentRun 标识；后续 prompt 必须继续使用此 Run ID。 */
+  runId: string
+  /** 当前 Run 专属的本体/平台能力桥接配置，不得跨 Run 复用。 */
+  capabilityBridge: SessionCapabilityBridge
+}
+
 /** Restore a persisted session without enqueueing a prompt. */
 export interface SessionResumeParams {
   /** Persisted session identity; missing or already owned sessions are rejected. */
@@ -218,6 +236,7 @@ export interface HarnessSdkNotificationMap {
 /** Client-to-server request methods with their param and result shapes. */
 export interface HarnessSdkRequestMap {
   'initialize': { params: InitializeParams; result: InitializeResult }
+  'session/create': { params: SessionCreateParams; result: Record<string, never> }
   'session/prompt': { params: SessionPromptParams; result: SessionPromptResult }
   'session/resume': { params: SessionResumeParams; result: Record<string, never> }
   'session/wait': { params: SessionWaitParams; result: Record<string, never> }
