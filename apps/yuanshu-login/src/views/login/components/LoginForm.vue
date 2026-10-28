@@ -68,7 +68,7 @@
 import type { FormInstanceFunctions, FormRule, SubmitContext } from 'tdesign-vue-next'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { useSessionStore } from '@/stores/session'
 
@@ -95,7 +95,6 @@ const pendingTotpChallengeId = ref('')
 const submitting = ref(false)
 
 const router = useRouter()
-const route = useRoute()
 
 const onSubmit = async (ctx: SubmitContext) => {
   if (ctx.validateResult !== true) return
@@ -141,25 +140,17 @@ const finishLogin = async () => {
     MessagePlugin.success('登录成功，token 文件已下载。请将文件保存到 ~/.dsh/yuanshu-token/')
   }
 
-  // Fetch the DSH launch token and redirect with it
-  let dshRedirect = '/'
   try {
-    const resp = await fetch('/yuanshu-token')
-    if (resp.ok) {
-      const data = await resp.json()
-      if (data.token) {
-        dshRedirect = `/?token=${encodeURIComponent(data.token)}`
-      }
+    const handoffUrl = new URL('yuanshu-token', window.location.href)
+    const response = await fetch(handoffUrl, { credentials: 'same-origin' })
+    if (!response.ok) throw new Error(`Harness authentication handoff failed: ${response.status}`)
+    const result: unknown = await response.json()
+    if (typeof result !== 'object' || result === null || !('url' in result) || typeof result.url !== 'string') {
+      throw new Error('Harness authentication handoff returned an invalid URL')
     }
+    window.location.href = result.url
   } catch {
-    // Token endpoint unavailable, redirect to root
-  }
-
-  const redirect = route.query.redirect as string
-  if (redirect && redirect.startsWith('/')) {
-    window.location.href = redirect
-  } else {
-    window.location.href = dshRedirect
+    MessagePlugin.error('登录成功，但无法返回 Harness，请重新打开应用后重试')
   }
 }
 

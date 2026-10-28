@@ -4688,6 +4688,87 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-workspace-changes -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-gateway -->
+<a id="deepseek-aidsh-yuanshu-gateway"></a>
+
+## `@deepseek-ai/dsh-yuanshu-gateway`
+
+- `inject`: `webServer`
+- `source`: [`packages/yuanshu/yuanshu-gateway/src/index.ts:16`](../packages/yuanshu/yuanshu-gateway/src/index.ts)
+
+```ts config-catalog
+/** Gateway endpoint and optional server-side credentials. */
+export interface Config {
+  /** Base URL of the YuanShu API. */
+  readonly baseURL: string
+  /** Optional default bearer token used when a request has no authorization header. */
+  readonly token?: string
+  /** Same-origin path prefix registered by the gateway. */
+  readonly prefix?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-gateway -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
+<a id="deepseek-aidsh-yuanshu-login-server"></a>
+
+## `@deepseek-ai/dsh-yuanshu-login-server`
+
+- `inject`: `webServer` · `connection` · `webApp`
+- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:33`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
+
+```ts config-catalog
+export interface Config {
+  /** Path to the built login dist directory. Resolved automatically if not set. */
+  readonly loginDist?: string
+  /** Base URL of the YuanShu backend for the login page to call. */
+  readonly yuanshuApiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-qa-tool -->
+<a id="deepseek-aidsh-yuanshu-qa-tool"></a>
+
+## `@deepseek-ai/dsh-yuanshu-qa-tool`
+
+- `inject`: `tools`
+- `source`: [`packages/yuanshu/yuanshu-qa-tool/src/index.ts:15`](../packages/yuanshu/yuanshu-qa-tool/src/index.ts)
+
+```ts config-catalog
+/** YuanShu knowledge Q&A endpoint, credentials, and request mode. */
+export interface Config {
+  /** Base URL of the YuanShu platform API. */
+  readonly baseURL: string
+  /** Optional authentication token. */
+  readonly token?: string
+  /** Whether to use streaming mode. When true, uses SSE stream instead of sync call. */
+  readonly streaming: boolean
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-qa-tool -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-tool -->
+<a id="deepseek-aidsh-yuanshu-tool"></a>
+
+## `@deepseek-ai/dsh-yuanshu-tool`
+
+- `inject`: `tools`
+- `source`: [`packages/yuanshu/yuanshu-tool/src/index.ts:14`](../packages/yuanshu/yuanshu-tool/src/index.ts)
+
+```ts config-catalog
+/** YuanShu worker tool endpoint, credentials, and default worker choice. */
+export interface Config {
+  /** Base URL of the YuanShu platform API. */
+  readonly baseURL: string
+  /** Optional authentication token. */
+  readonly token?: string
+  /** Worker type used when the tool input omits `worker_type`. */
+  readonly defaultWorkerType?: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-tool -->
+
 ## 无配置的可加载插件
 
 这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。
@@ -4860,6 +4941,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-dockkit` | — | [`packages/client/ui-dockkit/src/index.ts`](../packages/client/ui-dockkit/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-primitives` | — | [`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-slots` | — | [`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-yuanshu-chat` | — | [`packages/client/ui-yuanshu-chat/src/index.ts`](../packages/client/ui-yuanshu-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-web` | — | [`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts) |
 | `@deepseek-ai/dsh-cmdline` | — | [`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.ts) |
 | `@deepseek-ai/dsh-cua-bundle` | — | [`packages/experimental/cua-bundle/src/index.ts`](../packages/experimental/cua-bundle/src/index.ts) |
@@ -4921,4 +5003,5 @@ export interface Config {
 | `@deepseek-ai/dsh-util-values` | — | [`packages/util/values/src/index.ts`](../packages/util/values/src/index.ts) |
 | `@deepseek-ai/dsh-util-workspace-path` | — | [`packages/util/workspace-path/src/index.ts`](../packages/util/workspace-path/src/index.ts) |
 | `@deepseek-ai/dsh-win32-process` | — | [`packages/subprocess/win32-process/src/index.ts`](../packages/subprocess/win32-process/src/index.ts) |
+| `@deepseek-ai/dsh-yuanshu-client` | — | [`packages/yuanshu/yuanshu-client/src/index.ts`](../packages/yuanshu/yuanshu-client/src/index.ts) |
 <!-- END GENERATED config-catalog:library -->

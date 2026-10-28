@@ -11,13 +11,12 @@ import type { AskKnowledgeQuestionResponse } from '@deepseek-ai/dsh-yuanshu-clie
 export const name = 'yuanshu-qa-tool'
 export const inject = ['tools']
 
+/** YuanShu knowledge Q&A endpoint, credentials, and request mode. */
 export interface Config {
   /** Base URL of the YuanShu platform API. */
   readonly baseURL: string
   /** Optional authentication token. */
   readonly token?: string
-  /** Default worker type for the generic yuanshu_agent tool (not used here). */
-  readonly defaultWorkerType?: string
   /** Whether to use streaming mode. When true, uses SSE stream instead of sync call. */
   readonly streaming: boolean
 }
@@ -25,7 +24,6 @@ export interface Config {
 export const Config: z<Config> = z.object({
   baseURL: z.string().required(),
   token: z.string(),
-  defaultWorkerType: z.string(),
   streaming: z.boolean().default(false),
 })
 
@@ -36,8 +34,7 @@ export const Config: z<Config> = z.object({
  *   - The synthesized answer
  *   - A numbered list of citations with document title and evidence ID
  *
- * This format is model-friendly and can be rendered by the tool's
- * output renderer into a rich card with clickable citations.
+ * The tool output renderer returns this format as plain text.
  */
 function formatAnswer(result: AskKnowledgeQuestionResponse): string {
   const lines: string[] = []
@@ -195,8 +192,5 @@ export function apply(ctx: Context, config: Config): void {
     },
   })
 
-  ctx.effect(() => {
-    ctx.tools.register(qaTool)
-    return () => {}
-  }, 'yuanshu-qa-tool: register')
+  ctx.effect(() => ctx.tools.register(qaTool), 'yuanshu-qa-tool: register')
 }

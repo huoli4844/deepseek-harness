@@ -1,6 +1,8 @@
-import { useState, useRef, useCallback } from 'react'
-import { YuanShuClient, type AskKnowledgeQuestionRequest, type AskKnowledgeQuestionResponse } from '@deepseek-ai/dsh-yuanshu-client'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import type { AskKnowledgeQuestionRequest, AskKnowledgeQuestionResponse, YuanShuSseEvent } from '@deepseek-ai/dsh-yuanshu-client'
+import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './ChatPanel.module.css'
+import type { NS } from './locales.ts'
 
 interface ChatMessage {
   id: string
@@ -15,35 +17,25 @@ interface ChatMessage {
   loading?: boolean
 }
 
+export interface YuanShuChatInjected {
+  readonly askQuestionStream: (request: AskKnowledgeQuestionRequest, signal?: AbortSignal) => AsyncIterable<YuanShuSseEvent>
+}
+
 function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export interface ChatPanelProps {
-  yuanshuClient: YuanShuClient
-  t: (key: string) => string
-}
-
-export function ChatPanel({ yuanshuClient, t }: ChatPanelProps): React.JSX.Element {
+export function ChatPanel({ askQuestionStream, t }: InjectFace<YuanShuChatInjected> & PropsLocale<typeof NS>): React.JSX.Element {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
   const addMessage = useCallback((msg: ChatMessage) => {
-    setMessages((prev) => {
-      const updated = [...prev, msg]
-      setTimeout(scrollToBottom, 0)
-      return updated
-    })
-  }, [scrollToBottom])
+    setMessages(prev => [...prev, msg])
+  }, [])
 
   const updateLastMessage = useCallback((content: string, citations?: ChatMessage['citations']) => {
     setMessages((prev) => {
@@ -60,6 +52,12 @@ export function ChatPanel({ yuanshuClient, t }: ChatPanelProps): React.JSX.Eleme
       return updated
     })
   }, [])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   const handleSend = useCallback(async () => {
     const question = inputText.trim()
@@ -78,27 +76,34 @@ export function ChatPanel({ yuanshuClient, t }: ChatPanelProps): React.JSX.Eleme
       const request: AskKnowledgeQuestionRequest = { question }
       abortRef.current = new AbortController()
 
-      for await (const event of yuanshuClient.askQuestionStream(request, abortRef.current.signal)) {
-        if (event.event === 'complete' && typeof event.data === 'object') {
+      let completed = false
+      for await (const event of askQuestionStream(request, abortRef.current.signal)) {
+        if (event.event === 'complete' && typeof event.data === 'object' && event.data !== null) {
           const result = event.data as AskKnowledgeQuestionResponse
           updateLastMessage(result.answer, result.citations)
+          completed = true
           break
         }
       }
+      if (!completed) {
+        const message = t('requestFailed')
+        updateLastMessage(message, [])
+        setError(message)
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        updateLastMessage('User cancelled', [])
+        updateLastMessage(t('cancelled'), [])
         return
       }
 
-      const message = err instanceof Error ? err.message : t('requestFailed')
+      const message = t('requestFailed')
       updateLastMessage(message, [])
       setError(message)
     } finally {
       setLoading(false)
       abortRef.current = null
     }
-  }, [inputText, loading, addMessage, updateLastMessage, t, yuanshuClient])
+  }, [inputText, loading, addMessage, updateLastMessage, t, askQuestionStream])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -116,7 +121,7 @@ export function ChatPanel({ yuanshuClient, t }: ChatPanelProps): React.JSX.Eleme
           <div key={idx} className={css.citationItem}>
             <span className={css.citationNum}>[{idx + 1}]</span>
             <span className={css.citationTitle}>
-              {cite.title || `Document ${cite.document_id}`}
+              {cite.title || t('documentTitle', { id: cite.document_id })}
             </span>
           </div>
         ))}
@@ -160,7 +165,6 @@ export function ChatPanel({ yuanshuClient, t }: ChatPanelProps): React.JSX.Eleme
       <div className={css.input}>
         <div className={css.inputWrap}>
           <textarea
-            ref={inputRef}
             className={css.textarea}
             value={inputText}
             onChange={e => setInputText(e.target.value)}

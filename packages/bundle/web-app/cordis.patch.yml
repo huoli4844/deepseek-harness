@@ -179,25 +179,6 @@
         compressionLevel: 1
         compressionThresholdBytes: 1024
 
-    # YuanShu login page: serves the login gate before the DSH web app.
-    # Routes /login → login page, /login-assets/* → static assets.
-    # The / path is handled by frontend-static (fallback seat) which checks
-    # DSH browser authentication; unauthenticated users are redirected to /login.
-    # The login page POSTs to the YuanShu backend API and stores the token.
-    - id: yuanshu-login-server
-      name: '@deepseek-ai/dsh-yuanshu-login-server'
-      inject: [webServer, credentials]
-      config:
-        yuanshuApiUrl: http://localhost:8081
-
-    # YuanShu Chat SPA: serves the user-facing knowledge Q&A web app.
-    # Routes /chat → chat SPA, /chat-assets/* → static assets.
-    - id: yuanshu-chat-server
-      name: '@deepseek-ai/dsh-yuanshu-chat-server'
-      inject: [webServer]
-      config:
-        yuanshuApiUrl: http://localhost:8081
-
     # YuanShu Platform gateway: proxies requests from the harness web server
     # to the 元枢 platform backend API at localhost:8081.
     # TEMPORARILY DISABLED: causes "DeepSeek request extension preparation failed"
@@ -346,9 +327,6 @@
 
     - id: ui-conversation
       name: '@deepseek-ai/dsh-client-ui-conversation'
-
-    - id: ui-yuanshu-chat
-      name: '@deepseek-ai/dsh-client-ui-yuanshu-chat'
 
     - id: ui-approval
       name: '@deepseek-ai/dsh-client-ui-approval'

@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/yuanshu/yuanshu-login-server/README.md
+/:
+  en: 41b0d0eae7825c65
+  zh: ca034d9ed41c7167
+/deepseek-ai-dsh-yuanshu-login-server:
+  en: 8074a7971f82a272
+  zh: 95178967e00db3de
+/deepseek-ai-dsh-yuanshu-login-server/summary:
+  en: 6b3e5137fd11a0bf
+  zh: c36031205956ed53
+/deepseek-ai-dsh-yuanshu-login-server/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: fb147198fefdf835
+/deepseek-ai-dsh-yuanshu-login-server/use-this-package:
+  en: 698bedbd9828e7f7
+  zh: 97ff393f7adcbc88
+/deepseek-ai-dsh-yuanshu-login-server/use-this-package/when-to-choose-it:
+  en: eebefa99363cead4
+  zh: 9cd0414799107427
+/deepseek-ai-dsh-yuanshu-login-server/use-this-package/minimal-configuration:
+  en: 600df81963dbc97d
+  zh: 96cc9a9172b1b8bf
+/deepseek-ai-dsh-yuanshu-login-server/understand-the-implementation:
+  en: 2875546ea829697f
+  zh: 6d66bea5437bb805
+/deepseek-ai-dsh-yuanshu-login-server/further-exploration:
+  en: c478d15b4cb453ee
+  zh: 8460943993dd4456
+/deepseek-ai-dsh-yuanshu-login-server/model-experience:
+  en: 897ee7b44800c4c0
+  zh: 918ca6b6a0995da6
+/deepseek-ai-dsh-yuanshu-login-server/model-experience/kv-cache-effect:
+  en: b20207bd6d3d3040
+  zh: a5b83bb66d83c425
+/deepseek-ai-dsh-yuanshu-login-server/known-limitations-and-deferred-work:
+  en: fdf5dea16ad1d51c
+  zh: 9a5c14470cbe6e92
+/deepseek-ai-dsh-yuanshu-login-server/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

@@ -1,0 +1,58 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/yuanshu/yuanshu-qa-tool/README.md
+/:
+  en: 356a57009d3bb95d
+  zh: d5f6a31681e082f2
+/deepseek-ai-dsh-yuanshu-qa-tool:
+  en: e636d3aef9b03d7c
+  zh: b2d11336401bd9f7
+/deepseek-ai-dsh-yuanshu-qa-tool/summary:
+  en: 788280641fb5a0be
+  zh: 5b63f26d9f7737ad
+/deepseek-ai-dsh-yuanshu-qa-tool/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: fb147198fefdf835
+/deepseek-ai-dsh-yuanshu-qa-tool/use-this-package:
+  en: 70c8217e6ad23724
+  zh: 4fa94fdc03282a79
+/deepseek-ai-dsh-yuanshu-qa-tool/use-this-package/when-to-choose-it:
+  en: 3265bf6c3f3ab01a
+  zh: 5418b4d551a6979a
+/deepseek-ai-dsh-yuanshu-qa-tool/use-this-package/minimal-configuration:
+  en: 5a248dd1b933c758
+  zh: 4533cccb697260da
+/deepseek-ai-dsh-yuanshu-qa-tool/understand-the-implementation:
+  en: 32a9ab39399fc66f
+  zh: 38769ce0ce03e5f1
+/deepseek-ai-dsh-yuanshu-qa-tool/further-exploration:
+  en: ae91d5eab53b390b
+  zh: 79fec7544c191a7d
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question:
+  en: 124a41ce7846bb1e
+  zh: f35d9c922a031378
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question/what-the-model-sees:
+  en: c6e796e3dc26413e
+  zh: 5591c25591abbc6b
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question/what-the-model-sees/tool-description:
+  en: 163f477a7dd52e3f
+  zh: 163f477a7dd52e3f
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question/what-the-model-sees/result-headings:
+  en: 67f7dc0359d94827
+  zh: 67f7dc0359d94827
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question/token-effect:
+  en: 8e044e5329aeb3cb
+  zh: 12bd1b591c978acd
+/deepseek-ai-dsh-yuanshu-qa-tool/model-experience/knowledge-question/kv-cache-effect:
+  en: bc5adf436d7d6ca6
+  zh: bd0b8b0cecea86f4
+/deepseek-ai-dsh-yuanshu-qa-tool/known-limitations-and-deferred-work:
+  en: 0260e662edafcd03
+  zh: f8cb835aa49fee7e
+/deepseek-ai-dsh-yuanshu-qa-tool/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

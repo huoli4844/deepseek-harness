@@ -1,0 +1,25 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/yuanshu/README.md
+/:
+  en: 1ed382156f40126c
+  zh: 8b0a43d15f41fca0
+/yuanshu-yuanshu-platform-integration:
+  en: 4373de171ea6ee28
+  zh: e172e40837c000c6
+/yuanshu-yuanshu-platform-integration/summary:
+  en: 26cd0fb910d0c1b6
+  zh: 3379d4ab5b78cef5
+/yuanshu-yuanshu-platform-integration/table-of-contents:
+  en: 1eb35b015a6c423f
+  zh: a8a3dceee2c9e943
+/yuanshu-yuanshu-platform-integration/packages:
+  en: 2401b7940a95ea9c
+  zh: 807c08ea80beb0ec
+/yuanshu-yuanshu-platform-integration/related-documentation:
+  en: c4daed14eb733297
+  zh: 51fb8fd227a48cfc
+/yuanshu-yuanshu-platform-integration/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

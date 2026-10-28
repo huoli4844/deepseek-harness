@@ -1,0 +1,55 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/yuanshu/yuanshu-tool/README.md
+/:
+  en: d3deee6660682595
+  zh: f128901a5d0de80a
+/deepseek-ai-dsh-yuanshu-tool:
+  en: 8e5bc00a52d347a8
+  zh: b081bbbebcdfb11c
+/deepseek-ai-dsh-yuanshu-tool/summary:
+  en: 28c25859355084a8
+  zh: 854592ee97cfb604
+/deepseek-ai-dsh-yuanshu-tool/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: fb147198fefdf835
+/deepseek-ai-dsh-yuanshu-tool/use-this-package:
+  en: 70c8217e6ad23724
+  zh: 4fa94fdc03282a79
+/deepseek-ai-dsh-yuanshu-tool/use-this-package/when-to-choose-it:
+  en: 8e11a2103974684a
+  zh: a7098b4235520be2
+/deepseek-ai-dsh-yuanshu-tool/use-this-package/minimal-configuration:
+  en: 6f8f54eeaeaebf9b
+  zh: 28eb6026edf2d009
+/deepseek-ai-dsh-yuanshu-tool/understand-the-implementation:
+  en: 0ebe422b66b90839
+  zh: 7e702ccddc68403d
+/deepseek-ai-dsh-yuanshu-tool/further-exploration:
+  en: 0fac31f749145e18
+  zh: f99e26937fc2aed3
+/deepseek-ai-dsh-yuanshu-tool/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution:
+  en: c2f7ab7993e5c0e1
+  zh: c2f7ab7993e5c0e1
+/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/what-the-model-sees:
+  en: 51ec13e39f73e562
+  zh: e8ad3d626ba3f03b
+/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/what-the-model-sees/tool-description:
+  en: 163f477a7dd52e3f
+  zh: 163f477a7dd52e3f
+/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/token-effect:
+  en: 6167ce67ab348ca7
+  zh: d84848efdd2e9736
+/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/kv-cache-effect:
+  en: abab59ed453553f3
+  zh: 2dc5dab0194ef458
+/deepseek-ai-dsh-yuanshu-tool/known-limitations-and-deferred-work:
+  en: debc2ab147d8f625
+  zh: d53753daf4bf7e63
+/deepseek-ai-dsh-yuanshu-tool/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 8ec3e73528ddb1a6

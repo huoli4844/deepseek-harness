@@ -10,9 +10,13 @@ import type { YuanShuExecuteRequest } from '@deepseek-ai/dsh-yuanshu-client'
 export const name = 'yuanshu-tool'
 export const inject = ['tools']
 
+/** YuanShu worker tool endpoint, credentials, and default worker choice. */
 export interface Config {
+  /** Base URL of the YuanShu platform API. */
   readonly baseURL: string
+  /** Optional authentication token. */
   readonly token?: string
+  /** Worker type used when the tool input omits `worker_type`. */
   readonly defaultWorkerType?: string
 }
 
@@ -74,8 +78,5 @@ export function apply(ctx: Context, config: Config): void {
     },
   })
 
-  ctx.effect(() => {
-    ctx.tools.register(tool)
-    return () => {}
-  }, 'yuanshu-tool: register')
+  ctx.effect(() => ctx.tools.register(tool), 'yuanshu-tool: register')
 }

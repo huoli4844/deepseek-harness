@@ -527,3 +527,12 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-workspace` | no | Workspace entity registry (ctx.workspaceRegistry): durable workspace records with validated session attachment over the domain data form for the DeepSeek Harness |
+
+## yuanshu
+
+| Package | Config | Description |
+|---|---|---|
+| `@deepseek-ai/dsh-yuanshu-gateway` | yes | Same-origin Harness gateway for YuanShu Platform capabilities and Worker SSE |
+| `@deepseek-ai/dsh-yuanshu-login-server` | yes | undefined |
+| `@deepseek-ai/dsh-yuanshu-qa-tool` | yes | YuanShu knowledge base Q&A Cordis tool — structured answers with citations |
+| `@deepseek-ai/dsh-yuanshu-tool` | yes | YuanShu platform agent tool - forward questions to YuanShu agents |

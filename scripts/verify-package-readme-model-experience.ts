@@ -48,6 +48,10 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  * blocks. A package moves on or off this list with its context behavior.
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
+  'packages/client/ui-yuanshu-chat': { kind: 'none', reason: 'Browser-side knowledge Q&A presentation; request behavior belongs to the YuanShu gateway and the tool plugins own model-facing operations.' },
+  'packages/yuanshu/yuanshu-client': { kind: 'none', reason: 'HTTP client library; its consumers own any model-facing tool schema or result.' },
+  'packages/yuanshu/yuanshu-gateway': { kind: 'none', reason: 'HTTP forwarding routes do not contribute model context; the calling UI or tool owns its request and result.' },
+  'packages/yuanshu/yuanshu-login-server': { kind: 'none', reason: 'Login page and static assets do not contribute model context.' },
   'packages/client/ui-entry-customization': { kind: 'none', reason: 'Controls browser launchers and prepares a reviewable Creator draft without submitting model input.' },
   'packages/experimental/client-ui-cot-translation': { kind: 'indirect', reason: 'The translator owns optional paid queries; normal Session activation delegates startup context to the preset.' },
   'packages/experimental/cot-translation-bundle': { kind: 'indirect', reason: 'The GUI consumer delegates paid query prompts to the translator and normal activation context to the Session preset.' },

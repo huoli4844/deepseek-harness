@@ -19,6 +19,8 @@ export const zh = {
   'emptyState': '开始一段新的对话吧',
   /** Citation label */
   'citations': '参考资料',
+  'cancelled': '已取消',
+  'documentTitle': '文档 {id}',
 } as const
 
 /** English dictionary, key-identical to the Chinese source of truth. */
@@ -30,6 +32,8 @@ export const en: Record<YuanShuChatKey, string> = {
   'requestFailed': 'Q&A failed, please try again later',
   'emptyState': 'Start a new conversation',
   'citations': 'References',
+  'cancelled': 'Cancelled',
+  'documentTitle': 'Document {id}',
 }
 
 /** Key domain of the `yuanshu-chat` namespace (zh is the source of truth). */

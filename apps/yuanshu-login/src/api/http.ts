@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 import { useSessionStore } from '@/stores/session'
 
 declare global {
@@ -23,12 +23,12 @@ export const publicHttp = axios.create({
   timeout: 60_000,
 })
 
-function unwrapResponseData(response: { data: unknown }) {
+function unwrapResponseData<T>(response: AxiosResponse<T>): AxiosResponse<T> {
   const data = response.data as Record<string, unknown>
   if (data && (data.code === 200 || data.code === 0)) {
-    return data.data
+    response.data = data.data as T
   }
-  return data
+  return response
 }
 
 http.interceptors.request.use((config) => {

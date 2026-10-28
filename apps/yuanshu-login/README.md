@@ -1,31 +1,33 @@
-# 元枢平台登录页 (YuanShu Login)
+# YuanShu platform login
 
-独立 Vue 登录页面，用于通过浏览器登录元枢平台并获取认证 token。
+English | [中文](README.zh.md)
 
-## 快速开始
+A standalone Vue login page for browser authentication with the YuanShu platform.
+
+## Quick start
 
 ```bash
-# 开发模式
+# Development
 pnpm dev
 
-# 构建
+# Build
 pnpm build
 
-# 预览构建产物
+# Preview the build
 pnpm preview
 ```
 
-## 工作流程
+## Login flow
 
-1. 打开浏览器访问 `http://localhost:3005/login`
-2. 输入用户名和密码登录
-3. 登录成功后，token 文件自动下载
-4. 将 token 文件保存到 `~/.dsh/yuanshu-token`
-5. 重启 DSH CLI（使用 yuanshu profile），即可使用 `yuanshu_qa` 工具
+1. Open `http://localhost:3005/login` in a browser.
+2. Enter the YuanShu username and password.
+3. The login page downloads a token file after successful authentication.
+4. Save the token file to `~/.dsh/yuanshu-token`.
+5. Restart the DSH CLI with the `yuanshu` profile to use the `yuanshu_qa` tool.
 
-## Token 配置（三种方式，优先级从高到低）
+## Token configuration
 
-1. **配置文件** — 在 `cordis.patch.yml` 中设置：
+1. **Plugin configuration** — set `token` in `cordis.patch.yml`:
    ```yaml
    - id: yuanshu-qa-tool
      name: '@deepseek-ai/dsh-yuanshu-qa-tool'
@@ -34,12 +36,12 @@ pnpm preview
        token: <your-token>
    ```
 
-2. **环境变量** — 设置 `YUANSHU_TOKEN` 环境变量
+2. **Environment variable** — set `YUANSHU_TOKEN`.
 
-3. **共享 token 文件** — 将 token 保存到 `~/.dsh/yuanshu-token`
-   （登录页面下载的文件可直接使用）
+3. **Shared token file** — save the token to `~/.dsh/yuanshu-token`.
+   The file downloaded by the login page can be used directly.
 
-## 技术栈
+## Technology
 
 - Vue 3 (Composition API)
 - TDesign Vue Next
@@ -48,9 +50,8 @@ pnpm preview
 - Vite
 - TypeScript
 
-## 与 YuanShu 客户端的集成
+## YuanShu client integration
 
-登录页的 token 会自动写入：
-- `localStorage.yuanshu-token` — 浏览器端使用
-- `localStorage.workbench-client-token` — 向后兼容
-- 下载文件 `~/.dsh/yuanshu-token` — CLI 端使用
+- `localStorage.yuanshu-token` — browser requests
+- `localStorage.workbench-client-token` — backward compatibility
+- Downloaded `~/.dsh/yuanshu-token` file — CLI requests

@@ -2,6 +2,15 @@
   name: '@deepseek-ai/dsh-session-persistence-jsonl'
   disabled: true
 
+- id: yuanshu-login-server
+  name: '@deepseek-ai/dsh-yuanshu-login-server'
+  inject: [webServer, connection, webApp]
+  config:
+    yuanshuApiUrl: http://localhost:8081
+
+- id: ui-yuanshu-chat
+  name: '@deepseek-ai/dsh-client-ui-yuanshu-chat'
+
 - id: yuanshu-gateway
   name: '@deepseek-ai/dsh-yuanshu-gateway'
   config:

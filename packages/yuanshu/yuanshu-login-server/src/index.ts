@@ -3,11 +3,13 @@
  *
  * Routes:
  *   /login              → serves the Vue login page
+ *   /yuanshu-token      → issues an authenticated Harness app URL
  *   /login-assets/*     → serves static JS/CSS/favicon from the login dist
  *
  * The login page authenticates directly against the YuanShu backend
  * at the configured API base URL. On success it stores the token in
- * localStorage and redirects back to / (the DSH web app).
+ * localStorage and redirects back to the advertised Harness app URL. The URL
+ * handoff requires an existing Harness browser session.
  *
  * The / path is NOT registered here — it is handled by the fallback seat
  * (frontend-static) which checks DSH browser authentication. Unauthenticated
@@ -22,16 +24,11 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import type { HostConnectionHandle } from '@deepseek-ai/dsh-client-connection'
-
-// HostConnectionService (the concrete implementation) exposes launchToken
-// but the interface doesn't declare it. Access it through the service.
-interface ConnectionService extends HostConnectionHandle {
-  readonly launchToken: string
-}
+import type {} from '@deepseek-ai/dsh-client-connection'
+import type {} from '@deepseek-ai/dsh-web-app'
 
 export const name = 'yuanshu-login-server'
-export const inject = ['webServer', 'credentials']
+export const inject = ['webServer', 'connection', 'webApp']
 
 export interface Config {
   /** Path to the built login dist directory. Resolved automatically if not set. */
@@ -46,6 +43,7 @@ export const Config: z<Config> = z.object({
 })
 
 const LOGIN_PATH = '/login'
+const YUANSHU_TOKEN_PATH = '/yuanshu-token'
 
 /** Resolve the login dist path if not configured. */
 function resolveLoginDist(): string {
@@ -120,30 +118,28 @@ export function apply(ctx: Context, config: Config): void {
   const yuanshuApiUrl = config.yuanshuApiUrl
 
   // Serve the login page at /login
-  ctx.webServer.register({
+  ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: LOGIN_PATH,
     handler: (req, res) => serveRequest(req, res, distRoot, yuanshuApiUrl),
-  })
+  }), 'yuanshu-login-server: login page')
 
-  // Expose the DSH launch token for the login page to use after YuanShu auth.
-  ctx.webServer.register({
+  ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
-    path: '/yuanshu-token',
-    handler: (_req, res) => {
-      const connection = ctx.get('connection') as ConnectionService | undefined
-      if (connection === undefined) {
-        res.writeHead(503, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ error: 'connection service not available' }))
+    path: YUANSHU_TOKEN_PATH,
+    handler: (req, res) => {
+      const rejection = ctx.connection.requestRejection({ headers: req.headers })
+      if (rejection !== undefined) {
+        res.writeHead(rejection, { 'cache-control': 'no-store' })
+        res.end()
         return
       }
-      const token = connection.launchToken
-      res.writeHead(200, { 'content-type': 'application/json' })
-      res.end(JSON.stringify({ token }))
+      res.writeHead(200, { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ url: ctx.connection.authenticatedUrl(ctx.webApp.getAdvertisedUrl()) }))
     },
-  })
+  }), 'yuanshu-login-server: browser authentication handoff')
 
-  ctx.webServer.register({
+  ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/favicon.svg',
     handler: (_req, res) => {
@@ -156,9 +152,9 @@ export function apply(ctx: Context, config: Config): void {
         res.end()
       }
     },
-  })
+  }), 'yuanshu-login-server: favicon')
 
-  ctx.webServer.register({
+  ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: '/login-assets',
     handler: (req, res) => {
@@ -182,7 +178,5 @@ export function apply(ctx: Context, config: Config): void {
         res.end()
       }
     },
-  })
+  }), 'yuanshu-login-server: assets')
 }
-
-export default { name, inject, Config, apply }

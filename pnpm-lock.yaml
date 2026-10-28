@@ -3151,9 +3151,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-workspace':
         specifier: workspace:*
         version: link:../../client/ui-workspace
-      '@deepseek-ai/dsh-client-ui-yuanshu-chat':
-        specifier: workspace:*
-        version: link:../../client/ui-yuanshu-chat
       '@deepseek-ai/dsh-cmdline':
         specifier: workspace:*
         version: link:../../boot/cmdline
@@ -3334,9 +3331,6 @@ importers:
       '@deepseek-ai/dsh-workspace-changes':
         specifier: workspace:*
         version: link:../../deliverables/workspace-changes
-      '@deepseek-ai/dsh-yuanshu-login-server':
-        specifier: workspace:*
-        version: link:../../yuanshu/yuanshu-login-server
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -6999,9 +6993,6 @@ importers:
       '@deepseek-ai/dsh-yuanshu-client':
         specifier: workspace:*
         version: link:../../yuanshu/yuanshu-client
-      '@types/react':
-        specifier: ~18.3.1
-        version: 18.3.31
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -17144,9 +17135,15 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:~
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-client-connection':
+        specifier: workspace:*
+        version: link:../../client/connection
       '@deepseek-ai/dsh-host-webserver':
         specifier: workspace:*
         version: link:../../host/webserver
+      '@deepseek-ai/dsh-web-app':
+        specifier: workspace:*
+        version: link:../../bundle/web-app
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery

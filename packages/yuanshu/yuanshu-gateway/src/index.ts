@@ -12,7 +12,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 export const name = 'yuanshu-gateway'
 export const inject = ['webServer']
 
-export interface Config { readonly baseURL: string; readonly token?: string; readonly prefix?: string }
+/** Gateway endpoint and optional server-side credentials. */
+export interface Config {
+  /** Base URL of the YuanShu API. */
+  readonly baseURL: string
+  /** Optional default bearer token used when a request has no authorization header. */
+  readonly token?: string
+  /** Same-origin path prefix registered by the gateway. */
+  readonly prefix?: string
+}
 export const Config: z<Config> = z.object({ baseURL: z.string().required(), token: z.string(), prefix: z.string().default('/yuanshu-api') })
 
 /**
@@ -51,6 +59,23 @@ async function body(req: IncomingMessage): Promise<unknown> {
   return text ? JSON.parse(text) : undefined
 }
 
+function bindClientAbort(req: IncomingMessage, res: ServerResponse): { signal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController()
+  const abort = (): void => controller.abort()
+  const onResponseClose = (): void => {
+    if (!res.writableEnded) abort()
+  }
+  req.once('aborted', abort)
+  res.once('close', onResponseClose)
+  return {
+    signal: controller.signal,
+    dispose: () => {
+      req.off('aborted', abort)
+      res.off('close', onResponseClose)
+    },
+  }
+}
+
 /**
  * Parse a query string from the URL into a Record.
  */
@@ -78,10 +103,6 @@ function resolveToken(config: Config): string | undefined {
 
 export function apply(ctx: Context, config: Config): void {
   const token = resolveToken(config)
-  const client = new YuanShuClient({
-    baseURL: config.baseURL,
-    ...(token ? { token } : {}),
-  })
   const prefix = config.prefix ?? '/yuanshu-api'
   const route: WebRoute = { kind: 'prefix', path: prefix, handler: async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
@@ -99,28 +120,31 @@ export function apply(ctx: Context, config: Config): void {
 
     const auth = req.headers.authorization
     const tenant = req.headers['x-tenant-id']
-    client.setAuth(
-      typeof auth === 'string' ? auth.replace(/^Bearer\s+/u, '') : undefined,
-      typeof tenant === 'string' ? tenant : undefined,
-    )
+    const requestClient = new YuanShuClient({
+      baseURL: config.baseURL,
+      ...(typeof auth === 'string'
+        ? { token: auth.replace(/^Bearer\s+/u, '') }
+        : token === undefined ? {} : { token }),
+      ...(typeof tenant === 'string' ? { tenantId: tenant } : {}),
+    })
 
     try {
       // ── Worker API ────────────────────────────────────────────────────
 
       if (relative === '/capabilities') {
-        await writeJSON(res, await client.listCapabilities())
+        await writeJSON(res, await requestClient.listCapabilities())
         return
       }
 
       if (relative === '/tenants') {
-        await writeJSON(res, await client.listTenants())
+        await writeJSON(res, await requestClient.listTenants())
         return
       }
 
       if (relative === '/login') {
         const input = await body(req)
         const record = input !== null && typeof input === 'object' ? input as Record<string, unknown> : {}
-        await writeJSON(res, await client.login(
+        await writeJSON(res, await requestClient.login(
           String(record.username ?? ''),
           String(record.password ?? ''),
         ))
@@ -129,23 +153,28 @@ export function apply(ctx: Context, config: Config): void {
 
       if (relative === '/execute') {
         const executeRequest = (await body(req)) as YuanShuExecuteRequest
-        await writeJSON(res, await client.executeWorker(executeRequest))
+        await writeJSON(res, await requestClient.executeWorker(executeRequest))
         return
       }
 
       if (relative === '/execute-stream') {
         const executeRequest = (await body(req)) as YuanShuExecuteRequest
-        const stream = client.executeWorkerStream(executeRequest)
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-          'X-Accel-Buffering': 'no',
-        })
-        for await (const event of stream) {
-          res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`)
+        const clientAbort = bindClientAbort(req, res)
+        const stream = requestClient.executeWorkerStream(executeRequest, clientAbort.signal)
+        try {
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          })
+          for await (const event of stream) {
+            res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`)
+          }
+          res.end()
+        } finally {
+          clientAbort.dispose()
         }
-        res.end()
         return
       }
 
@@ -154,31 +183,36 @@ export function apply(ctx: Context, config: Config): void {
       if (relative === '/qa/ask') {
         const bodyData = await body(req)
         const askRequest = bodyData as AskKnowledgeQuestionRequest
-        await writeJSON(res, await client.askQuestion(askRequest))
+        await writeJSON(res, await requestClient.askQuestion(askRequest))
         return
       }
 
       if (relative === '/qa/ask/stream') {
         const bodyData = await body(req)
         const askRequest = bodyData as AskKnowledgeQuestionRequest
-        const stream = client.askQuestionStream(askRequest)
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-          'X-Accel-Buffering': 'no',
-        })
-        for await (const event of stream) {
-          res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`)
+        const clientAbort = bindClientAbort(req, res)
+        const stream = requestClient.askQuestionStream(askRequest, clientAbort.signal)
+        try {
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          })
+          for await (const event of stream) {
+            res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`)
+          }
+          res.end()
+        } finally {
+          clientAbort.dispose()
         }
-        res.end()
         return
       }
 
       if (relative === '/qa/sessions') {
         const query = parseQuery(url.toString())
         const limit = query.limit ? parseInt(query.limit, 10) : undefined
-        await writeJSON(res, await client.listQASessions(limit))
+        await writeJSON(res, await requestClient.listQASessions(limit))
         return
       }
 
@@ -187,7 +221,7 @@ export function apply(ctx: Context, config: Config): void {
         const collectionIds = query.collection_ids
           ? query.collection_ids.split(',').map(n => parseInt(n, 10)).filter(n => !Number.isNaN(n))
           : undefined
-        await writeJSON(res, await client.getQAReadiness(collectionIds))
+        await writeJSON(res, await requestClient.getQAReadiness(collectionIds))
         return
       }
 
@@ -195,7 +229,7 @@ export function apply(ctx: Context, config: Config): void {
         const query = parseQuery(url.toString())
         const keyword = query.keyword
         const limit = query.limit ? parseInt(query.limit, 10) : undefined
-        await writeJSON(res, await client.listKnowledgeCollections(keyword, limit))
+        await writeJSON(res, await requestClient.listKnowledgeCollections(keyword, limit))
         return
       }
 
@@ -213,7 +247,7 @@ export function apply(ctx: Context, config: Config): void {
           res.end(JSON.stringify({ error: 'invalid knowledge document id' }))
           return
         }
-        await writeJSON(res, await client.getKnowledgeDocument(id))
+        await writeJSON(res, await requestClient.getKnowledgeDocument(id))
         return
       }
 

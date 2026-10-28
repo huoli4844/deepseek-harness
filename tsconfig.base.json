@@ -44,6 +44,7 @@
       "@deepseek-ai/dsh-otel": ["./packages/telemetry/otel/src"],
       "@deepseek-ai/dsh-client-ui-settings-account": ["./packages/client/ui-settings-account/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-settings-account/client": ["./packages/client/ui-settings-account/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-yuanshu-chat": ["./packages/client/ui-yuanshu-chat/src/index.ts"],
       "@deepseek-ai/dsh-api-gateway/stream-protocol": ["./packages/api/gateway/src/stream-protocol.ts"],
       "@deepseek-ai/dsh-api-account-controller": ["./packages/api/account-controller/src/index.ts"],
       "@deepseek-ai/dsh-api-account-controller/types": ["./packages/api/account-controller/src/types.ts"],
@@ -591,7 +592,12 @@
       "@deepseek-ai/dsh-workflow-ptc": ["./packages/workflow/workflow-ptc/src"],
       "@deepseek-ai/dsh-working-directory": ["./packages/session/working-directory/src"],
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
-      "@deepseek-ai/dsh-workspace-changes": ["./packages/deliverables/workspace-changes/src"]
+      "@deepseek-ai/dsh-workspace-changes": ["./packages/deliverables/workspace-changes/src"],
+      "@deepseek-ai/dsh-yuanshu-client": ["./packages/yuanshu/yuanshu-client/src"],
+      "@deepseek-ai/dsh-yuanshu-gateway": ["./packages/yuanshu/yuanshu-gateway/src"],
+      "@deepseek-ai/dsh-yuanshu-login-server": ["./packages/yuanshu/yuanshu-login-server/src"],
+      "@deepseek-ai/dsh-yuanshu-qa-tool": ["./packages/yuanshu/yuanshu-qa-tool/src"],
+      "@deepseek-ai/dsh-yuanshu-tool": ["./packages/yuanshu/yuanshu-tool/src"]
       // END generated package aliases
     }
   }
