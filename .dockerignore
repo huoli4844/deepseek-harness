@@ -1,0 +1,13 @@
+# The deployment Dockerfile installs Linux dependencies in its build stage.
+# Never send the macOS checkout's dependency tree or generated history.
+node_modules
+.git
+.DS_Store
+**/.DS_Store
+**/node_modules
+**/dist
+**/lib
+**/*.tsbuildinfo
+.agents/notes/archived
+website/.vitepress/cache
+website/.vitepress/dist
