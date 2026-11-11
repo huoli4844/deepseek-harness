@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "元枢登录页",
+    "description": "提供元枢登录页面与 /yuanshu-token 交接，并向 Web 应用发布登录身份。"
+  }
+}

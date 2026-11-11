@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu gateway",
+    "description": "Same-origin /yuanshu-api proxy for YuanShu platform capabilities, Worker SSE and knowledge Q&A."
+  }
+}

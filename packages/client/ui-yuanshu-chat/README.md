@@ -1,5 +1,5 @@
 ---
-description: "Add a browser conversation tab for asking YuanShu knowledge questions through a same-origin Harness gateway."
+description: "Add a YuanShu workbench panel and conversation tab for ontology, capabilities, scenarios, DAGs, knowledge and Q&A over a same-origin Harness gateway."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this browser plugin to ask YuanShu knowledge questions from a conversation tab. It sends requests to the same-origin `/yuanshu-api` gateway and reads the browser token from `localStorage.yuanshu-token`. The YuanShu gateway must be mounted in the Host profile.
+Mount this browser plugin to work with the YuanShu platform from a workbench panel and a conversation tab. The workbench lists ontology, Skills, algorithms, scenarios, DAGs and knowledge catalogs on the left and opens capability runners or Q&A on the right. It sends requests to the same-origin `/yuanshu-api` gateway and reads the browser token from `localStorage.yuanshu-token`. The YuanShu gateway must be mounted in the Host profile.
 
 ## Table of Contents
 

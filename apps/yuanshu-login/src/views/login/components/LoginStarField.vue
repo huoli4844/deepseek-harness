@@ -145,7 +145,7 @@ onMounted(() => {
     }
 
     // 2) Draw connections
-    const brandColor = '#2468f2'
+    const brandColor = getComputedStyle(canvas!).getPropertyValue('--td-brand-color').trim() || '#2468f2'
 
     for (const c of connections) {
       const a = stars[c.from]

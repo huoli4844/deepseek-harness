@@ -70,6 +70,13 @@ export interface Config {
    * Absent or YAML `null` advertises the bind-address URL.
    */
   publicUrl?: string
+  /**
+   * Same-origin path handed to the default browser instead of the tokenized
+   * URL, e.g. `/` so BrowserAuth can redirect an unauthenticated visitor to a
+   * sign-in page. Affects only the browser handoff; the printed URL keeps the
+   * process token for supervisors and non-browser clients.
+   */
+  openPath?: string
 }
 
 export const Config: z<Config> = z.object({
@@ -77,6 +84,7 @@ export const Config: z<Config> = z.object({
   printUrl: z.boolean().default(true),
   surfaceContext: z.boolean().default(true),
   publicUrl: z.transform(z.string(), value => parsePublicUrl(value).href),
+  openPath: z.string(),
 })
 
 /** Environment variable naming the advertised URL of this Web GUI. */
@@ -187,6 +195,13 @@ export function apply(ctx: Context, config: Config): void {
   // The schema validates a present string; an explicit YAML `null` bypasses
   // the string transform and reaches here, meaning unset.
   const publicUrl = config.publicUrl ?? undefined
+  const openPath = config.openPath
+  if (openPath !== undefined
+    && (!openPath.startsWith('/') || openPath.startsWith('//') || openPath.includes('\\'))) {
+    throw new Error(
+      `web-app: openPath must be one same-origin absolute path, got ${JSON.stringify(openPath)}`,
+    )
+  }
   const boundHost = ctx.webServer.host
   if (publicUrl === undefined && bindUrlHost(boundHost) === undefined) {
     throw new Error(
@@ -226,13 +241,16 @@ export function apply(ctx: Context, config: Config): void {
         if (ANNOUNCED_ROOTS.has(connectionCtx.root)) return
         const webUrl = appRootUrl()
         const authenticatedUrl = connectionCtx.connection.authenticatedUrl(webUrl)
+        const handoffUrl = openPath === undefined
+          ? authenticatedUrl
+          : openPath === '/' ? webUrl : new URL(openPath, webUrl).href
         ANNOUNCED_ROOTS.add(connectionCtx.root)
         if (config.printUrl) {
           console.log(`dsh web: ${authenticatedUrl}`)
         }
         if (handoffBrowser) {
           console.log('dsh web: opening the default browser; pass --no-open to disable')
-          void internals.openBrowser(authenticatedUrl).catch((error: unknown) => {
+          void internals.openBrowser(handoffUrl).catch((error: unknown) => {
             const reason = error instanceof Error ? error.message : String(error)
             console.error(`web-app: could not open the default browser because ${reason}; use the dsh web URL printed at startup`)
           })

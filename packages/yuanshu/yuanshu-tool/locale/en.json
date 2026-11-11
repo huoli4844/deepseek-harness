@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu platform tools",
+    "description": "Agent tools that call YuanShu Skills, algorithms and DAGs during a session."
+  }
+}

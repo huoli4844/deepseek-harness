@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu knowledge Q&A tool",
+    "description": "Agent tool that answers questions from YuanShu knowledge bases and returns cited evidence."
+  }
+}

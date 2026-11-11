@@ -180,7 +180,7 @@ function decodeCookie(value: string, secret: Buffer): CookiePayload | undefined 
   return { version: 2, ...payload, id: decoded.id as PeerId }
 }
 
-async function initializeSecret(credentials: CredentialProvider): Promise<Buffer> {
+async function initializeSecret(credentials: CredentialProvider, fresh: boolean): Promise<Buffer> {
   const generated: StoredSecretPayload = {
     version: STORED_SECRET_VERSION,
     secret: encodeBase64Url(randomBytes(SECRET_BYTES)),
@@ -188,7 +188,7 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
   const record = await credentials.modifyRecord(AUTH_RECORD_KEY, (current) => {
     if (current !== undefined) {
       storedSecret(current)
-      return Promise.resolve(undefined)
+      if (!fresh) return Promise.resolve(undefined)
     }
     return Promise.resolve({ kind: 'grant', payload: generated })
   })
@@ -227,14 +227,17 @@ export class BrowserAuth {
    * @param processOwner - root application context retaining one token across Connection reloads.
    * @param credentials - persistent credential provider for the Web profile.
    * @param maxAgeDays - positive absolute browser-cookie lifetime in days.
+   * @param fresh - rotate the signing secret so cookies minted by an earlier
+   * process no longer authenticate, e.g. when a sign-in gate must run on every launch.
    * @returns initialized authentication owner with the process owner's launch token.
    */
   static async create(
     processOwner: object,
     credentials: CredentialProvider,
     maxAgeDays: number,
+    fresh = false,
   ): Promise<BrowserAuth> {
-    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays)
+    return new BrowserAuth(processOwner, await initializeSecret(credentials, fresh), maxAgeDays)
   }
 
   /**
@@ -302,11 +305,11 @@ export class BrowserAuth {
         res.end()
         return false
       }
-      this.writeUnauthorized(req, res)
+      this.writeLoginRedirect(res)
       return false
     }
     if (this.isAuthenticated(req, secure)) return true
-    this.writeUnauthorized(req, res)
+    this.writeLoginRedirect(res)
     return false
   }
 
@@ -388,12 +391,20 @@ export class BrowserAuth {
     return payload
   }
 
-  private writeUnauthorized(_req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {
+  private writeLoginRedirect(res: ConnectionIndexResponse): void {
     res.writeHead(302, {
       'cache-control': 'no-store',
       'location': LOGIN_PATH,
       'referrer-policy': 'no-referrer',
     })
     res.end()
+  }
+
+  private writeUnauthorized(_req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {
+    res.writeHead(401, {
+      'cache-control': 'no-store',
+      'content-type': 'text/plain; charset=utf-8',
+    })
+    res.end('dsh web authentication required; reopen the URL printed by dsh web.\n')
   }
 }

@@ -1,5 +1,5 @@
 ---
-description: "在浏览器会话页中添加元枢知识问答视图，并通过 Harness 同源网关发送请求。"
+description: "在浏览器中提供元枢工作台面板与会话页签，覆盖本体、能力、场景、DAG、知识库与问答，并通过 Harness 同源网关发送请求。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-挂载此浏览器插件后，可以在会话视图中向元枢提交知识问题。插件会向同源 `/yuanshu-api` 网关发送请求，并从 `localStorage.yuanshu-token` 读取浏览器 token。Host profile 必须同时挂载元枢网关。
+挂载此浏览器插件后，可以在元枢工作台面板和会话页签中使用元枢平台：左侧列出本体、Skill、算法、场景、DAG 与知识库目录，右侧打开能力运行区或问答。插件会向同源 `/yuanshu-api` 网关发送请求，并从 `localStorage.yuanshu-token` 读取浏览器 token。Host profile 必须同时挂载元枢网关。
 
 ## 目录
 

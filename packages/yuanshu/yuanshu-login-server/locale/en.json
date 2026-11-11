@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu sign-in",
+    "description": "Serves the YuanShu sign-in page and /yuanshu-token handoff, publishing the signed-in identity to the web app."
+  }
+}

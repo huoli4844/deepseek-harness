@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "元枢网关",
+    "description": "把元枢平台能力、Worker SSE 与知识问答代理到同源的 /yuanshu-api。"
+  }
+}

@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-yuanshu-chat/README.md
 /:
-  en: 011d4d44c151d661
-  zh: 30e3a6d8f82563e4
+  en: 026ed4233edbe483
+  zh: 419229d86602e524
 /deepseek-ai-dsh-client-ui-yuanshu-chat:
   en: b8ce9afe669f3101
   zh: bc3756f5192d1c3e
 /deepseek-ai-dsh-client-ui-yuanshu-chat/summary:
-  en: 2394ee3ebdf75e58
-  zh: ec4e5de9c2652c3f
+  en: 74648e29b017f824
+  zh: afed2de9ada12fc6
 /deepseek-ai-dsh-client-ui-yuanshu-chat/table-of-contents:
   en: d152484eb41ac6b4
   zh: fb147198fefdf835

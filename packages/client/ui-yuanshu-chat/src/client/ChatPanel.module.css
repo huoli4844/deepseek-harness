@@ -213,3 +213,370 @@
   border-radius: 8px;
   font-size: 13px;
 }
+
+/* Capability toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  background: var(--dsh-card-bg, #ffffff);
+  border-bottom: 1px solid var(--dsh-border-color, #e5e6eb);
+}
+
+.capabilitySelect {
+  min-width: 180px;
+  max-width: 320px;
+  padding: 6px 10px;
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 8px;
+  background: var(--dsh-card-bg, #ffffff);
+  color: var(--dsh-text-color, #1d2129);
+  font-size: 13px;
+}
+
+.linkButton {
+  padding: 6px 10px;
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsh-primary-color, #165dff);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inlineError {
+  color: #f53f3f;
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--dsh-text-color-secondary, #636d7e);
+  font-size: 13px;
+}
+
+/* Capability workspace */
+.workspace {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+}
+
+.capabilityHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capabilityName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dsh-text-color, #1d2129);
+}
+
+.capabilityDescription {
+  font-size: 13px;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}
+
+.hint {
+  padding: 12px 14px;
+  border: 1px dashed var(--dsh-border-color, #e5e6eb);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--dsh-text-color-secondary, #636d7e);
+  background: var(--dsh-bg-color-secondary, #f7f8fa);
+}
+
+.jsonInput {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.jsonInput:focus {
+  border-color: var(--dsh-primary-color, #165dff);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.primaryButton {
+  background: var(--dsh-primary-color, #165dff);
+  color: #ffffff;
+}
+
+.secondaryButton {
+  background: transparent;
+  border-color: var(--dsh-border-color, #e5e6eb);
+  color: var(--dsh-text-color, #1d2129);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.result {
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 10px;
+  background: var(--dsh-card-bg, #ffffff);
+  overflow: hidden;
+}
+
+.resultLabel {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsh-text-color-secondary, #636d7e);
+  border-bottom: 1px solid var(--dsh-border-color, #e5e6eb);
+}
+
+.resultBody {
+  margin: 0;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 360px;
+  overflow: auto;
+}
+
+/* 入参表单 */
+.modeSwitch {
+  display: flex;
+  gap: 6px;
+}
+
+.modeButton,
+.modeButtonActive {
+  padding: 5px 12px;
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsh-text-color, #1d2129);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.modeButtonActive {
+  border-color: var(--dsh-primary-color, #165dff);
+  color: var(--dsh-primary-color, #165dff);
+  background: rgba(22, 93, 255, 0.06);
+}
+
+.schemaForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}
+
+.requiredMark {
+  margin-left: 4px;
+  color: #f53f3f;
+}
+
+.fieldInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 8px;
+  background: var(--dsh-card-bg, #ffffff);
+  color: var(--dsh-text-color, #1d2129);
+  font-size: 13px;
+  outline: none;
+}
+
+.fieldInput:focus {
+  border-color: var(--dsh-primary-color, #165dff);
+}
+
+.fieldHint {
+  font-size: 12px;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}
+
+/* DAG 运行时间线 */
+.timeline {
+  border: 1px solid var(--dsh-border-color, #e5e6eb);
+  border-radius: 10px;
+  background: var(--dsh-card-bg, #ffffff);
+  overflow: hidden;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--dsh-border-color, #e5e6eb);
+}
+
+.timelineHeader .resultLabel {
+  border-bottom: none;
+  flex: 1;
+}
+
+.timelineSummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}
+
+.statusChip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--dsh-bg-color, #f2f3f5);
+  color: var(--dsh-text-color, #1d2129);
+  font-size: 11px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.timelineList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 10px;
+}
+
+.nodeDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--dsh-border-color, #e5e6eb);
+  flex-shrink: 0;
+}
+
+.nodeDotSuccess {
+  background: #00b42a;
+}
+
+.nodeDotFailed {
+  background: #f53f3f;
+}
+
+.timelineBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.timelineTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsh-text-color, #1d2129);
+}
+
+.nodeType {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}
+
+.timelineBody .timelineSummary {
+  padding: 4px 0 0;
+}
+
+/* 算法执行记录 */
+.executionList {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.executionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--dsh-text-color-secondary, #636d7e);
+  flex-wrap: wrap;
+}
+
+/* 问答面板（会话页签与工作台共用） */
+.qaPane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 24px 0;
+  background: var(--dsh-card-bg, #ffffff);
+}
+
+.qaTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsh-text-color-secondary, #636d7e);
+}

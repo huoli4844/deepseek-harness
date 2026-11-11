@@ -10,19 +10,22 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./src/*": "./src/*"
+    "./src/*": "./src/*",
+    "./locale/*.json": "./locale/*.json"
   },
-  "files": ["lib/index.js", "lib/types/**/*.d.ts"],
+  "files": ["locale/*.json", "lib/index.js", "lib/types/**/*.d.ts"],
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh-yuanshu-client": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/dsh-tools": "workspace:*"
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/schemastery": "workspace:~"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
-    "@deepseek-ai/dsh-tools": "workspace:*"
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/schemastery": "workspace:~"
   }
 }

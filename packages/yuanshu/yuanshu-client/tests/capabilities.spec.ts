@@ -45,7 +45,7 @@ it('遍历元枢分页能力目录并保留所有绑定资产', async () => {
   }
   expect(seenHeaders).toHaveLength(5)
   expect(seenHeaders.every(headers => headers !== undefined &&
-    Object.fromEntries(new Headers(headers).entries())['x-tenant-id'] === 'tenant-1')).toBe(true)
+    Object.fromEntries(new Headers(headers).entries())['x-active-tenant'] === 'tenant-1')).toBe(true)
 })
 
 it('兼容旧网关直接返回数组的能力目录', async () => {

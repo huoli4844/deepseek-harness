@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -14,7 +11,7 @@ export const inject = ['tools']
 export interface Config {
   /** Base URL of the YuanShu platform API. */
   readonly baseURL: string
-  /** Optional authentication token. */
+  /** 该实例显式配置的 bearer token；不提供时工具不注册。 */
   readonly token?: string
   /** Worker type used when the tool input omits `worker_type`. */
   readonly defaultWorkerType?: string
@@ -26,27 +23,15 @@ export const Config: z<Config> = z.object({
   defaultWorkerType: z.string().default('general_assistant'),
 })
 
-/** Resolve the YuanShu auth token: config > env var > shared token file. */
-function resolveToken(config: Config): string | undefined {
-  if (config.token) return config.token
-  const envToken = process.env.YUANSHU_TOKEN
-  if (envToken) return envToken
-  const tokenFile = join(homedir(), '.dsh', 'yuanshu-token')
-  try {
-    const fileToken = readFileSync(tokenFile, 'utf8').trim()
-    if (fileToken) return fileToken
-  } catch {
-    // File doesn't exist or unreadable — fall through
-  }
-  return undefined
-}
-
 export function apply(ctx: Context, config: Config): void {
-  const token = resolveToken(config)
-  const client = new YuanShuClient({
-    baseURL: config.baseURL,
-    ...(token ? { token } : {}),
-  })
+  // 身份唯一：工具不再读取 `~/.dsh/yuanshu-token` 或 `YUANSHU_TOKEN`。
+  // 那两条回落会让界面（浏览器 token）与工具（文件/环境变量）使用两个
+  // 不同的 principal，出现“界面能看到、工具却以管理员身份执行”的错配。
+  // 没有显式凭据时不注册工具，避免 Agent 调用一个必然失败的入口。
+  const token = config.token
+  if (!token) return
+
+  const client = new YuanShuClient({ baseURL: config.baseURL, token })
 
   const tool = defineTool({
     name: 'yuanshu_agent',

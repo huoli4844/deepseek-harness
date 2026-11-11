@@ -8,14 +8,16 @@ export interface LoginRequest {
   captcha_code?: string
 }
 
-export function login(data: LoginRequest) {
-  return publicHttp.post<unknown, LoginResponse>('/login', {
+export async function login(data: LoginRequest): Promise<LoginResponse> {
+  const response = await publicHttp.post<LoginResponse>('/login', {
     captcha_id: '',
     captcha_code: '',
     ...data,
   })
+  return response.data
 }
 
-export function verifyTotpLogin(data: { challenge_id: string; code: string }) {
-  return http.post<unknown, LoginResponse>('/login/2fa/verify', data)
+export async function verifyTotpLogin(data: { challenge_id: string; code: string }): Promise<LoginResponse> {
+  const response = await http.post<LoginResponse>('/login/2fa/verify', data)
+  return response.data
 }

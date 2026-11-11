@@ -8,8 +8,9 @@
  *
  * The login page authenticates directly against the YuanShu backend
  * at the configured API base URL. On success it stores the token in
- * localStorage and redirects back to the advertised Harness app URL. The URL
- * handoff requires an existing Harness browser session.
+ * localStorage, proves that token to /yuanshu-token, and follows the returned
+ * Harness URL. A browser that already holds a Harness session needs no proof.
+ * The URL handoff rejects requests that carry neither credential.
  *
  * The / path is NOT registered here — it is handled by the fallback seat
  * (frontend-static) which checks DSH browser authentication. Unauthenticated
@@ -44,6 +45,35 @@ export const Config: z<Config> = z.object({
 
 const LOGIN_PATH = '/login'
 const YUANSHU_TOKEN_PATH = '/yuanshu-token'
+const YUANSHU_TENANTS_PATH = '/api/v1/user/tenants'
+const TOKEN_PROOF_TIMEOUT_MS = 5000
+/** 浏览器端身份入口的接管标记，供 ui-settings-account 让出 single launcher。 */
+const EXTERNAL_IDENTITY_GLOBAL = '__DSH_EXTERNAL_IDENTITY__'
+
+/** Extract a bearer credential from an Authorization header. */
+function bearerToken(header: string | readonly string[] | undefined): string | undefined {
+  const raw = Array.isArray(header) ? header[0] : header
+  if (typeof raw !== 'string') return undefined
+  const matched = /^Bearer\s+(\S+)$/iu.exec(raw.trim())
+  return matched?.[1]
+}
+
+/**
+ * Prove a YuanShu token against the backend before disclosing a Harness URL.
+ * The tenants endpoint is authenticated and available to every signed-in user;
+ * only a 2xx reply counts as proof.
+ */
+async function verifyYuanshuToken(apiUrl: string, token: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiUrl.replace(/\/+$/u, '')}${YUANSHU_TENANTS_PATH}`, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(TOKEN_PROOF_TIMEOUT_MS),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
 
 /** Resolve the login dist path if not configured. */
 function resolveLoginDist(): string {
@@ -117,6 +147,13 @@ export function apply(ctx: Context, config: Config): void {
   const distRoot = config.loginDist ?? resolveLoginDist()
   const yuanshuApiUrl = config.yuanshuApiUrl
 
+  // YuanShu is the only identity in this deployment. Publishing the marker in
+  // the page index lets the DeepSeek account plugin keep its settings surfaces
+  // while yielding the single sidebar launcher slot to the YuanShu plugin.
+  ctx.on('webserver/index-inject', (table) => {
+    table.push({ kind: 'global', name: EXTERNAL_IDENTITY_GLOBAL, value: { accountLauncher: true } })
+  })
+
   // Serve the login page at /login
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
@@ -127,12 +164,22 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: YUANSHU_TOKEN_PATH,
-    handler: (req, res) => {
+    handler: async (req, res) => {
       const rejection = ctx.connection.requestRejection({ headers: req.headers })
-      if (rejection !== undefined) {
+      // 403 means the Host/Origin fence rejected the request outright; only an
+      // authentication miss (401) may fall back to a YuanShu token proof.
+      if (rejection !== undefined && rejection !== 401) {
         res.writeHead(rejection, { 'cache-control': 'no-store' })
         res.end()
         return
+      }
+      if (rejection === 401) {
+        const token = bearerToken(req.headers.authorization)
+        if (token === undefined || !(await verifyYuanshuToken(yuanshuApiUrl, token))) {
+          res.writeHead(401, { 'cache-control': 'no-store' })
+          res.end()
+          return
+        }
       }
       res.writeHead(200, { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' })
       res.end(JSON.stringify({ url: ctx.connection.authenticatedUrl(ctx.webApp.getAdvertisedUrl()) }))

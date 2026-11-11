@@ -141,6 +141,40 @@ describe('web-app runtime glue', () => {
     expect(ctx.webApp.getAdvertisedUrl()).toBe('http://127.0.0.1:4567')
   })
 
+  it('opens the clean root when openPath is set while printing the tokenized URL', async () => {
+    stageDist()
+    const ctx = new Context()
+    onTestFinished(() => ctx.fiber.dispose())
+    const { server } = fakeHttpServer()
+    ctx.provide('webServer', server)
+    provideConnection(ctx)
+    provideLoader(ctx)
+    const lifecycle: string[] = []
+    const log = vi.spyOn(console, 'log').mockImplementation((message) => { lifecycle.push(String(message)) })
+    const openBrowser = vi.fn(async (url: string) => { lifecycle.push(`open:${url}`) })
+    internals.openBrowser = openBrowser
+    apply(ctx, new Config({ openBrowser: true, printUrl: true, surfaceContext: false, openPath: '/' }))
+    await vi.waitFor(() => { expect(openBrowser).toHaveBeenCalled() })
+
+    expect(log).toHaveBeenCalledWith('dsh web: http://127.0.0.1:4567/?token=test-token')
+    expect(openBrowser).toHaveBeenCalledWith('http://127.0.0.1:4567')
+    expect(lifecycle).toEqual([
+      'dsh web: http://127.0.0.1:4567/?token=test-token',
+      'dsh web: opening the default browser; pass --no-open to disable',
+      'open:http://127.0.0.1:4567',
+    ])
+  })
+
+  it('rejects an openPath that leaves the advertised origin', () => {
+    const ctx = new Context()
+    onTestFinished(() => ctx.fiber.dispose())
+    const { server } = fakeHttpServer()
+    ctx.provide('webServer', server)
+    expect(() => apply(ctx, new Config({
+      openBrowser: false, printUrl: false, surfaceContext: false, openPath: '//evil.test/login',
+    }))).toThrow('openPath must be one same-origin absolute path')
+  })
+
   it('advertises and opens the configured public root behind a prefix-stripping proxy', async () => {
     stageDist()
     const ctx = new Context()

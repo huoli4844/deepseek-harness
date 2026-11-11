@@ -2,20 +2,9 @@
   name: '@deepseek-ai/dsh-session-persistence-jsonl'
   disabled: true
 
-- id: yuanshu-login-server
-  name: '@deepseek-ai/dsh-yuanshu-login-server'
-  inject: [webServer, connection, webApp]
-  config:
-    yuanshuApiUrl: http://localhost:8081
-
-- id: ui-yuanshu-chat
-  name: '@deepseek-ai/dsh-client-ui-yuanshu-chat'
-
-- id: yuanshu-gateway
-  name: '@deepseek-ai/dsh-yuanshu-gateway'
-  config:
-    baseURL: http://localhost:8081
-    prefix: /yuanshu-api
+# yuanshu-gateway, yuanshu-login-server and ui-yuanshu-chat are mounted by the
+# @deepseek-ai/dsh-web-app bundle patch; mounting them here again would insert
+# duplicate entries for the same ids.
 
 - id: yuanshu-tool
   name: '@deepseek-ai/dsh-yuanshu-tool'

@@ -50,6 +50,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-yuanshu-chat': { kind: 'none', reason: 'Browser-side knowledge Q&A presentation; request behavior belongs to the YuanShu gateway and the tool plugins own model-facing operations.' },
+  'packages/client/ui-yuanshu-account': { kind: 'none', reason: 'Sidebar identity presentation; the launcher registers no model tools, prompts, or session events.' },
   'packages/yuanshu/yuanshu-client': { kind: 'none', reason: 'HTTP client library; its consumers own any model-facing tool schema or result.' },
   'packages/yuanshu/yuanshu-gateway': { kind: 'none', reason: 'HTTP forwarding routes do not contribute model context; the calling UI or tool owns its request and result.' },
   'packages/yuanshu/yuanshu-login-server': { kind: 'none', reason: 'Login page and static assets do not contribute model context.' },

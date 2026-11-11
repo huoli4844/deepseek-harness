@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "元枢平台工具",
+    "description": "让 Agent 在会话中调用元枢平台的 Skill、算法与 DAG。"
+  }
+}

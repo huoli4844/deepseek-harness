@@ -18,6 +18,7 @@ import type { DesktopOnboardingInjected } from '../src/client/DesktopOnboardingE
 import type { AccountSectionInjected } from '../src/client/AccountSection.tsx'
 import { CONTACT_CONFIG_GLOBAL } from '../src/contact-config.ts'
 import { AccountPlatformHost } from '../src/client/AccountPlatformHost.tsx'
+import { AccountMenu } from '../src/client/AccountMenu.tsx'
 import type { AccountPlatformHostInjected } from '../src/client/AccountPlatformHost.tsx'
 import { AccountQuotaNotice } from '../src/client/AccountQuotaNotice.tsx'
 import type { AccountQuotaNoticeInjected } from '../src/client/AccountQuotaNotice.tsx'
@@ -76,6 +77,15 @@ it('registers account sign-in in a plain browser without the Desktop-only surfac
     expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-onboarding')).toBe(false)
     expect(operations(c).hooks.account.getSnapshot().desktopOnboardingVisible).toBe(false)
   }
+}, 60_000)
+
+it('yields the sidebar launcher to an external identity provider while keeping the other account surfaces', async ({ start }) => {
+  vi.stubGlobal('__DSH_EXTERNAL_IDENTITY__', { accountLauncher: true })
+  const c = await start()
+  await c.mock.streams.opened('account/watch', 1)
+  expect(c.ctx.slots.entries('settings.launcher').some(entry => entry.component === AccountMenu)).toBe(false)
+  expect(c.ctx.slots.entries('settings.models.sign-in')).toHaveLength(1)
+  expect(quotaNoticeEntry(c)).toBeDefined()
 }, 60_000)
 
 withoutAccountAccess('opens no account stream and registers no account surface while the current Peer may not watch the account', async ({ start }) => {

@@ -41,6 +41,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.account': AccountKey }
 }
 
+/** 外部身份提供方（例如元枢）接管侧栏身份入口时注入的页面全局。 */
+const EXTERNAL_IDENTITY_GLOBAL = '__DSH_EXTERNAL_IDENTITY__'
+
+/** 是否有外部身份提供方接管账号入口；没有该全局时保持 DeepSeek 账号入口。 */
+function externalAccountLauncher(): boolean {
+  const value = (globalThis as Record<string, unknown>)[EXTERNAL_IDENTITY_GLOBAL]
+  return typeof value === 'object' && value !== null
+    && (value as { accountLauncher?: unknown }).accountLauncher === true
+}
+
 /** Services required by account settings. */
 export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.session', 'theme', 'configForms', 'remoteAccess']
 /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
@@ -330,9 +340,14 @@ export function apply(ctx: Context): void {
       }),
     }, AccountPlatformHost))
   }
-  ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.launcher', () => ctx.slots.register({
-    name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
-  }, AccountMenu)))
+  // The sidebar identity entry is a single slot. When an external identity
+  // provider owns it, keep every other account surface (settings page, model
+  // sign-in, notices) but leave the launcher to that provider's plugin.
+  if (!externalAccountLauncher()) {
+    ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.launcher', () => ctx.slots.register({
+      name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
+    }, AccountMenu)))
+  }
   ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.section', () => {
     let unregister: (() => void) | undefined
     const update = () => {

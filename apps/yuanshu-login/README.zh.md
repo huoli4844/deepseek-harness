@@ -19,10 +19,10 @@ pnpm preview
 
 ## 工作流程
 
-1. 打开浏览器访问 `http://localhost:3005/login`。
+1. 打开浏览器访问 `http://localhost:3005/login`（由 `dsh web` 启动时自动落到该页）。
 2. 输入元枢用户名和密码。
-3. 登录成功后，登录页会下载 token 文件。
-4. 将 token 文件保存到 `~/.dsh/yuanshu-token`。
+3. 登录成功后，登录页会携带元枢 token 请求 `/yuanshu-token`；Harness 校验通过后自动回跳工作台，无需手工复制地址。
+4. 登录页同时会下载 token 文件，可保存到 `~/.dsh/yuanshu-token` 供 CLI 使用。
 5. 重启 DSH CLI 并使用 `yuanshu` profile，即可使用 `yuanshu_qa` 工具。
 
 ## Token 配置

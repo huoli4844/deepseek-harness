@@ -1,189 +1,133 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import type { AskKnowledgeQuestionRequest, AskKnowledgeQuestionResponse, YuanShuSseEvent } from '@deepseek-ai/dsh-yuanshu-client'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { AskKnowledgeQuestionRequest, YuanShuSseEvent } from '@deepseek-ai/dsh-yuanshu-client'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './ChatPanel.module.css'
-import type { NS } from './locales.ts'
+import type { NS, YuanShuChatKey } from './locales.ts'
+import { CapabilityDetail } from './CapabilityDetail.tsx'
+import { QaPane } from './QaPane.tsx'
+import {
+  capabilityKey,
+  failureKey,
+  groupCapabilities,
+  isRunnable,
+  parseCapabilityKey,
+  type CapabilityKind,
+  type CapabilityOption,
+} from './workbench.ts'
 
-interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  citations?: Array<{
-    evidence_id: string
-    document_id: string
-    title?: string
-    content_preview?: string
-  }>
-  loading?: boolean
-}
-
+/** 会话页签与工作台共享的元枢能力调用面。 */
 export interface YuanShuChatInjected {
   readonly askQuestionStream: (request: AskKnowledgeQuestionRequest, signal?: AbortSignal) => AsyncIterable<YuanShuSseEvent>
+  readonly listCapabilities: () => Promise<readonly CapabilityOption[]>
+  readonly runSkill: (id: string, input: unknown) => Promise<unknown>
+  readonly runAlgorithm: (id: string, input: unknown) => Promise<unknown>
+  readonly invokeDag: (id: string, input: unknown) => Promise<unknown>
+  readonly listAlgorithmExecutions: (id: string) => Promise<unknown>
+  readonly listDagHistory: (limit?: number, dagDefinitionId?: string) => Promise<unknown>
+  readonly getDagHistoryDetail: (id: string) => Promise<unknown>
 }
 
-function uid(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+/** 能力分组标题。 */
+function groupLabel(kind: CapabilityKind, t: (key: YuanShuChatKey) => string): string {
+  switch (kind) {
+    case 'skill': return t('groupSkill')
+    case 'algorithm': return t('groupAlgorithm')
+    case 'dag': return t('groupDag')
+    case 'agent': return t('groupAgent')
+    case 'worker': return t('groupWorker')
+  }
 }
 
-export function ChatPanel({ askQuestionStream, t }: InjectFace<YuanShuChatInjected> & PropsLocale<typeof NS>): React.JSX.Element {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [inputText, setInputText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
+/** 会话内入口：能力工具栏 + 问答或单个能力运行。 */
+export function ChatPanel({
+  askQuestionStream,
+  listCapabilities,
+  runSkill,
+  runAlgorithm,
+  invokeDag,
+  listAlgorithmExecutions,
+  listDagHistory,
+  getDagHistoryDetail,
+  t,
+}: InjectFace<YuanShuChatInjected> & PropsLocale<typeof NS>): React.JSX.Element {
+  const [capabilities, setCapabilities] = useState<readonly CapabilityOption[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
+  const catalogLoadedRef = useRef(false)
 
-  const addMessage = useCallback((msg: ChatMessage) => {
-    setMessages(prev => [...prev, msg])
-  }, [])
+  const [selectedKey, setSelectedKey] = useState('qa')
 
-  const updateLastMessage = useCallback((content: string, citations?: ChatMessage['citations']) => {
-    setMessages((prev) => {
-      const updated = [...prev]
-      if (updated.length === 0) return updated
-      const last = updated[updated.length - 1]
-      if (last !== undefined && last.role === 'assistant') {
-        const newMsg: ChatMessage = { ...last, content, loading: false }
-        if (citations !== undefined) {
-          newMsg.citations = citations
-        }
-        updated[updated.length - 1] = newMsg
-      }
-      return updated
-    })
-  }, [])
+  const groups = useMemo(() => groupCapabilities(capabilities), [capabilities])
+  const selectedCapability = useMemo(() => {
+    const parsed = parseCapabilityKey(selectedKey)
+    if (parsed === undefined || !isRunnable(parsed.kind)) return undefined
+    return capabilities.find(capability => capability.kind === parsed.kind && capability.id === parsed.id)
+  }, [selectedKey, capabilities])
+
+  const loadCatalog = useCallback(async () => {
+    setCatalogLoading(true)
+    setCatalogError(null)
+    try {
+      setCapabilities(await listCapabilities())
+    } catch (err) {
+      setCapabilities([])
+      setCatalogError(t(failureKey(err)))
+    } finally {
+      setCatalogLoading(false)
+    }
+  }, [listCapabilities, t])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (catalogLoadedRef.current) return
+    catalogLoadedRef.current = true
+    void loadCatalog()
+  }, [loadCatalog])
 
-  useEffect(() => () => abortRef.current?.abort(), [])
-
-  const handleSend = useCallback(async () => {
-    const question = inputText.trim()
-    if (!question || loading) return
-
-    const userMsg: ChatMessage = { id: uid(), role: 'user', content: question }
-    addMessage(userMsg)
-    setInputText('')
-
-    const assistantMsg: ChatMessage = { id: uid(), role: 'assistant', content: '', loading: true }
-    addMessage(assistantMsg)
-    setLoading(true)
-    setError(null)
-
-    try {
-      const request: AskKnowledgeQuestionRequest = { question }
-      abortRef.current = new AbortController()
-
-      let completed = false
-      for await (const event of askQuestionStream(request, abortRef.current.signal)) {
-        if (event.event === 'complete' && typeof event.data === 'object' && event.data !== null) {
-          const result = event.data as AskKnowledgeQuestionResponse
-          updateLastMessage(result.answer, result.citations)
-          completed = true
-          break
-        }
-      }
-      if (!completed) {
-        const message = t('requestFailed')
-        updateLastMessage(message, [])
-        setError(message)
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        updateLastMessage(t('cancelled'), [])
-        return
-      }
-
-      const message = t('requestFailed')
-      updateLastMessage(message, [])
-      setError(message)
-    } finally {
-      setLoading(false)
-      abortRef.current = null
-    }
-  }, [inputText, loading, addMessage, updateLastMessage, t, askQuestionStream])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }, [handleSend])
-
-  const renderCitations = (citations?: ChatMessage['citations']) => {
-    if (!citations || citations.length === 0) return null
-    return (
-      <div className={css.citations}>
-        <div className={css.citationsLabel}>{t('citations')}:</div>
-        {citations.map((cite, idx) => (
-          <div key={idx} className={css.citationItem}>
-            <span className={css.citationNum}>[{idx + 1}]</span>
-            <span className={css.citationTitle}>
-              {cite.title || t('documentTitle', { id: cite.document_id })}
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
+  // 目录刷新后原选择可能消失（能力下线或权限变化），回到知识问答。
+  useEffect(() => {
+    if (selectedKey !== 'qa' && selectedCapability === undefined && !catalogLoading) setSelectedKey('qa')
+  }, [selectedKey, selectedCapability, catalogLoading])
 
   return (
     <div className={css.container}>
-      <div className={css.messages}>
-        {messages.length === 0 ? (
-          <div className={css.empty}>
-            <div className={css.emptyIcon}>💬</div>
-            <p className={css.emptyText}>{t('emptyState')}</p>
-          </div>
-        ) : (
-          messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`${css.message} ${msg.role === 'user' ? css.messageUser : css.messageAssistant}`}
-            >
-              <div className={css.messageContent}>
-                <div className={css.messageText}>{msg.content}</div>
-                {renderCitations(msg.citations)}
-              </div>
-              {msg.loading && (
-                <div className={css.thinking}>
-                  <div className={css.dots}>
-                    <span className={css.dot} />
-                    <span className={css.dot} />
-                    <span className={css.dot} />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
+      <div className={css.toolbar}>
+        <select
+          className={css.capabilitySelect}
+          value={selectedKey}
+          onChange={e => setSelectedKey(e.target.value)}
+          aria-label={t('selectCapability')}
+        >
+          <option value="qa">{t('qaCapability')}</option>
+          {groups.filter(group => group.kind !== 'qa' && isRunnable(group.kind)).map(group => (
+            <optgroup key={group.kind} label={groupLabel(group.kind as CapabilityKind, t)}>
+              {group.items.map(item => (
+                <option key={capabilityKey(item)} value={capabilityKey(item)}>{item.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <button className={css.linkButton} disabled={catalogLoading} onClick={() => { void loadCatalog() }}>
+          {catalogLoading ? t('capabilityLoading') : t('refreshCapabilities')}
+        </button>
+        {catalogError !== null && <span className={css.inlineError}>{catalogError}</span>}
+        {catalogError === null && !catalogLoading && capabilities.length === 0 && (
+          <span className={css.hint}>{t('capabilityEmpty')}</span>
         )}
-        <div ref={messagesEndRef} />
       </div>
-
-      <div className={css.input}>
-        <div className={css.inputWrap}>
-          <textarea
-            className={css.textarea}
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('inputPlaceholder')}
-            disabled={loading}
-            rows={1}
+      {selectedCapability === undefined
+        ? <QaPane askQuestionStream={askQuestionStream} t={t} />
+        : (
+          <CapabilityDetail
+            capability={selectedCapability}
+            runSkill={runSkill}
+            runAlgorithm={runAlgorithm}
+            invokeDag={invokeDag}
+            listAlgorithmExecutions={listAlgorithmExecutions}
+            listDagHistory={listDagHistory}
+            getDagHistoryDetail={getDagHistoryDetail}
+            t={t}
           />
-          <button
-            className={css.sendButton}
-            disabled={loading || !inputText.trim()}
-            onClick={handleSend}
-            aria-label={t('send')}
-          >
-            ↑
-          </button>
-        </div>
-        {error && <div className={css.error}>{error}</div>}
-      </div>
+        )}
     </div>
   )
 }

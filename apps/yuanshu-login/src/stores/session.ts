@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { login as loginApi, verifyTotpLogin } from '@/api/auth'
 
 const TOKEN_KEY = 'yuanshu-login-token'
+/** 浏览器侧展示用的当前用户资料；token 校验始终以服务端为准。 */
+export const USER_KEY = 'yuanshu-user'
 
 export interface LoginResponse {
   access_token?: string
@@ -33,6 +35,9 @@ export const useSessionStore = defineStore('session', {
       if (token) {
         localStorage.setItem(TOKEN_KEY, token)
       }
+      if (this.username || this.nickname) {
+        localStorage.setItem(USER_KEY, JSON.stringify({ username: this.username, nickname: this.nickname }))
+      }
     },
     async login(account: string, password: string, captcha_id = '', captcha_code = '') {
       const resp = await loginApi({
@@ -57,6 +62,7 @@ export const useSessionStore = defineStore('session', {
       this.username = ''
       this.nickname = ''
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
     },
   },
 })

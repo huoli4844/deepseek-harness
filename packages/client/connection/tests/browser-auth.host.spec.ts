@@ -209,6 +209,32 @@ describe('BrowserAuth', () => {
     })
   })
 
+  it('forgets cookies minted by an earlier process when the session starts fresh', async () => {
+    const store = new RecordCredentials()
+    const login = exchange(await createAuth(store, 30, {}))
+
+    const rotated = await BrowserAuth.create({}, credentials(store), 30, true)
+    expect(rotated.isAuthenticated(request('/', '127.0.0.1:3080', { cookie: login.cookie }))).toBe(false)
+
+    const denied = response()
+    expect(rotated.authorizeIndex(
+      request('/', '127.0.0.1:3080', { cookie: login.cookie }),
+      denied.value,
+    )).toBe(false)
+    expect(denied.state).toEqual({
+      status: 302,
+      headers: {
+        'cache-control': 'no-store',
+        'location': '/login',
+        'referrer-policy': 'no-referrer',
+      },
+    })
+
+    expect(rotated.isAuthenticated(
+      request('/', '127.0.0.1:3080', { cookie: exchange(rotated).cookie }),
+    )).toBe(true)
+  })
+
   it('keeps HTTPS port 443 distinct from HTTP port 80 with one signing secret', async () => {
     const auth = await createAuth(new RecordCredentials())
     const plain = exchange(auth, 'harness.example')
@@ -226,7 +252,14 @@ describe('BrowserAuth', () => {
     const restarted = await createAuth(store)
     const denied = response()
     expect(restarted.authorizeIndex(request('/', authority, { cookie: plain.cookie }), denied.value, true)).toBe(false)
-    expect(denied.state.status).toBe(401)
+    expect(denied.state).toEqual({
+      status: 302,
+      headers: {
+        'cache-control': 'no-store',
+        'location': '/login',
+        'referrer-policy': 'no-referrer',
+      },
+    })
 
     const tls = exchange(restarted, authority, true)
     expect(tls.state.headers?.['set-cookie']).toContain('; Secure')
@@ -276,14 +309,14 @@ describe('BrowserAuth', () => {
     ]) {
       const denied = response()
       expect(auth.authorizeIndex(candidate, denied.value)).toBe(false)
-      expect(denied.state.status).toBe(401)
-      expect(denied.state.headers).toEqual({
-        'cache-control': 'no-store',
-        'content-type': 'text/plain; charset=utf-8',
+      expect(denied.state).toEqual({
+        status: 302,
+        headers: {
+          'cache-control': 'no-store',
+          'location': '/login',
+          'referrer-policy': 'no-referrer',
+        },
       })
-      expect(denied.state.body).toBe(candidate.method === 'HEAD'
-        ? undefined
-        : 'dsh web authentication required; reopen the URL printed by dsh web.\n')
     }
   })
 

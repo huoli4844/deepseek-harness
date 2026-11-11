@@ -495,6 +495,11 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser and API cookie lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
+  /**
+   * Rotate the browser-session signing secret at startup so cookies minted by
+   * an earlier process no longer authenticate. Default: false.
+   */
+  freshBrowserSession?: boolean
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
@@ -4690,6 +4695,13 @@ export interface Config {
    * Absent or YAML `null` advertises the bind-address URL.
    */
   publicUrl?: string
+  /**
+   * Same-origin path handed to the default browser instead of the tokenized
+   * URL, e.g. `/` so BrowserAuth can redirect an unauthenticated visitor to a
+   * sign-in page. Affects only the browser handoff; the printed URL keeps the
+   * process token for supervisors and non-browser clients.
+   */
+  openPath?: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-web-app -->
@@ -4893,14 +4905,14 @@ export interface Config {
 ## `@deepseek-ai/dsh-yuanshu-gateway`
 
 - `inject`: `webServer`
-- `source`: [`packages/yuanshu/yuanshu-gateway/src/index.ts:16`](../packages/yuanshu/yuanshu-gateway/src/index.ts)
+- `source`: [`packages/yuanshu/yuanshu-gateway/src/index.ts:14`](../packages/yuanshu/yuanshu-gateway/src/index.ts)
 
 ```ts config-catalog
 /** Gateway endpoint and optional server-side credentials. */
 export interface Config {
   /** Base URL of the YuanShu API. */
   readonly baseURL: string
-  /** Optional default bearer token used when a request has no authorization header. */
+  /** Optional default bearer token used only when a request has no authorization header. */
   readonly token?: string
   /** Same-origin path prefix registered by the gateway. */
   readonly prefix?: string
@@ -4914,7 +4926,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-yuanshu-login-server`
 
 - `inject`: `webServer` · `connection` · `webApp`
-- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:33`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
+- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:34`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
 
 ```ts config-catalog
 export interface Config {
@@ -4953,14 +4965,14 @@ export interface Config {
 ## `@deepseek-ai/dsh-yuanshu-tool`
 
 - `inject`: `tools`
-- `source`: [`packages/yuanshu/yuanshu-tool/src/index.ts:14`](../packages/yuanshu/yuanshu-tool/src/index.ts)
+- `source`: [`packages/yuanshu/yuanshu-tool/src/index.ts:11`](../packages/yuanshu/yuanshu-tool/src/index.ts)
 
 ```ts config-catalog
 /** YuanShu worker tool endpoint, credentials, and default worker choice. */
 export interface Config {
   /** Base URL of the YuanShu platform API. */
   readonly baseURL: string
-  /** Optional authentication token. */
+  /** 该实例显式配置的 bearer token；不提供时工具不注册。 */
   readonly token?: string
   /** Worker type used when the tool input omits `worker_type`. */
   readonly defaultWorkerType?: string
@@ -5041,6 +5053,7 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | — | [`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-yuanshu-chat` | — | [`packages/client/ui-yuanshu-chat/src/index.ts`](../packages/client/ui-yuanshu-chat/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |
 | `@deepseek-ai/dsh-command-feedback` | `commands` | [`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts) |
 | `@deepseek-ai/dsh-command-goal` | `commands` · `goals` | [`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts) |
@@ -5140,7 +5153,6 @@ export interface Config {
 | `@deepseek-ai/dsh-client-ui-dockkit` | — | [`packages/client/ui-dockkit/src/index.ts`](../packages/client/ui-dockkit/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-primitives` | — | [`packages/client/ui-primitives/src/index.ts`](../packages/client/ui-primitives/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-slots` | — | [`packages/client/ui-slots/src/index.ts`](../packages/client/ui-slots/src/index.ts) |
-| `@deepseek-ai/dsh-client-ui-yuanshu-chat` | — | [`packages/client/ui-yuanshu-chat/src/index.ts`](../packages/client/ui-yuanshu-chat/src/index.ts) |
 | `@deepseek-ai/dsh-client-web` | — | [`packages/client/web/src/index.ts`](../packages/client/web/src/index.ts) |
 | `@deepseek-ai/dsh-cmdline` | — | [`packages/boot/cmdline/src/index.ts`](../packages/boot/cmdline/src/index.ts) |
 | `@deepseek-ai/dsh-cua-bundle` | — | [`packages/experimental/cua-bundle/src/index.ts`](../packages/experimental/cua-bundle/src/index.ts) |

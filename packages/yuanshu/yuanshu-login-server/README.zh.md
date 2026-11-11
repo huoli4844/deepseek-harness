@@ -53,7 +53,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-插件为登录页、静态资源、favicon 和已认证浏览器交接注册四个 Web 服务器路由。交接路由会拒绝没有有效 Harness 浏览器会话的请求，并将进程 token 加入应用公告 URL。Cordis effect 会在插件卸载时释放每个路由。
+插件为登录页、静态资源、favicon 和已认证浏览器交接注册四个 Web 服务器路由。交接路由接受两种凭据：已有的有效 Harness 浏览器会话，或能通过元枢 `GET /api/v1/user/tenants` 校验的 Bearer token；两者都没有时返回 401。校验通过后把进程 token 加入应用公告 URL。Cordis effect 会在插件卸载时释放每个路由。
 
 | 文件 | 作用 |
 |---|---|

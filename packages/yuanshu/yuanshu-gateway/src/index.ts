@@ -1,13 +1,11 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { YuanShuClient } from '@deepseek-ai/dsh-yuanshu-client'
-import type { YuanShuExecuteRequest } from '@deepseek-ai/dsh-yuanshu-client'
+import type { YuanShuDagInvokeRequest, YuanShuExecuteRequest, YuanShuExecutionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { AskKnowledgeQuestionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { GatewayRequestError, allowedMethods, errorBody, errorStatus } from './routes'
 
 export const name = 'yuanshu-gateway'
 export const inject = ['webServer']
@@ -16,7 +14,7 @@ export const inject = ['webServer']
 export interface Config {
   /** Base URL of the YuanShu API. */
   readonly baseURL: string
-  /** Optional default bearer token used when a request has no authorization header. */
+  /** Optional default bearer token used only when a request has no authorization header. */
   readonly token?: string
   /** Same-origin path prefix registered by the gateway. */
   readonly prefix?: string
@@ -28,10 +26,20 @@ export const Config: z<Config> = z.object({ baseURL: z.string().required(), toke
  *
  * Worker API:
  *   /capabilities           GET  → list all YuanShu capabilities
- *   /tenants                GET  → list user tenants
+ *   /tenants                GET  → tenant context (`current` plus `list`)
+ *   /user/me                GET  → current YuanShu account profile
  *   /login                  POST → authenticate (sets token on client)
  *   /execute                POST → execute worker (sync)
  *   /execute-stream         POST → execute worker (SSE stream)
+ *
+ * Capability execution:
+ *   /skills/:id/execute         POST → run a published skill (sync)
+ *   /skills/:id/executions      POST → submit a skill execution (async)
+ *   /algorithms/:id/execute     POST → run a published algorithm (sync)
+ *   /algorithms/:id/executions  POST/GET → submit or list algorithm executions
+ *   /dag/definitions/:id/invoke POST → invoke a published DAG app
+ *   /dag/history                GET  → list DAG runs (optional dag_definition_id)
+ *   /dag/history/:id            GET  → read a DAG run detail
  *
  * Knowledge Q&A:
  *   /qa/ask                 POST → ask knowledge question (sync)
@@ -40,15 +48,18 @@ export const Config: z<Config> = z.object({ baseURL: z.string().required(), toke
  *   /qa/readiness           GET  → check QA readiness of collections
  *   /knowledges             GET  → list knowledge collections
  *   /knowledges/:id         GET  → get knowledge document by ID
+ *
+ * Workbench profile & home:
+ *   /workbench/profile      GET → role-scoped workbench profile
+ *   /workbench/home         GET → aggregated workbench home
+ *
+ * Workbench catalogs:
+ *   /ontology/overview      GET → ontology platform summary
+ *   /ontology/spaces        GET → list ontology spaces
+ *   /ontology/collections   GET → list ontology collections
+ *   /ontology/releases      GET → list ontology releases
+ *   /scenarios              GET → list agent definitions (scenarios)
  */
-const ALLOWED = new Set([
-  // Worker API
-  '/capabilities', '/tenants', '/login', '/execute', '/execute-stream',
-  // Knowledge Q&A
-  '/qa/ask', '/qa/ask/stream', '/qa/sessions', '/qa/readiness',
-  '/knowledges', '/knowledges/',
-])
-
 async function body(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
   for await (const chunk of req) {
@@ -86,19 +97,80 @@ function parseQuery(url: string): Record<string, string> {
   return params
 }
 
-/** Resolve the YuanShu auth token: config > env var > shared token file. */
-function resolveToken(config: Config): string | undefined {
-  if (config.token) return config.token
-  const envToken = process.env.YUANSHU_TOKEN
-  if (envToken) return envToken
-  const tokenFile = join(homedir(), '.dsh', 'yuanshu-token')
-  try {
-    const fileToken = readFileSync(tokenFile, 'utf8').trim()
-    if (fileToken) return fileToken
-  } catch {
-    // File doesn't exist or unreadable — fall through
+/** 读取对象型请求体；缺省视为空对象，其他 JSON 形状直接拒绝。 */
+function requireObject(value: unknown): Record<string, unknown> {
+  if (value === undefined || value === null) return {}
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw new GatewayRequestError('request body must be a JSON object')
   }
-  return undefined
+  return value as Record<string, unknown>
+}
+
+/** 幂等键优先取请求头，其次取请求体，兼容两种客户端实现。 */
+function idempotencyKey(record: Record<string, unknown>, header: string | string[] | undefined): string | undefined {
+  const fromHeader = typeof header === 'string' && header.length > 0 ? header : undefined
+  const fromBody = record.idempotency_key
+  if (fromHeader !== undefined) return fromHeader
+  if (fromBody === undefined) return undefined
+  if (typeof fromBody !== 'string') throw new GatewayRequestError('idempotency_key must be a string')
+  return fromBody
+}
+
+/** 把网关请求体转换成客户端的异步执行提交参数。 */
+function executionRequest(value: unknown, header: string | string[] | undefined): YuanShuExecutionRequest {
+  const record = requireObject(value)
+  const artifactIds = record.input_artifact_ids
+  if (artifactIds !== undefined &&
+    (!Array.isArray(artifactIds) || artifactIds.some(id => typeof id !== 'string'))) {
+    throw new GatewayRequestError('input_artifact_ids must be an array of strings')
+  }
+  const key = idempotencyKey(record, header)
+  return {
+    ...(record.input_data === undefined ? {} : { inputData: record.input_data }),
+    ...(artifactIds === undefined ? {} : { inputArtifactIds: artifactIds as string[] }),
+    ...(key === undefined ? {} : { idempotencyKey: key }),
+  }
+}
+
+/** 把网关请求体转换成 DAG 调用参数。字段名与元枢契约保持一致。 */
+function dagInvokeRequest(value: unknown, header: string | string[] | undefined): YuanShuDagInvokeRequest {
+  const record = requireObject(value)
+  const conversationId = record.conversation_id
+  const conversationVars = record.conversationVars
+  const traceId = record.trace_id
+  if (conversationId !== undefined && typeof conversationId !== 'string') {
+    throw new GatewayRequestError('conversation_id must be a string')
+  }
+  if (traceId !== undefined && typeof traceId !== 'string') {
+    throw new GatewayRequestError('trace_id must be a string')
+  }
+  if (conversationVars !== undefined && (typeof conversationVars !== 'object' || conversationVars === null || Array.isArray(conversationVars))) {
+    throw new GatewayRequestError('conversationVars must be a JSON object')
+  }
+  const key = idempotencyKey(record, header)
+  return {
+    ...(record.input === undefined ? {} : { input: record.input }),
+    ...(conversationId === undefined ? {} : { conversationId }),
+    ...(conversationVars === undefined ? {} : { conversationVars: conversationVars as Record<string, unknown> }),
+    ...(traceId === undefined ? {} : { traceId }),
+    ...(key === undefined ? {} : { idempotencyKey: key }),
+  }
+}
+
+/** 从路径中取出单个路径参数，并做 URL 解码。 */
+function pathParam(path: string, pattern: RegExp): string {
+  const matched = pattern.exec(path)
+  const raw = matched?.[1]
+  if (raw === undefined) throw new GatewayRequestError('invalid route parameter')
+  return decodeURIComponent(raw)
+}
+
+/** Resolve the YuanShu auth token: request header first, then explicit config. */
+function resolveToken(config: Config): string | undefined {
+  // 不再回落到 `YUANSHU_TOKEN` 或 `~/.dsh/yuanshu-token`。网关必须让每个
+  // 请求以自己的凭据执行；静默使用实例级 token 会把普通用户的调用变成
+  // 另一个 principal，且无法在审计里区分真实操作人。
+  return config.token
 }
 
 export function apply(ctx: Context, config: Config): void {
@@ -112,32 +184,52 @@ export function apply(ctx: Context, config: Config): void {
       ? pathname.slice(prefix.length) || '/'
       : pathname
 
-    if (!ALLOWED.has(relative) && !relative.startsWith('/qa/') && !relative.startsWith('/knowledges') && !relative.startsWith('/capabilities') && !relative.startsWith('/tenants') && !relative.startsWith('/login') && !relative.startsWith('/execute')) {
+    const allowed = allowedMethods(relative)
+    if (allowed === undefined) {
       res.writeHead(404, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'not found' }))
       return
     }
+    if (!allowed.includes((req.method ?? 'GET').toUpperCase())) {
+      res.writeHead(405, { 'Content-Type': 'application/json', Allow: allowed.join(', ') })
+      res.end(JSON.stringify({ error: 'method not allowed' }))
+      return
+    }
 
     const auth = req.headers.authorization
-    const tenant = req.headers['x-tenant-id']
+    const tenant = headerValue(req.headers['x-active-tenant']) ?? headerValue(req.headers['x-tenant-id'])
+    const effectiveToken = typeof auth === 'string'
+      ? auth.replace(/^Bearer\s+/u, '')
+      : token
     const requestClient = new YuanShuClient({
       baseURL: config.baseURL,
-      ...(typeof auth === 'string'
-        ? { token: auth.replace(/^Bearer\s+/u, '') }
-        : token === undefined ? {} : { token }),
-      ...(typeof tenant === 'string' ? { tenantId: tenant } : {}),
+      ...(effectiveToken === undefined ? {} : { token: effectiveToken }),
+      ...(tenant === undefined ? {} : { tenantId: tenant }),
     })
+
+    // 元枢要求多租户用户显式选择租户（X-Active-Tenant），而元枢登录页只保存 token。
+    // 浏览器未指定租户时，用 token 解析用户的当前租户，避免 admin 这类多租户账号
+    // 直接收到 `tenant selection required`。
+    if (tenant === undefined && effectiveToken !== undefined) {
+      const resolved = await resolveCurrentTenant(requestClient, effectiveToken)
+      if (resolved !== undefined) requestClient.setAuth(effectiveToken, resolved)
+    }
 
     try {
       // ── Worker API ────────────────────────────────────────────────────
 
       if (relative === '/capabilities') {
-        await writeJSON(res, await requestClient.listCapabilities())
+        await writeJSON(res, await requestClient.listClientCapabilities())
         return
       }
 
       if (relative === '/tenants') {
-        await writeJSON(res, await requestClient.listTenants())
+        await writeJSON(res, await requestClient.getTenantContext())
+        return
+      }
+
+      if (relative === '/user/me') {
+        await writeJSON(res, await requestClient.getCurrentUser())
         return
       }
 
@@ -251,12 +343,124 @@ export function apply(ctx: Context, config: Config): void {
         return
       }
 
+      // ── Workbench profile & home ──────────────────────────────────────
+      //
+      // 岗位、角色、数据范围和区块顺序都由元枢计算。网关只做透传，
+      // 不缓存、不按角色改写，保证 DSH 与 Web 控制台读同一份投影。
+
+      if (relative === '/workbench/profile') {
+        await writeJSON(res, await requestClient.getWorkbenchProfile())
+        return
+      }
+
+      if (relative === '/workbench/home') {
+        await writeJSON(res, await requestClient.getWorkbenchHome())
+        return
+      }
+
+      // ── Workbench catalogs ────────────────────────────────────────────
+      //
+      // 只读目录。可见性完全由元枢裁决：网关不改写 401/403/404，工作台
+      // 据此区分“登录失效 / 无权限 / 不可见”。
+
+      if (relative === '/ontology/overview') {
+        await writeJSON(res, await requestClient.getOntologyOverview())
+        return
+      }
+
+      if (relative === '/ontology/spaces' || relative === '/ontology/collections' || relative === '/ontology/releases') {
+        const query = parseQuery(url.toString())
+        const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
+        const pageSize = limit === undefined || Number.isNaN(limit) ? undefined : limit
+        const value = relative === '/ontology/spaces'
+          ? await requestClient.listOntologySpaces(pageSize)
+          : relative === '/ontology/collections'
+            ? await requestClient.listOntologyCollections(pageSize)
+            : await requestClient.listOntologyReleases(pageSize)
+        await writeJSON(res, value)
+        return
+      }
+
+      if (relative === '/scenarios') {
+        const query = parseQuery(url.toString())
+        const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
+        await writeJSON(res, await requestClient.listScenarios(
+          limit === undefined || Number.isNaN(limit) ? undefined : limit,
+        ))
+        return
+      }
+
+      // ── Capability Execution ──────────────────────────────────────────
+      //
+      // 这里只做 HTTP 到 SDK 的适配：能力是否发布、当前用户是否授权、参数
+      // 是否符合 schema 全部由元枢裁决。客户端收到 404 即为“不存在或不可见”。
+
+      if (relative.endsWith('/execute') && relative.startsWith('/skills/')) {
+        const id = pathParam(relative, /^\/skills\/([^/]+)\/execute$/u)
+        const record = requireObject(await body(req))
+        await writeJSON(res, await requestClient.executeClientSkill(id, record.input_data))
+        return
+      }
+
+      if (relative.endsWith('/executions') && relative.startsWith('/skills/')) {
+        const id = pathParam(relative, /^\/skills\/([^/]+)\/executions$/u)
+        const input = await body(req)
+        await writeJSON(res, await requestClient.submitSkillExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        return
+      }
+
+      if (relative.endsWith('/execute') && relative.startsWith('/algorithms/')) {
+        const id = pathParam(relative, /^\/algorithms\/([^/]+)\/execute$/u)
+        const record = requireObject(await body(req))
+        await writeJSON(res, await requestClient.executeClientAlgorithm(id, record.input_data))
+        return
+      }
+
+      if (relative.endsWith('/executions') && relative.startsWith('/algorithms/')) {
+        const id = pathParam(relative, /^\/algorithms\/([^/]+)\/executions$/u)
+        if (req.method === 'GET') {
+          const query = parseQuery(url.toString())
+          const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
+          await writeJSON(res, await requestClient.listClientAlgorithmExecutions(
+            id, limit === undefined || Number.isNaN(limit) ? undefined : limit,
+          ))
+          return
+        }
+        const input = await body(req)
+        await writeJSON(res, await requestClient.submitAlgorithmExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        return
+      }
+
+      if (relative.startsWith('/dag/definitions/') && relative.endsWith('/invoke')) {
+        const id = pathParam(relative, /^\/dag\/definitions\/([^/]+)\/invoke$/u)
+        const input = await body(req)
+        await writeJSON(res, await requestClient.invokeClientDag(id, dagInvokeRequest(input, req.headers['idempotency-key'])))
+        return
+      }
+
+      if (relative === '/dag/history') {
+        const query = parseQuery(url.toString())
+        const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
+        const definitionId = query.dag_definition_id
+        await writeJSON(res, await requestClient.listClientDagHistory(
+          limit === undefined || Number.isNaN(limit) ? undefined : limit,
+          definitionId === undefined || definitionId.length === 0 ? undefined : definitionId,
+        ))
+        return
+      }
+
+      if (relative.startsWith('/dag/history/')) {
+        const id = pathParam(relative, /^\/dag\/history\/([^/]+)$/u)
+        await writeJSON(res, await requestClient.getClientDagHistoryDetail(id))
+        return
+      }
+
       // Fallback: 404
       res.writeHead(404, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'not found' }))
     } catch (error) {
       if (res.headersSent) { res.destroy(); return }
-      await writeJSON(res, { error: error instanceof Error ? error.message : String(error) }, 502)
+      await writeJSON(res, errorBody(error), errorStatus(error))
     }
   } }
   ctx.effect(() => ctx.webServer.register(route), 'yuanshu-gateway: route')
@@ -266,4 +470,28 @@ async function writeJSON(res: ServerResponse, value: unknown, status = 200): Pro
   const output = JSON.stringify(value)
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
   res.end(output)
+}
+
+/** 最近一次 token → 当前租户的解析结果，避免每次请求都多打一次租户接口。 */
+let tenantCache: { readonly token: string; readonly tenant: string } | undefined
+
+function headerValue(value: string | readonly string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  const trimmed = typeof raw === 'string' ? raw.trim() : undefined
+  return trimmed !== undefined && trimmed.length > 0 ? trimmed : undefined
+}
+
+/** 用 token 解析用户当前租户；失败时返回 undefined，让元枢自行返回租户错误。 */
+async function resolveCurrentTenant(client: YuanShuClient, token: string): Promise<string | undefined> {
+  if (tenantCache?.token === token) return tenantCache.tenant
+  try {
+    const tenants = await client.listTenants()
+    const current = tenants.find(item => item.current === true) ?? tenants[0]
+    const value = current?.code ?? current?.id
+    if (typeof value !== 'string' && typeof value !== 'number') return undefined
+    tenantCache = { token, tenant: String(value) }
+    return tenantCache.tenant
+  } catch {
+    return undefined
+  }
 }

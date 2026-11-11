@@ -193,13 +193,34 @@
 
     # YuanShu Platform gateway: proxies requests from the harness web server
     # to the 元枢 platform backend API at localhost:8081.
-    # TEMPORARILY DISABLED: causes "DeepSeek request extension preparation failed"
-    # - id: yuanshu-gateway
-    #   name: '@deepseek-ai/dsh-yuanshu-gateway'
-    #   inject: [webServer]
-    #   config:
-    #     baseURL: http://localhost:8081
-    #     prefix: /yuanshu-api
+    # Re-enabled after isolating the real cause of "DeepSeek request extension
+    # preparation failed": that failure came from the yuanshu-tool request
+    # extension contributor, not from this route-only gateway (it registers no
+    # LLM request fields). The gateway refuses unregistered paths and methods.
+    - id: yuanshu-gateway
+      name: '@deepseek-ai/dsh-yuanshu-gateway'
+      inject: [webServer]
+      config:
+        baseURL: http://localhost:8081
+        prefix: /yuanshu-api
+
+    # YuanShu sign-in: serves /login and the /yuanshu-token handoff. Mounted so
+    # an unauthenticated browser lands on the sign-in page instead of a 404.
+    - id: yuanshu-login-server
+      name: '@deepseek-ai/dsh-yuanshu-login-server'
+      inject: [webServer, connection, webApp]
+      config:
+        yuanshuApiUrl: http://localhost:8081
+
+    # YuanShu workbench tab over the same-origin /yuanshu-api gateway above.
+    - id: ui-yuanshu-chat
+      name: '@deepseek-ai/dsh-client-ui-yuanshu-chat'
+
+    # YuanShu identity launcher in the sidebar footer. yuanshu-login-server
+    # publishes __DSH_EXTERNAL_IDENTITY__ so the DeepSeek account plugin keeps
+    # its settings surfaces but yields the single settings.launcher slot.
+    - id: ui-yuanshu-account
+      name: '@deepseek-ai/dsh-client-ui-yuanshu-account'
 
     # Web glue owned by this bundle: resolves the built frontend dist (an
     # assembly fact of dsh-web-app, never user config), mounts the
@@ -216,6 +237,10 @@
         printUrl: true
         publicUrl: !!js ctx.webStartup.publicUrl
         surfaceContext: true
+        # Hand the browser the clean root so BrowserAuth can redirect an
+        # unauthenticated visitor to the YuanShu /login page. The printed URL
+        # keeps the process token for supervisors and non-browser clients.
+        openPath: /
 
     # Model context for an agent that inspects or extends the harness serving
     # this GUI: value-free prompt sections plus the current checkout and GUI
@@ -249,6 +274,9 @@
       name: '@deepseek-ai/dsh-client-connection'
       inject: [webStartup]
       config:
+        # YuanShu sign-in gate: rotate the browser-session secret on every
+        # launch so a cookie from an earlier process cannot skip /login.
+        freshBrowserSession: true
         # Keep invocation authorities (each --trusted-host value) when adding
         # deployment values, for example: ['app.internal', ...ctx.webStartup.trustedHosts].
         # The listener's bind IP is accepted separately from this list.
