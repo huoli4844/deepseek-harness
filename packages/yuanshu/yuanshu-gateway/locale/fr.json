@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Passerelle YuanShu",
+    "description": "Proxy de même origine /yuanshu-api pour les capacités YuanShu, les flux SSE Worker et les questions sur les connaissances."
+  }
+}

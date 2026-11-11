@@ -12,10 +12,10 @@ import { WorkbenchRequestError, type CapabilityOption } from '../src/client/work
 
 type PanelProps = Parameters<typeof WorkbenchPanel>[0]
 
-function translate(key: YuanShuChatKey, params?: Record<string, unknown>): string {
-  const template = zh[key] as string
+function translate(key: string, params?: Record<string, unknown>): string {
+  const template = zh[key as YuanShuChatKey] ?? key
   if (params === undefined) return template
-  return template.replace(/\{(\w+)\}/gu, (_match, name: string) => String(params[name] ?? ''))
+  return template.replace(/\{(\w+)\}/gu, (_match, name: string) => typeof params[name] === 'string' ? params[name] : JSON.stringify(params[name] ?? ''))
 }
 
 function streamOf(events: readonly YuanShuSseEvent[]): AsyncIterable<YuanShuSseEvent> {
@@ -142,7 +142,7 @@ const baseInjected: YuanShuWorkbenchInjected = {
 }
 
 function props(overrides: Partial<YuanShuWorkbenchInjected> = {}): PanelProps {
-  return { t: translate, ...baseInjected, ...overrides } as unknown as PanelProps
+  return { t: translate, ...baseInjected, ...overrides }
 }
 
 beforeEach(() => {
@@ -222,7 +222,7 @@ describe('yuanshu workbench', () => {
     fireEvent.change(select, { target: { value: '3' } })
 
     expect(window.localStorage.getItem('yuanshu-active-tenant')).toBe('3')
-    expect((screen.getByRole('combobox', { name: '当前租户' }) as HTMLSelectElement).value).toBe('3')
+    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: '当前租户' }).value).toBe('3')
     await waitFor(() => {
       expect(getHome).toHaveBeenCalled()
     })

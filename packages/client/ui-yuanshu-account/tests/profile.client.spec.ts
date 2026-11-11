@@ -44,7 +44,7 @@ describe('fetchCurrentUser', () => {
     const fetchImpl = vi.fn(async () => new Response(
       JSON.stringify({ code: 0, message: 'success', data: { id: 1, username: 'admin', nickname: '管理员' } }),
       { status: 200, headers: { 'content-type': 'application/json' } },
-    )) as unknown as typeof fetch
+    ))
     await expect(fetchCurrentUser('token-1', fetchImpl)).resolves.toEqual({ username: 'admin', nickname: '管理员' })
     expect(fetchImpl).toHaveBeenCalledWith('/yuanshu-api/user/me', {
       method: 'GET',
@@ -53,8 +53,8 @@ describe('fetchCurrentUser', () => {
   })
 
   it('degrades to undefined without a token, on non-2xx and on network failure', async () => {
-    const unauthorized = vi.fn(async () => new Response('', { status: 401 })) as unknown as typeof fetch
-    const rejected = vi.fn(async () => { throw new Error('offline') }) as unknown as typeof fetch
+    const unauthorized = vi.fn(async () => new Response('', { status: 401 }))
+    const rejected = vi.fn(async () => { throw new Error('offline') })
     expect(await fetchCurrentUser(undefined, unauthorized)).toBeUndefined()
     expect(await fetchCurrentUser('token', unauthorized)).toBeUndefined()
     expect(await fetchCurrentUser('token', rejected)).toBeUndefined()
@@ -67,6 +67,7 @@ describe('identity labels', () => {
     expect(displayName({ username: 'admin', nickname: ' ' })).toBe('admin')
     expect(displayName(undefined)).toBeUndefined()
     expect(avatarInitial('管理员')).toBe('管')
+    expect(avatarInitial('👩‍💻开发者')).toBe('👩‍💻')
     expect(avatarInitial(undefined)).toBe('元')
   })
 })

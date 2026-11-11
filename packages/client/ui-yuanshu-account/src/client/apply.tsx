@@ -4,14 +4,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import { YuanShuAccountLauncher, type YuanShuAccountInjected } from './YuanShuAccountLauncher.tsx'
-import { NS, en, zh, type YuanShuAccountKey } from './locales.ts'
+import { NS, en, zh } from './locales.ts'
 import { fetchCurrentUser } from './profile.ts'
-
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap {
-    'yuanshu-account': YuanShuAccountKey
-  }
-}
 
 export const inject = ['slots', 'locale']
 

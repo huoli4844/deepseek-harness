@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this plugin to serve the built YuanShu login page from the Harness web server. The page authenticates against the configured YuanShu API URL, stores the browser token, and returns to the Harness app. The return URL is issued only to an already authenticated Harness browser session. The frontend must be built before the login route can serve its page.
+Mount this plugin to serve the built YuanShu login page from the Harness web server. The page authenticates against the configured YuanShu API URL, stores the browser token, and returns to the Harness app. The return URL requires an existing Harness browser session or a YuanShu bearer token verified by the backend. The frontend must be built before the login route can serve its page.
 
 ## Table of Contents
 

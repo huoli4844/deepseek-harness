@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Ferramenta de perguntas do YuanShu",
+    "description": "Ferramenta do agente que responde com as bases de conhecimento do YuanShu e retorna as fontes citadas."
+  }
+}

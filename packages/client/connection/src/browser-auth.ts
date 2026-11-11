@@ -20,7 +20,6 @@ const COOKIE_PAYLOAD_VERSION = 1
 const STORED_SECRET_VERSION = 1
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]*$/
 const PROCESS_LAUNCH_TOKENS = new WeakMap<object, string>()
-const LOGIN_PATH = '/login'
 
 interface StoredSecretPayload {
   readonly version: typeof STORED_SECRET_VERSION
@@ -212,6 +211,7 @@ export class BrowserAuth {
     processOwner: object,
     private readonly secret: Buffer,
     maxAgeDays: number,
+    private readonly loginPath: string | undefined,
   ) {
     this.launchToken = processLaunchToken(processOwner)
     this.maxAgeMilliseconds = maxAgeDays * DAY_MILLISECONDS
@@ -229,6 +229,7 @@ export class BrowserAuth {
    * @param maxAgeDays - positive absolute browser-cookie lifetime in days.
    * @param fresh - rotate the signing secret so cookies minted by an earlier
    * process no longer authenticate, e.g. when a sign-in gate must run on every launch.
+   * @param loginPath - deployment sign-in path; omitted paths return 401 for unauthenticated index requests.
    * @returns initialized authentication owner with the process owner's launch token.
    */
   static async create(
@@ -236,8 +237,9 @@ export class BrowserAuth {
     credentials: CredentialProvider,
     maxAgeDays: number,
     fresh = false,
+    loginPath?: string,
   ): Promise<BrowserAuth> {
-    return new BrowserAuth(processOwner, await initializeSecret(credentials, fresh), maxAgeDays)
+    return new BrowserAuth(processOwner, await initializeSecret(credentials, fresh), maxAgeDays, loginPath)
   }
 
   /**
@@ -259,8 +261,8 @@ export class BrowserAuth {
   /**
    * Authenticate an index request. A valid root query token mints the cookie
    * and redirects to the directory-relative clean `./`; a valid cookie lets
-   * the caller serve the index; every other request receives the same minimal
-   * 401 response.
+   * the caller serve the index; every other request redirects to the configured
+   * sign-in path or receives a minimal 401 response when no path is configured.
    * @param req - incoming root or configured-index request.
    * @param res - response owned when this method returns false.
    * @param secure - whether the listener receiving this request serves TLS; the
@@ -305,11 +307,11 @@ export class BrowserAuth {
         res.end()
         return false
       }
-      this.writeLoginRedirect(res)
+      this.writeIndexRejection(req, res)
       return false
     }
     if (this.isAuthenticated(req, secure)) return true
-    this.writeLoginRedirect(res)
+    this.writeIndexRejection(req, res)
     return false
   }
 
@@ -391,10 +393,14 @@ export class BrowserAuth {
     return payload
   }
 
-  private writeLoginRedirect(res: ConnectionIndexResponse): void {
+  private writeIndexRejection(req: ConnectionIndexRequest, res: ConnectionIndexResponse): void {
+    if (this.loginPath === undefined) {
+      this.writeUnauthorized(req, res)
+      return
+    }
     res.writeHead(302, {
       'cache-control': 'no-store',
-      'location': LOGIN_PATH,
+      'location': this.loginPath,
       'referrer-policy': 'no-referrer',
     })
     res.end()

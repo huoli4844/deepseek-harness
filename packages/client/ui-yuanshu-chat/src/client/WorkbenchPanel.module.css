@@ -22,7 +22,7 @@
 
 .brandTitle {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -50,7 +50,7 @@
 .navGroupTitle {
   padding: 8px 10px 4px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.06em;
   color: var(--dsh-text-color-secondary, #636d7e);
 }
@@ -62,7 +62,7 @@
   width: 100%;
   padding: 9px 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: var(--dsh-text-color, #1d2129);
   font-size: 13px;
@@ -70,14 +70,16 @@
   cursor: pointer;
 }
 
-.navItem:hover {
-  background: var(--dsh-bg-color, #f2f3f5);
+@media (hover: hover) {
+  .navItem:hover {
+    background: var(--dsh-bg-color, #f2f3f5);
+  }
 }
 
 .navItemActive {
   background: rgba(22, 93, 255, 0.08);
   color: var(--dsh-primary-color, #165dff);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .navGlyph {
@@ -94,6 +96,7 @@
   min-width: 18px;
   padding: 0 6px;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsh-bg-color, #f2f3f5);
   color: var(--dsh-text-color-secondary, #636d7e);
   font-size: 11px;
@@ -121,13 +124,13 @@
 
 .title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .reload {
   padding: 6px 12px;
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
   color: var(--dsh-primary-color, #165dff);
   font-size: 13px;
@@ -156,7 +159,7 @@
   padding: 18px 20px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-xl);
 }
 
 .heroMain {
@@ -168,7 +171,7 @@
 
 .heroTitle {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .heroMeta {
@@ -193,6 +196,7 @@
 .chip {
   padding: 1px 8px;
   border-radius: 999px;
+  corner-shape: round;
   background: rgba(22, 93, 255, 0.08);
   color: var(--dsh-primary-color, #165dff);
   font-size: 11px;
@@ -224,7 +228,7 @@
   margin-bottom: 14px;
   padding: 10px 14px;
   border: 1px solid #ffe4ba;
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
   background: #fff7e8;
   color: #d25f00;
   font-size: 12px;
@@ -243,12 +247,12 @@
   padding: 14px 16px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-xl);
 }
 
 .metricValue {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .metricLabel {
@@ -269,13 +273,14 @@
 
 .blockTitle {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .blockCount {
   min-width: 18px;
   padding: 0 6px;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsh-bg-color, #f2f3f5);
   color: var(--dsh-text-color-secondary, #636d7e);
   font-size: 11px;
@@ -293,6 +298,7 @@
 .badge {
   padding: 1px 8px;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsh-bg-color, #f2f3f5);
   color: var(--dsh-text-color-secondary, #636d7e);
   font-size: 11px;
@@ -329,7 +335,7 @@
   padding: 12px 14px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
 }
 
 /* 概览 */
@@ -347,7 +353,7 @@
   padding: 16px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-xl);
 }
 
 .statLabel {
@@ -357,7 +363,7 @@
 
 .statValue {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .metaCard {
@@ -367,7 +373,7 @@
   padding: 16px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-xl);
 }
 
 .metaRow {
@@ -409,7 +415,7 @@
 .groupTitle {
   margin-bottom: 8px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--dsh-text-color-secondary, #636d7e);
 }
 
@@ -429,7 +435,7 @@
   padding: 12px 14px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
 }
 
 .rowButton {
@@ -440,13 +446,15 @@
   cursor: pointer;
 }
 
-.rowButton:hover {
-  border-color: var(--dsh-primary-color, #165dff);
+@media (hover: hover) {
+  .rowButton:hover {
+    border-color: var(--dsh-primary-color, #165dff);
+  }
 }
 
 .rowName {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .rowDesc {
@@ -459,6 +467,7 @@
   margin-top: 2px;
   padding: 1px 8px;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsh-bg-color, #f2f3f5);
   color: var(--dsh-text-color-secondary, #636d7e);
   font-size: 11px;
@@ -472,7 +481,7 @@
   padding: 14px 16px;
   background: var(--dsh-card-bg, #ffffff);
   border: 1px solid var(--dsh-border-color, #e5e6eb);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
 }
 
 .kvRow {
@@ -493,7 +502,7 @@
 .empty {
   padding: 16px;
   border: 1px dashed var(--dsh-border-color, #e5e6eb);
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
   background: var(--dsh-bg-color-secondary, #f7f8fa);
   color: var(--dsh-text-color-secondary, #636d7e);
   font-size: 13px;
@@ -502,7 +511,7 @@
 .error {
   padding: 12px 14px;
   border: 1px solid #ffd8d8;
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-lg);
   background: #fff1f0;
   color: #f53f3f;
   font-size: 13px;
@@ -517,7 +526,7 @@
 .backButton {
   padding: 4px 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
   background: transparent;
   color: var(--dsh-primary-color, #165dff);
   font-size: 13px;

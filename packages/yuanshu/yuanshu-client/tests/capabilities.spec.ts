@@ -13,7 +13,7 @@ it('遍历元枢分页能力目录并保留所有绑定资产', async () => {
   const seenHeaders: Array<HeadersInit | undefined> = []
   const fetcher = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
     seenHeaders.push(init?.headers)
-    const url = new URL(String(input))
+    const url = new URL(input instanceof Request ? input.url : input.toString())
     const page = Number(url.searchParams.get('page'))
     const path = url.pathname
     if (path === '/api/v1/agent/definitions' && page === 1) {
@@ -40,7 +40,7 @@ it('遍历元枢分页能力目录并保留所有绑定资产', async () => {
   expect(fetcher).toHaveBeenCalledTimes(5)
   for (const call of fetcher.mock.calls) {
     const [input] = call
-    const url = new URL(String(input))
+    const url = new URL(input instanceof Request ? input.url : input.toString())
     expect(url.searchParams.get('page_size')).toBe('100')
   }
   expect(seenHeaders).toHaveLength(5)
@@ -60,7 +60,7 @@ it('兼容旧网关直接返回数组的能力目录', async () => {
 
 it('能力目录权限或服务错误不会被伪装成空列表', async () => {
   const fetcher = vi.fn(async (input: URL | RequestInfo) => {
-    if (new URL(String(input)).pathname === '/api/v1/skills') {
+    if (new URL(input instanceof Request ? input.url : input.toString()).pathname === '/api/v1/skills') {
       return new Response('forbidden', { status: 403, statusText: 'Forbidden' })
     }
     return ok({ list: [], total: 0, page: 1, page_size: 100 })

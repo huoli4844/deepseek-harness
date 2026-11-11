@@ -94,7 +94,7 @@ export function ChatPanel({
         <select
           className={css.capabilitySelect}
           value={selectedKey}
-          onChange={e => setSelectedKey(e.target.value)}
+          onChange={(e) => { setSelectedKey(e.target.value) }}
           aria-label={t('selectCapability')}
         >
           <option value="qa">{t('qaCapability')}</option>

@@ -9,10 +9,10 @@ import { loadQaSession, QA_SESSION_STORAGE_KEY } from '../src/client/storage.ts'
 
 type PanelProps = Parameters<typeof ChatPanel>[0]
 
-function translate(key: YuanShuChatKey, params?: Record<string, unknown>): string {
-  const template = zh[key] as string
+function translate(key: string, params?: Record<string, unknown>): string {
+  const template = zh[key as YuanShuChatKey] ?? key
   if (params === undefined) return template
-  return template.replace(/\{(\w+)\}/gu, (_match, name: string) => String(params[name] ?? ''))
+  return template.replace(/\{(\w+)\}/gu, (_match, name: string) => typeof params[name] === 'string' ? params[name] : JSON.stringify(params[name] ?? ''))
 }
 
 const baseInjected: YuanShuChatInjected = {
@@ -27,7 +27,7 @@ const baseInjected: YuanShuChatInjected = {
 }
 
 function props(overrides: Partial<YuanShuChatInjected> = {}): PanelProps {
-  return { t: translate, ...baseInjected, ...overrides } as unknown as PanelProps
+  return { t: translate, ...baseInjected, ...overrides }
 }
 
 function streamOf(events: readonly YuanShuSseEvent[]): AsyncIterable<YuanShuSseEvent> {
@@ -67,7 +67,7 @@ describe('capability workbench', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '运行' }))
 
-    await waitFor(() => expect(runSkill).toHaveBeenCalledWith('s1', { month: '2026-10' }))
+    await waitFor(() => { expect(runSkill).toHaveBeenCalledWith('s1', { month: '2026-10' }) })
     const output = await screen.findByText(/"ok": true/u)
     expect(output.tagName).toBe('PRE')
   })
@@ -152,9 +152,9 @@ describe('capability workbench', () => {
     fireEvent.change(screen.getByLabelText('extra'), { target: { value: '{"a":1}' } })
     fireEvent.click(screen.getByRole('button', { name: '运行' }))
 
-    await waitFor(() => expect(runSkill).toHaveBeenCalledWith('s1', {
+    await waitFor(() =>{  expect(runSkill).toHaveBeenCalledWith('s1', {
       month: '2026-10', count: 5, flag: true, extra: { a: 1 },
-    }))
+    }) })
   })
 
   it('rejects invalid schema values and can switch back to JSON mode', async () => {
@@ -183,7 +183,7 @@ describe('capability workbench', () => {
     fireEvent.change(screen.getByPlaceholderText('输入参数（JSON，可留空）'), { target: { value: '{"count":2}' } })
     fireEvent.click(screen.getByRole('button', { name: '运行' }))
 
-    await waitFor(() => expect(runSkill).toHaveBeenCalledWith('s1', { count: 2 }))
+    await waitFor(() => { expect(runSkill).toHaveBeenCalledWith('s1', { count: 2 }) })
   })
 
   it('renders the DAG run timeline after an invocation', async () => {
@@ -214,7 +214,7 @@ describe('capability workbench', () => {
     await selectCapability('审批场景', 'dag:d1')
     fireEvent.click(screen.getByRole('button', { name: '运行' }))
 
-    await waitFor(() => expect(invokeDag).toHaveBeenCalledWith('d1', {}))
+    await waitFor(() => { expect(invokeDag).toHaveBeenCalledWith('d1', {}) })
     await screen.findByText('运行时间线')
     expect(await screen.findByText('开始')).toBeTruthy()
     expect(await screen.findByText('生成')).toBeTruthy()
@@ -261,7 +261,7 @@ describe('knowledge Q&A session', () => {
     fireEvent.click(screen.getByRole('button', { name: '发送' }))
     await screen.findByText('答案1')
 
-    await waitFor(() => expect(loadQaSession().sessionId).toBe('sess-1'))
+    await waitFor(() => { expect(loadQaSession().sessionId).toBe('sess-1') })
     expect(window.localStorage.getItem(QA_SESSION_STORAGE_KEY)).not.toBeNull()
 
     fireEvent.change(screen.getByPlaceholderText('输入你的问题...'), { target: { value: '第二个问题' } })

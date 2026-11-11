@@ -20,7 +20,7 @@ it.each(['/qa/ask/stream', '/execute-stream'])('aborts the YuanShu SSE request a
   const fetchMock = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
     const signal = init?.signal
     if (signal === null || signal === undefined) throw new Error('gateway test: upstream request has no signal')
-    signal.addEventListener('abort', () => upstreamAborted.resolve(undefined), { once: true })
+    signal.addEventListener('abort', () => { upstreamAborted.resolve(undefined) }, { once: true })
     upstreamStarted.resolve(undefined)
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -54,7 +54,7 @@ it.each(['/qa/ask/stream', '/execute-stream'])('aborts the YuanShu SSE request a
     client.once('error', reject)
   })
   const firstChunk = new Promise<void>((resolve, reject) => {
-    response.once('data', () => resolve())
+    response.once('data', () => { resolve() })
     response.once('error', reject)
   })
   await upstreamStarted.promise

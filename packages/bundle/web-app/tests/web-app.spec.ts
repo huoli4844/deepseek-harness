@@ -170,9 +170,9 @@ describe('web-app runtime glue', () => {
     onTestFinished(() => ctx.fiber.dispose())
     const { server } = fakeHttpServer()
     ctx.provide('webServer', server)
-    expect(() => apply(ctx, new Config({
+    expect(() =>{  apply(ctx, new Config({
       openBrowser: false, printUrl: false, surfaceContext: false, openPath: '//evil.test/login',
-    }))).toThrow('openPath must be one same-origin absolute path')
+    })) }).toThrow('openPath must be one same-origin absolute path')
   })
 
   it('advertises and opens the configured public root behind a prefix-stripping proxy', async () => {

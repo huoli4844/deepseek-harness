@@ -1155,6 +1155,20 @@ describe('HarnessSdkJsonRpcServer', () => {
     },
   )
 
+  it('rejects missing or nonstring initialize route fields', async () => {
+    const ctx = new Context()
+    const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())
+    try {
+      for (const params of [undefined, {}, { cwd: 42 }, { cwd: '.', provider: 42, model: 'model' },
+        { cwd: '.', provider: 'deepseek-official', model: 42 }]) {
+        await expect(server.handleRequest('initialize', params)).rejects.toThrow('initialize requires cwd, provider and model strings')
+      }
+    } finally {
+      await server.shutdown()
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('rejects malformed initialize reasoningEffort values at the wire boundary', async () => {
     const ctx = new Context()
     const server = new HarnessSdkJsonRpcServer(ctx, new FakeTransport())

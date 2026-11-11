@@ -18,7 +18,7 @@
  */
 
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { readFileSync, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
@@ -31,6 +31,7 @@ import type {} from '@deepseek-ai/dsh-web-app'
 export const name = 'yuanshu-login-server'
 export const inject = ['webServer', 'connection', 'webApp']
 
+/** Login asset directory and YuanShu authentication endpoint. */
 export interface Config {
   /** Path to the built login dist directory. Resolved automatically if not set. */
   readonly loginDist?: string
@@ -52,7 +53,7 @@ const EXTERNAL_IDENTITY_GLOBAL = '__DSH_EXTERNAL_IDENTITY__'
 
 /** Extract a bearer credential from an Authorization header. */
 function bearerToken(header: string | readonly string[] | undefined): string | undefined {
-  const raw = Array.isArray(header) ? header[0] : header
+  const raw: unknown = Array.isArray(header) ? header[0] : header
   if (typeof raw !== 'string') return undefined
   const matched = /^Bearer\s+(\S+)$/iu.exec(raw.trim())
   return matched?.[1]
@@ -77,8 +78,7 @@ async function verifyYuanshuToken(apiUrl: string, token: string): Promise<boolea
 
 /** Resolve the login dist path if not configured. */
 function resolveLoginDist(): string {
-  const here = dirname(fileURLToPath(import.meta.url))
-  return join(here, '..', '..', '..', '..', 'apps', 'yuanshu-login', 'dist')
+  return join(dirname(createRequire(import.meta.url).resolve('@deepseek-ai/yuanshu-login/package.json')), 'dist')
 }
 
 const MIME_TYPES: Record<string, string> = {
@@ -158,7 +158,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: LOGIN_PATH,
-    handler: (req, res) => serveRequest(req, res, distRoot, yuanshuApiUrl),
+    handler: (req, res) => { serveRequest(req, res, distRoot, yuanshuApiUrl) },
   }), 'yuanshu-login-server: login page')
 
   ctx.effect(() => ctx.webServer.register({

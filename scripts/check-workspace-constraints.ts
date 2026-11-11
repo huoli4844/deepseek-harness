@@ -79,6 +79,7 @@ const standardReleaseMemberDirectory = new RegExp(
 const desktopApplicationDirectory = 'apps/desktop'
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
+  '@deepseek-ai/yuanshu-login': ['dist'],
   '@deepseek-ai/dsh': ['lib/*.js', 'lib/types/*.d.ts'],
   '@deepseek-ai/dsh-desktop-host': [
     'lib/index.js', 'lib/cli.js',

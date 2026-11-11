@@ -43,7 +43,7 @@ export function apply(ctx: Context, config: Config): void {
     },
     output: {
       schema: { type: 'string' as const },
-      render: (_args, value) => [{ type: 'text', text: String(value) }],
+      render: (_args, value) => [{ type: 'text', text: value }],
     },
     execute: async (args) => {
       const workerType = args.worker_type ?? config.defaultWorkerType ?? 'general_assistant'

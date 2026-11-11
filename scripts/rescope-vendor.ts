@@ -78,6 +78,12 @@ interface GenericSkip {
 }
 
 const GENERIC_SKIPS: readonly GenericSkip[] = [
+  // The tool documentation names the `cordis` preset, not an upstream package.
+  { file: 'docs/tool-catalog.md', upstream: ['cordis'] },
+  { file: 'docs/tool-catalog.zh.md', upstream: ['cordis'] },
+  { file: 'scripts/gen-tool-catalog.ts', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.md', upstream: ['cordis'] },
+  { file: 'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.zh.md', upstream: ['cordis'] },
   // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
   { file: 'vendor/schemastery/src/index.ts', upstream: ['schemastery'] },
   // Narrows a Standard Schema by the same upstream `vendor:` identifier.
@@ -190,7 +196,7 @@ const POSTCONDITIONS: readonly PostCondition[] = [
   { file: 'packages/boot/app-boot/tsdown.config.ts', text: '[\'@deepseek-ai/cordis-plugin-include\']', count: 1 },
   { file: 'tsconfig.base.json', text: '"@deepseek-ai/cordis-plugin-loader": ["./vendor/loader/src"]', count: 1 },
   // The vendored README owns this required entry; reject its deletion or duplication.
-  { file: 'vendor/README.md', text: '17. **`@deepseek-ai` rescope**', count: 1 },
+  { file: 'vendor/README.md', text: '**V17 · `@deepseek-ai` rescope**', count: 1 },
   { file: 'pnpm-workspace.yaml', text: 'cordis@4.0.0-rc.7', count: 0 },
   // The preset ids in this table are product data, not package names.
   { file: 'packages/client/ui-agent-preset/tests/locales.client.spec.ts', text: '[\'cordis\', \'presetCordisName\'', count: 1 },

@@ -1,59 +1,34 @@
-# 元枢平台登录页 (YuanShu Login)
+# 元枢平台登录页
 
 [English](README.md) | 中文
 
-独立 Vue 登录页面，用于通过浏览器登录元枢平台并获取认证 token。
+由 Harness Web 应用中的元枢登录服务提供的 Vue 登录页面。
 
-## 快速开始
+## 构建
 
-```bash
-# Development
-pnpm dev
-
-# Build
-pnpm build
-
-# Preview the build
-pnpm preview
+```sh
+pnpm --filter @deepseek-ai/yuanshu-login run build
 ```
 
-## 工作流程
+构建写入 `dist/`，登录服务将其发布在 `/login`。
 
-1. 打开浏览器访问 `http://localhost:3005/login`（由 `dsh web` 启动时自动落到该页）。
-2. 输入元枢用户名和密码。
-3. 登录成功后，登录页会携带元枢 token 请求 `/yuanshu-token`；Harness 校验通过后自动回跳工作台，无需手工复制地址。
-4. 登录页同时会下载 token 文件，可保存到 `~/.dsh/yuanshu-token` 供 CLI 使用。
-5. 重启 DSH CLI 并使用 `yuanshu` profile，即可使用 `yuanshu_qa` 工具。
+## 登录流程
 
-## Token 配置
+1. 打开 Harness Web 应用，跟随登录重定向进入 `/login`。
+2. 输入元枢用户名和密码，并完成所要求的二次验证。
+3. 页面将 token 与账号资料存入浏览器存储，然后向 `/yuanshu-token` 发送 bearer token。
+4. Host 向元枢验证该 token 后，页面跳转到返回的已认证 Harness URL。
 
-插件按以下优先级读取凭据：
+交接失败时，页面显示错误并保留登录页。浏览器凭据保留在浏览器中；网页登录不会配置 CLI 工具。
 
-1. **插件配置** — 在 `cordis.patch.yml` 中设置 `token`：
-   ```yaml
-   - id: yuanshu-qa-tool
-     name: '@deepseek-ai/dsh-yuanshu-qa-tool'
-     config:
-       baseURL: http://localhost:8081
-       token: <your-token>
-   ```
+## CLI 凭据
 
-2. **环境变量** — 设置 `YUANSHU_TOKEN`。
+使用元枢 CLI profile 时，在 `yuanshu-tool` 上显式配置 `token`。网关接受逐请求 bearer token 或显式配置的默认值。两者均不读取 `YUANSHU_TOKEN` 或 `~/.dsh/yuanshu-token`。
 
-3. **共享 token 文件** — 将 token 保存到 `~/.dsh/yuanshu-token`。登录页下载的文件可直接使用。
+独立的 `yuanshu-qa-tool` 保留自己的[凭据配置](../../packages/yuanshu/yuanshu-qa-tool/README.zh.md)。
 
-## 技术栈
+## 浏览器存储
 
-- Vue 3 (Composition API)
-- TDesign Vue Next
-- Pinia
-- Axios
-- Vite
-- TypeScript
-
-## 与 YuanShu 客户端的集成
-
-登录页会将 token 保存在以下位置：
-- `localStorage.yuanshu-token` — browser requests
-- `localStorage.workbench-client-token` — backward compatibility
-- Downloaded `~/.dsh/yuanshu-token` file — CLI requests
+- `yuanshu-token` — 浏览器请求使用的 bearer token。
+- `workbench-client-token` — 与现有浏览器客户端共享的 token 键。
+- `yuanshu-user` — 侧栏账号入口缓存的用户名和昵称。

@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-挂载此插件可通过 Harness Web 服务器提供构建后的元枢登录页。页面会向配置的元枢 API URL 发起认证、保存浏览器 token，并返回 Harness 应用。只有已通过 Harness 浏览器认证的会话才能获取回跳地址。登录路由提供页面前，必须先构建前端。
+挂载此插件可通过 Harness Web 服务器提供构建后的元枢登录页。页面会向配置的元枢 API URL 发起认证、保存浏览器 token，并返回 Harness 应用。获取回跳地址需要已有的 Harness 浏览器会话，或经后端验证的元枢 bearer token。登录路由提供页面前，必须先构建前端。
 
 ## 目录
 

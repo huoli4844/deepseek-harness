@@ -358,9 +358,9 @@ describe('browser storage', () => {
   it('reads the first non-blank token in priority order', () => {
     const storage = memoryStorage({ 'workbench-client-token': 'second', 'yuanshu-login-token': 'third' })
     expect(readAuthToken(storage)).toBe('second')
-    storage.setItem(TOKEN_STORAGE_KEYS[0] as string, 'first')
+    storage.setItem(TOKEN_STORAGE_KEYS[0], 'first')
     expect(readAuthToken(storage)).toBe('first')
-    storage.setItem(TOKEN_STORAGE_KEYS[0] as string, '   ')
+    storage.setItem(TOKEN_STORAGE_KEYS[0], '   ')
     expect(readAuthToken(storage)).toBe('second')
   })
 

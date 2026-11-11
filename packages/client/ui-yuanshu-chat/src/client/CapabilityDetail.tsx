@@ -162,7 +162,7 @@ export function CapabilityDetail({
 
   const renderFieldControl = (field: SchemaField) => {
     const value = fieldValues[field.name] ?? ''
-    const setValue = (next: string) => setFieldValues(prev => ({ ...prev, [field.name]: next }))
+    const setValue = (next: string) => { setFieldValues(prev => ({ ...prev, [field.name]: next })) }
     if (field.type === 'boolean') {
       return (
         <select
@@ -170,7 +170,7 @@ export function CapabilityDetail({
           value={value}
           disabled={running}
           aria-label={field.name}
-          onChange={e => setValue(e.target.value)}
+          onChange={(e) => { setValue(e.target.value) }}
         >
           <option value="">{t('fieldUnset')}</option>
           <option value="true">true</option>
@@ -185,7 +185,7 @@ export function CapabilityDetail({
           value={value}
           disabled={running}
           aria-label={field.name}
-          onChange={e => setValue(e.target.value)}
+          onChange={(e) => { setValue(e.target.value) }}
         >
           <option value="">{t('fieldUnset')}</option>
           {(field.enum ?? []).map(option => <option key={option} value={option}>{option}</option>)}
@@ -201,7 +201,7 @@ export function CapabilityDetail({
           disabled={running}
           aria-label={field.name}
           placeholder={field.type === 'object' ? '{}' : '[]'}
-          onChange={e => setValue(e.target.value)}
+          onChange={(e) => { setValue(e.target.value) }}
         />
       )
     }
@@ -212,7 +212,7 @@ export function CapabilityDetail({
         value={value}
         disabled={running}
         aria-label={field.name}
-        onChange={e => setValue(e.target.value)}
+        onChange={(e) => { setValue(e.target.value) }}
       />
     )
   }
@@ -232,14 +232,14 @@ export function CapabilityDetail({
               <button
                 className={inputMode === 'form' ? css.modeButtonActive : css.modeButton}
                 aria-pressed={inputMode === 'form'}
-                onClick={() => setInputMode('form')}
+                onClick={() => { setInputMode('form') }}
               >
                 {t('formMode')}
               </button>
               <button
                 className={inputMode === 'json' ? css.modeButtonActive : css.modeButton}
                 aria-pressed={inputMode === 'json'}
-                onClick={() => setInputMode('json')}
+                onClick={() => { setInputMode('json') }}
               >
                 {t('jsonMode')}
               </button>
@@ -262,7 +262,7 @@ export function CapabilityDetail({
             <textarea
               className={css.jsonInput}
               value={jsonInput}
-              onChange={e => setJsonInput(e.target.value)}
+              onChange={(e) => { setJsonInput(e.target.value) }}
               placeholder={t('jsonInputHint')}
               rows={8}
               disabled={running}
@@ -299,7 +299,7 @@ export function CapabilityDetail({
           </div>
           <div className={css.timelineSummary}>
             <span className={css.statusChip}>{timeline.status}</span>
-            <span>{timeline.durationMs} ms</span>
+            <span>{timeline.durationMs} {t('milliseconds')}</span>
             <span className={css.mono}>{timeline.executionId}</span>
           </div>
           {timeline.nodes.length === 0 ? (
@@ -316,7 +316,7 @@ export function CapabilityDetail({
                     </div>
                     <div className={css.timelineSummary}>
                       <span>{node.status}</span>
-                      <span>{node.durationMs} ms</span>
+                      <span>{node.durationMs} {t('milliseconds')}</span>
                       {node.startedAt.length > 0 && <span className={css.mono}>{node.startedAt}</span>}
                     </div>
                     {node.error !== undefined && <div className={css.inlineError}>{node.error}</div>}
@@ -335,7 +335,7 @@ export function CapabilityDetail({
               <li key={row.id} className={css.executionRow}>
                 <span className={css.statusChip}>{row.status}</span>
                 <span className={css.mono}>{row.id}</span>
-                <span>{row.durationMs} ms</span>
+                <span>{row.durationMs} {t('milliseconds')}</span>
                 {row.createdAt.length > 0 && <span className={css.mono}>{row.createdAt}</span>}
                 {row.error !== undefined && <span className={css.inlineError}>{row.error}</span>}
               </li>

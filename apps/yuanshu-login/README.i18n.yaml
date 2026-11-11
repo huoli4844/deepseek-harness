@@ -3,20 +3,17 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/yuanshu-login/README.md
 /yuanshu-platform-login:
-  en: 075ee438d9f12c7f
-  zh: 03f7aba61d424119
-/yuanshu-platform-login/quick-start:
-  en: 9535b10be9abb7a8
-  zh: 37665fe48339b410
+  en: b100da16359d160f
+  zh: 5b8eb9955b38812b
+/yuanshu-platform-login/build:
+  en: 9a35b48a9f1e7097
+  zh: 0a0638b15733b56e
 /yuanshu-platform-login/login-flow:
-  en: d109e0a4f122771d
-  zh: 63390f445f049a23
-/yuanshu-platform-login/token-configuration:
-  en: 0c867474ade3dead
-  zh: b95d6a5306726dc6
-/yuanshu-platform-login/technology:
-  en: 5c7ce946564adf74
-  zh: 6d940627d7385734
-/yuanshu-platform-login/yuanshu-client-integration:
-  en: e6afb70aa6ca1222
-  zh: fb1607104ffc40d5
+  en: c98af1b4892890d3
+  zh: c2866e274faed6bd
+/yuanshu-platform-login/cli-credentials:
+  en: 78e675b3e2135917
+  zh: 5d497e18c701ed7e
+/yuanshu-platform-login/browser-storage:
+  en: 3a87272bfa3bbde5
+  zh: aa5e48b980e86a75

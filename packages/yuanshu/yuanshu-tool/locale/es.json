@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Herramientas de la plataforma YuanShu",
+    "description": "Herramientas del agente que invocan habilidades, algoritmos y DAG de YuanShu durante una sesión."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu ログイン",
+    "description": "YuanShu のログインページと /yuanshu-token の引き継ぎを提供し、ログインしたユーザーを Web アプリに公開します。"
+  }
+}

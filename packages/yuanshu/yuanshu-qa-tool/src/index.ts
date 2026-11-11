@@ -42,7 +42,7 @@ function formatAnswer(result: AskKnowledgeQuestionResponse): string {
   lines.push(result.answer)
   lines.push('')
 
-  if (result.citations && result.citations.length > 0) {
+  if (result.citations.length > 0) {
     lines.push('CITATIONS:')
     result.citations.forEach((cite, idx) => {
       const title = cite.title ?? `Document ${cite.document_id}`
@@ -131,24 +131,24 @@ export function apply(ctx: Context, config: Config): void {
     output: {
       schema: { type: 'string' as const },
       render: (_args, value) => {
-        const text = String(value)
+        const text = value
         return [{ type: 'text', text }]
       },
     },
     execute: async (args) => {
-      const question = String(args.question ?? '').trim()
+      const question = args.question.trim()
       if (!question) {
         throw new Error('yuanshu_qa: question is required and must be non-empty')
       }
 
       const request: AskKnowledgeQuestionRequest = Object.assign({
         question,
-      }, args.session_id ? { session_id: String(args.session_id) as string } : {} as Partial<AskKnowledgeQuestionRequest>)
+      }, args.session_id ? { session_id: args.session_id } : {})
       if (args.collection_ids && Array.isArray(args.collection_ids) && args.collection_ids.length > 0) {
         ;(request as { collection_ids?: number[] }).collection_ids = args.collection_ids.filter((v): v is number => typeof v === 'number')
       }
       if (args.application_id) {
-        ;(request as { application_id?: number }).application_id = Number(args.application_id)
+        ;(request as { application_id?: number }).application_id = args.application_id
       }
       if (args.thinking_mode) {
         ;(request as { thinking_mode?: 'none' | 'light' | 'medium' | 'heavy' | 'ultra' }).thinking_mode = args.thinking_mode as 'none' | 'light' | 'medium' | 'heavy' | 'ultra'

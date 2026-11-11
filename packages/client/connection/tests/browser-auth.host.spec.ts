@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type { PeerId } from '@deepseek-ai/dsh-typert-protocol'
 import { BrowserAuth } from '../src/browser-auth.ts'
+import { Config } from '../src/index.ts'
 import type { ConnectionIndexRequest, ConnectionIndexResponse } from '../src/rpc.ts'
 import { RecordCredentials } from './browser-credentials.ts'
 
@@ -57,7 +58,7 @@ function createAuth(
   maxAgeDays = 30,
   processOwner: object = {},
 ): Promise<BrowserAuth> {
-  return BrowserAuth.create(processOwner, credentials(store), maxAgeDays)
+  return BrowserAuth.create(processOwner, credentials(store), maxAgeDays, false, '/login')
 }
 
 function request(url: string, authority = '127.0.0.1:3080', init?: {
@@ -159,6 +160,18 @@ describe('API credentials', () => {
   })
 })
 
+describe('sign-in path configuration', () => {
+  it('accepts a local sign-in path', () => {
+    expect(Config({ loginPath: '/login' }).loginPath).toBe('/login')
+  })
+
+  it.each(['https://other.example/login', '//other.example/login', 'login', '/\\other.example', '/login\r\n']) (
+    'rejects an unsafe sign-in path %j', (loginPath) => {
+      expect(() => Config({ loginPath })).toThrow()
+    },
+  )
+})
+
 describe('BrowserAuth', () => {
   it('mints one process token and a persistent authority-bound cookie', async () => {
     const store = new RecordCredentials()
@@ -209,11 +222,19 @@ describe('BrowserAuth', () => {
     })
   })
 
+  it('returns 401 when no sign-in path is configured', async () => {
+    const auth = await BrowserAuth.create({}, credentials(new RecordCredentials()), 30)
+    const denied = response()
+    expect(auth.authorizeIndex(request('/'), denied.value)).toBe(false)
+    expect(denied.state.status).toBe(401)
+    expect(denied.state.headers?.location).toBeUndefined()
+  })
+
   it('forgets cookies minted by an earlier process when the session starts fresh', async () => {
     const store = new RecordCredentials()
     const login = exchange(await createAuth(store, 30, {}))
 
-    const rotated = await BrowserAuth.create({}, credentials(store), 30, true)
+    const rotated = await BrowserAuth.create({}, credentials(store), 30, true, '/login')
     expect(rotated.isAuthenticated(request('/', '127.0.0.1:3080', { cookie: login.cookie }))).toBe(false)
 
     const denied = response()

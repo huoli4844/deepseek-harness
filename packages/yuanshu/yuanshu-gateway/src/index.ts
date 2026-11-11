@@ -5,7 +5,7 @@ import { YuanShuClient } from '@deepseek-ai/dsh-yuanshu-client'
 import type { YuanShuDagInvokeRequest, YuanShuExecuteRequest, YuanShuExecutionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { AskKnowledgeQuestionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { GatewayRequestError, allowedMethods, errorBody, errorStatus } from './routes'
+import { GatewayRequestError, allowedMethods, errorBody, errorStatus } from './routes.ts'
 
 export const name = 'yuanshu-gateway'
 export const inject = ['webServer']
@@ -63,7 +63,9 @@ export const Config: z<Config> = z.object({ baseURL: z.string().required(), toke
 async function body(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    const value: unknown = chunk
+    if (typeof value !== 'string' && !(value instanceof Uint8Array)) throw new GatewayRequestError('Invalid request body')
+    chunks.push(Buffer.from(value))
     if (Buffer.concat(chunks).length > 1024 * 1024) throw new Error('request body too large')
   }
   const text = Buffer.concat(chunks).toString('utf8')
@@ -72,7 +74,7 @@ async function body(req: IncomingMessage): Promise<unknown> {
 
 function bindClientAbort(req: IncomingMessage, res: ServerResponse): { signal: AbortSignal; dispose: () => void } {
   const controller = new AbortController()
-  const abort = (): void => controller.abort()
+  const abort = (): void => { controller.abort() }
   const onResponseClose = (): void => {
     if (!res.writableEnded) abort()
   }
@@ -219,33 +221,33 @@ export function apply(ctx: Context, config: Config): void {
       // ── Worker API ────────────────────────────────────────────────────
 
       if (relative === '/capabilities') {
-        await writeJSON(res, await requestClient.listClientCapabilities())
+        writeJSON(res, await requestClient.listClientCapabilities())
         return
       }
 
       if (relative === '/tenants') {
-        await writeJSON(res, await requestClient.getTenantContext())
+        writeJSON(res, await requestClient.getTenantContext())
         return
       }
 
       if (relative === '/user/me') {
-        await writeJSON(res, await requestClient.getCurrentUser())
+        writeJSON(res, await requestClient.getCurrentUser())
         return
       }
 
       if (relative === '/login') {
         const input = await body(req)
         const record = input !== null && typeof input === 'object' ? input as Record<string, unknown> : {}
-        await writeJSON(res, await requestClient.login(
-          String(record.username ?? ''),
-          String(record.password ?? ''),
+        writeJSON(res, await requestClient.login(
+          typeof record.username === 'string' ? record.username : '',
+          typeof record.password === 'string' ? record.password : '',
         ))
         return
       }
 
       if (relative === '/execute') {
         const executeRequest = (await body(req)) as YuanShuExecuteRequest
-        await writeJSON(res, await requestClient.executeWorker(executeRequest))
+        writeJSON(res, await requestClient.executeWorker(executeRequest))
         return
       }
 
@@ -275,7 +277,7 @@ export function apply(ctx: Context, config: Config): void {
       if (relative === '/qa/ask') {
         const bodyData = await body(req)
         const askRequest = bodyData as AskKnowledgeQuestionRequest
-        await writeJSON(res, await requestClient.askQuestion(askRequest))
+        writeJSON(res, await requestClient.askQuestion(askRequest))
         return
       }
 
@@ -304,7 +306,7 @@ export function apply(ctx: Context, config: Config): void {
       if (relative === '/qa/sessions') {
         const query = parseQuery(url.toString())
         const limit = query.limit ? parseInt(query.limit, 10) : undefined
-        await writeJSON(res, await requestClient.listQASessions(limit))
+        writeJSON(res, await requestClient.listQASessions(limit))
         return
       }
 
@@ -313,7 +315,7 @@ export function apply(ctx: Context, config: Config): void {
         const collectionIds = query.collection_ids
           ? query.collection_ids.split(',').map(n => parseInt(n, 10)).filter(n => !Number.isNaN(n))
           : undefined
-        await writeJSON(res, await requestClient.getQAReadiness(collectionIds))
+        writeJSON(res, await requestClient.getQAReadiness(collectionIds))
         return
       }
 
@@ -321,7 +323,7 @@ export function apply(ctx: Context, config: Config): void {
         const query = parseQuery(url.toString())
         const keyword = query.keyword
         const limit = query.limit ? parseInt(query.limit, 10) : undefined
-        await writeJSON(res, await requestClient.listKnowledgeCollections(keyword, limit))
+        writeJSON(res, await requestClient.listKnowledgeCollections(keyword, limit))
         return
       }
 
@@ -339,7 +341,7 @@ export function apply(ctx: Context, config: Config): void {
           res.end(JSON.stringify({ error: 'invalid knowledge document id' }))
           return
         }
-        await writeJSON(res, await requestClient.getKnowledgeDocument(id))
+        writeJSON(res, await requestClient.getKnowledgeDocument(id))
         return
       }
 
@@ -349,12 +351,12 @@ export function apply(ctx: Context, config: Config): void {
       // 不缓存、不按角色改写，保证 DSH 与 Web 控制台读同一份投影。
 
       if (relative === '/workbench/profile') {
-        await writeJSON(res, await requestClient.getWorkbenchProfile())
+        writeJSON(res, await requestClient.getWorkbenchProfile())
         return
       }
 
       if (relative === '/workbench/home') {
-        await writeJSON(res, await requestClient.getWorkbenchHome())
+        writeJSON(res, await requestClient.getWorkbenchHome())
         return
       }
 
@@ -364,7 +366,7 @@ export function apply(ctx: Context, config: Config): void {
       // 据此区分“登录失效 / 无权限 / 不可见”。
 
       if (relative === '/ontology/overview') {
-        await writeJSON(res, await requestClient.getOntologyOverview())
+        writeJSON(res, await requestClient.getOntologyOverview())
         return
       }
 
@@ -377,14 +379,14 @@ export function apply(ctx: Context, config: Config): void {
           : relative === '/ontology/collections'
             ? await requestClient.listOntologyCollections(pageSize)
             : await requestClient.listOntologyReleases(pageSize)
-        await writeJSON(res, value)
+        writeJSON(res, value)
         return
       }
 
       if (relative === '/scenarios') {
         const query = parseQuery(url.toString())
         const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
-        await writeJSON(res, await requestClient.listScenarios(
+        writeJSON(res, await requestClient.listScenarios(
           limit === undefined || Number.isNaN(limit) ? undefined : limit,
         ))
         return
@@ -398,21 +400,21 @@ export function apply(ctx: Context, config: Config): void {
       if (relative.endsWith('/execute') && relative.startsWith('/skills/')) {
         const id = pathParam(relative, /^\/skills\/([^/]+)\/execute$/u)
         const record = requireObject(await body(req))
-        await writeJSON(res, await requestClient.executeClientSkill(id, record.input_data))
+        writeJSON(res, await requestClient.executeClientSkill(id, record.input_data))
         return
       }
 
       if (relative.endsWith('/executions') && relative.startsWith('/skills/')) {
         const id = pathParam(relative, /^\/skills\/([^/]+)\/executions$/u)
         const input = await body(req)
-        await writeJSON(res, await requestClient.submitSkillExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        writeJSON(res, await requestClient.submitSkillExecution(id, executionRequest(input, req.headers['idempotency-key'])))
         return
       }
 
       if (relative.endsWith('/execute') && relative.startsWith('/algorithms/')) {
         const id = pathParam(relative, /^\/algorithms\/([^/]+)\/execute$/u)
         const record = requireObject(await body(req))
-        await writeJSON(res, await requestClient.executeClientAlgorithm(id, record.input_data))
+        writeJSON(res, await requestClient.executeClientAlgorithm(id, record.input_data))
         return
       }
 
@@ -421,20 +423,20 @@ export function apply(ctx: Context, config: Config): void {
         if (req.method === 'GET') {
           const query = parseQuery(url.toString())
           const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
-          await writeJSON(res, await requestClient.listClientAlgorithmExecutions(
+          writeJSON(res, await requestClient.listClientAlgorithmExecutions(
             id, limit === undefined || Number.isNaN(limit) ? undefined : limit,
           ))
           return
         }
         const input = await body(req)
-        await writeJSON(res, await requestClient.submitAlgorithmExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        writeJSON(res, await requestClient.submitAlgorithmExecution(id, executionRequest(input, req.headers['idempotency-key'])))
         return
       }
 
       if (relative.startsWith('/dag/definitions/') && relative.endsWith('/invoke')) {
         const id = pathParam(relative, /^\/dag\/definitions\/([^/]+)\/invoke$/u)
         const input = await body(req)
-        await writeJSON(res, await requestClient.invokeClientDag(id, dagInvokeRequest(input, req.headers['idempotency-key'])))
+        writeJSON(res, await requestClient.invokeClientDag(id, dagInvokeRequest(input, req.headers['idempotency-key'])))
         return
       }
 
@@ -442,7 +444,7 @@ export function apply(ctx: Context, config: Config): void {
         const query = parseQuery(url.toString())
         const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
         const definitionId = query.dag_definition_id
-        await writeJSON(res, await requestClient.listClientDagHistory(
+        writeJSON(res, await requestClient.listClientDagHistory(
           limit === undefined || Number.isNaN(limit) ? undefined : limit,
           definitionId === undefined || definitionId.length === 0 ? undefined : definitionId,
         ))
@@ -451,7 +453,7 @@ export function apply(ctx: Context, config: Config): void {
 
       if (relative.startsWith('/dag/history/')) {
         const id = pathParam(relative, /^\/dag\/history\/([^/]+)$/u)
-        await writeJSON(res, await requestClient.getClientDagHistoryDetail(id))
+        writeJSON(res, await requestClient.getClientDagHistoryDetail(id))
         return
       }
 
@@ -460,13 +462,13 @@ export function apply(ctx: Context, config: Config): void {
       res.end(JSON.stringify({ error: 'not found' }))
     } catch (error) {
       if (res.headersSent) { res.destroy(); return }
-      await writeJSON(res, errorBody(error), errorStatus(error))
+      writeJSON(res, errorBody(error), errorStatus(error))
     }
   } }
   ctx.effect(() => ctx.webServer.register(route), 'yuanshu-gateway: route')
 }
 
-async function writeJSON(res: ServerResponse, value: unknown, status = 200): Promise<void> {
+function writeJSON(res: ServerResponse, value: unknown, status = 200): void {
   const output = JSON.stringify(value)
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
   res.end(output)
@@ -476,7 +478,7 @@ async function writeJSON(res: ServerResponse, value: unknown, status = 200): Pro
 let tenantCache: { readonly token: string; readonly tenant: string } | undefined
 
 function headerValue(value: string | readonly string[] | undefined): string | undefined {
-  const raw = Array.isArray(value) ? value[0] : value
+  const raw: unknown = Array.isArray(value) ? value[0] : value
   const trimmed = typeof raw === 'string' ? raw.trim() : undefined
   return trimmed !== undefined && trimmed.length > 0 ? trimmed : undefined
 }

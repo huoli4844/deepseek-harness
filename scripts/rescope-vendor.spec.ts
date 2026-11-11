@@ -85,6 +85,11 @@ describe('exactEditState', () => {
 
 describe('product identifiers', () => {
   it.each([
+    'docs/tool-catalog.md',
+    'docs/tool-catalog.zh.md',
+    'scripts/gen-tool-catalog.ts',
+    'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.md',
+    'docs/upgrade-guide/v0.2.2-alpha.2/fs-observation-policy-default-off/guide.zh.md',
     'apps/cli/tests/optional-bundle-transitions.e2e.ts',
     'apps/web/tests/agent-preset-selection.e2e.ts',
     'apps/web/tests/developer-tools-settings.e2e.ts',

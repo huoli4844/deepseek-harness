@@ -116,7 +116,7 @@ it('returns the authenticated URL once the YuanShu backend accepts the token', a
   expect(responseState.headers?.['cache-control']).toBe('no-store')
   expect(responseState.headers?.['content-type']).toBe('application/json; charset=utf-8')
   expect(connection.authenticatedUrl).toHaveBeenCalledWith('https://example.test/workbench/')
-  expect(JSON.parse(String(responseState.body))).toEqual({
+  expect(JSON.parse(responseState.body as string)).toEqual({
     url: 'https://example.test/workbench/?token=launch-token',
   })
 })
@@ -149,7 +149,7 @@ it('returns an authenticated URL for the advertised app root to an authenticated
   expect(responseState.headers?.['cache-control']).toBe('no-store')
   expect(responseState.headers?.['content-type']).toBe('application/json; charset=utf-8')
   expect(connection.authenticatedUrl).toHaveBeenCalledWith('https://example.test/workbench/')
-  expect(JSON.parse(String(responseState.body))).toEqual({
+  expect(JSON.parse(responseState.body as string)).toEqual({
     url: 'https://example.test/workbench/?token=launch-token',
   })
 })

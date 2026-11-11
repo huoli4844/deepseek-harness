@@ -25,3 +25,9 @@ export const en: Record<YuanShuAccountKey, string> = {
 
 /** Key domain of the `yuanshu-account` namespace (zh is the source of truth). */
 export type YuanShuAccountKey = keyof typeof zh
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    'yuanshu-account': YuanShuAccountKey
+  }
+}

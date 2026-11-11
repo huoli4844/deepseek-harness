@@ -18200,7 +18200,14 @@ importers:
         specifier: workspace:*
         version: link:../../typert/protocol
 
-  packages/yuanshu/yuanshu-client: {}
+  packages/yuanshu/yuanshu-client:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:~
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
 
   packages/yuanshu/yuanshu-gateway:
     dependencies:
@@ -18223,6 +18230,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@deepseek-ai/yuanshu-login':
+        specifier: workspace:*
+        version: link:../../../apps/yuanshu-login
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~

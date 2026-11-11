@@ -138,7 +138,7 @@ export function QaPane({ askQuestionStream, t }: QaPaneProps) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      void handleSend()
     }
   }, [handleSend])
 
@@ -210,7 +210,7 @@ export function QaPane({ askQuestionStream, t }: QaPaneProps) {
           <textarea
             className={css.textarea}
             value={inputText}
-            onChange={e => setInputText(e.target.value)}
+            onChange={(e) => { setInputText(e.target.value) }}
             onKeyDown={handleKeyDown}
             placeholder={t('inputPlaceholder')}
             disabled={loading}

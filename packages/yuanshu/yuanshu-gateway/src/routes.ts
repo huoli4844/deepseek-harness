@@ -2,6 +2,7 @@ import { YuanShuError } from '@deepseek-ai/dsh-yuanshu-client'
 
 /** 客户端请求本身不合法（不是元枢返回的错误）。 */
 export class GatewayRequestError extends Error {
+  /** HTTP status for the invalid client request. */
   readonly status: number
 
   constructor(message: string, status = 400) {
@@ -61,12 +62,20 @@ const ROUTES: readonly RouteRule[] = [
   { path: /^\/dag\/history\/[^/]+$/u, methods: ['GET'] },
 ]
 
-/** 去掉前缀后的路径允许使用的方法；未登记路由返回 undefined。 */
+/**
+ * 去掉前缀后的路径允许使用的方法；未登记路由返回 undefined。
+ * @param path - Gateway-relative request pathname.
+ * @returns Allowed methods, or undefined for an unregistered route.
+ */
 export function allowedMethods(path: string): readonly string[] | undefined {
   return ROUTES.find(rule => rule.path.test(path))?.methods
 }
 
-/** 判断去掉前缀后的路径是否允许代理到元枢。 */
+/**
+ * 判断去掉前缀后的路径是否允许代理到元枢。
+ * @param path - Gateway-relative request pathname.
+ * @returns Whether the route is explicitly registered.
+ */
 export function isAllowedRoute(path: string): boolean {
   return allowedMethods(path) !== undefined
 }
@@ -76,6 +85,8 @@ export function isAllowedRoute(path: string): boolean {
  *
  * 401/403/404/429 必须原样透传：登录失效、能力不可见和限流是三种不同的
  * 客户端行为；统一 502 会让界面误判为网关故障并触发无意义重试。
+ * @param error - Upstream, input-validation, or unexpected request failure.
+ * @returns Upstream status, a client-input status, or 502 for unexpected failures.
  */
 export function errorStatus(error: unknown): number {
   if (error instanceof YuanShuError) return error.status
@@ -84,7 +95,11 @@ export function errorStatus(error: unknown): number {
   return 502
 }
 
-/** 生成稳定错误体，保留元枢业务错误码。 */
+/**
+ * 生成稳定错误体，保留元枢业务错误码。
+ * @param error - Request failure to serialize.
+ * @returns Error message and any upstream business error code.
+ */
 export function errorBody(error: unknown): { error: string; code?: number | string } {
   if (error instanceof YuanShuError) {
     return error.code === undefined ? { error: error.message } : { error: error.message, code: error.code }

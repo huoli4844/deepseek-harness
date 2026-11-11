@@ -20,7 +20,7 @@ function createClient(handler: (call: RecordedCall) => Response | Promise<Respon
 } {
   const calls: RecordedCall[] = []
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const call = { url: String(input), init: init ?? {} }
+    const call = { url: input instanceof Request ? input.url : input.toString(), init: init ?? {} }
     calls.push(call)
     return handler(call)
   })
@@ -28,7 +28,7 @@ function createClient(handler: (call: RecordedCall) => Response | Promise<Respon
     baseURL: 'https://yuan-shu.example/',
     token: 'token-1',
     tenantId: '42',
-    fetch: fetch as unknown as typeof globalThis.fetch,
+    fetch: fetch,
   })
   return { client, calls }
 }
@@ -38,7 +38,7 @@ function headersOf(call: RecordedCall): Record<string, string> {
 }
 
 function bodyOf(call: RecordedCall): unknown {
-  return JSON.parse(String(call.init.body))
+  return JSON.parse(call.init.body as string)
 }
 
 describe('YuanShuClient capability execution', () => {

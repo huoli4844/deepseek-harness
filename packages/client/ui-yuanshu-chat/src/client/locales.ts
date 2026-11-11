@@ -5,6 +5,7 @@ export const NS = 'yuanshu-chat'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'milliseconds': '毫秒',
   /** Tab label shown in the conversation header */
   'viewTab': '元枢工作台',
   /** Placeholder text in the input field */
@@ -119,6 +120,7 @@ export const zh = {
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<YuanShuChatKey, string> = {
+  'milliseconds': 'ms',
   'viewTab': 'YuanShu Workbench',
   'inputPlaceholder': 'Type your question...',
   'send': 'Send',

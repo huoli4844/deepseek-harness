@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu-Gateway",
+    "description": "Proxy unter /yuanshu-api mit gleichem Ursprung für YuanShu-Funktionen, Worker-SSE und Wissensfragen."
+  }
+}

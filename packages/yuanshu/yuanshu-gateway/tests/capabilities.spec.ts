@@ -47,7 +47,7 @@ async function startGateway(): Promise<
       },
     }, (response) => {
       const chunks: Buffer[] = []
-      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+      response.on('data', (chunk: Buffer) => { chunks.push(chunk) })
       response.once('error', reject)
       response.once('end', () => {
         const text = Buffer.concat(chunks).toString('utf8')
@@ -68,7 +68,7 @@ function recordedFetch(payload: unknown, status = 200): {
 } {
   const calls: Array<{ url: string; init: RequestInit | undefined }> = []
   const fetch = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
-    calls.push({ url: String(input), init })
+    calls.push({ url: input instanceof Request ? input.url : input.toString(), init })
     return jsonResponse(payload, status)
   })
   vi.stubGlobal('fetch', fetch)
@@ -90,7 +90,7 @@ it('proxies a skill execution and forwards the caller token', async () => {
   expect(calls).toHaveLength(1)
   expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/skills/7/execute')
   expect(calls[0]?.init?.method).toBe('POST')
-  expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ input_data: { question: 'hello' } })
+  expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({ input_data: { question: 'hello' } })
   const headers = calls[0]?.init?.headers as Record<string, string>
   expect(headers.Authorization).toBe('Bearer user-token')
   expect(headers['X-Active-Tenant']).toBe('42')
@@ -129,7 +129,7 @@ it('forwards the idempotency key and artifact ids for async executions', async (
 
   expect(response.status).toBe(200)
   expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/algorithms/3/executions')
-  expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+  expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({
     input_data: { x: 1 }, input_artifact_ids: ['a-1'], idempotency_key: 'key-1',
   })
   const headers = calls[0]?.init?.headers as Record<string, string>
@@ -147,7 +147,7 @@ it('maps a DAG invoke body to the YuanShu contract', async () => {
 
   expect(response.status).toBe(200)
   expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/dag/definitions/flow-1/invoke')
-  expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+  expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({
     input: { q: 1 }, conversation_id: 'c-1', conversationVars: { v: 2 }, trace_id: 't-1',
   })
 })
@@ -240,7 +240,7 @@ it('accepts the console tenant header without resolving tenants', async () => {
 it('resolves the current tenant when the browser only sends a token', async () => {
   const calls: Array<{ url: string; init: RequestInit | undefined }> = []
   const fetch = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
-    const url = String(input)
+    const url = input instanceof Request ? input.url : input.toString()
     calls.push({ url, init })
     if (url.endsWith('/api/v1/user/tenants')) {
       return jsonResponse({

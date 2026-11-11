@@ -24,8 +24,8 @@ export const publicHttp = axios.create({
 })
 
 function unwrapResponseData<T>(response: AxiosResponse<T>): AxiosResponse<T> {
-  const data = response.data as Record<string, unknown>
-  if (data && (data.code === 200 || data.code === 0)) {
+  const data: unknown = response.data
+  if (data !== null && typeof data === 'object' && 'code' in data && 'data' in data && (data.code === 200 || data.code === 0)) {
     response.data = data.data as T
   }
   return response
@@ -33,7 +33,6 @@ function unwrapResponseData<T>(response: AxiosResponse<T>): AxiosResponse<T> {
 
 http.interceptors.request.use((config) => {
   const session = useSessionStore()
-  config.headers = config.headers || {}
   if (session.token) {
     config.headers.Authorization = `Bearer ${session.token}`
   }
@@ -42,15 +41,15 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   unwrapResponseData,
-  (error) => {
-    if (error.response?.status === 401) {
+  (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
       const session = useSessionStore()
       session.logout()
       if (window.location.pathname !== '/login') {
         window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
       }
     }
-    return Promise.reject(error)
+    return Promise.reject(error instanceof Error ? error : new Error('YuanShu request failed', { cause: error }))
   },
 )
 

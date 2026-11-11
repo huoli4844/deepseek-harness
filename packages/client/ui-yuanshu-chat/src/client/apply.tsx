@@ -62,7 +62,7 @@ async function gatewayRequest<T>(path: string, init: { method?: string; body?: u
   const text = await response.text()
   let payload: unknown
   try {
-    payload = text.length === 0 ? undefined : JSON.parse(text) as unknown
+    payload = text.length === 0 ? undefined : JSON.parse(text)
   } catch {
     payload = undefined
   }
@@ -88,7 +88,7 @@ async function* askQuestionStream(
   if (!response.ok) {
     let payload: unknown
     try {
-      payload = JSON.parse(await response.text()) as unknown
+      payload = JSON.parse(await response.text())
     } catch {
       payload = undefined
     }

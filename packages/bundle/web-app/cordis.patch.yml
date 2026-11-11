@@ -277,6 +277,7 @@
         # YuanShu sign-in gate: rotate the browser-session secret on every
         # launch so a cookie from an earlier process cannot skip /login.
         freshBrowserSession: true
+        loginPath: /login
         # Keep invocation authorities (each --trusted-host value) when adding
         # deployment values, for example: ['app.internal', ...ctx.webStartup.trustedHosts].
         # The listener's bind IP is accepted separately from this list.

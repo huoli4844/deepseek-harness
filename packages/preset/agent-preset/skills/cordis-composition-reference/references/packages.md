@@ -124,6 +124,8 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-user-questions` | no | Web ask_user_question composer takeover and plan-review presentation UI |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | no | Durable workflow-run Conversation Node and nested member disclosure for dsh web |
 | `@deepseek-ai/dsh-client-ui-workspace` | no | Workspace picker plugin: one WorkspacePicker registered into the sidebar and empty-state workspace slots |
+| `@deepseek-ai/dsh-client-ui-yuanshu-account` | no | YuanShu identity launcher in the sidebar footer |
+| `@deepseek-ai/dsh-client-ui-yuanshu-chat` | no | YuanShu workbench for ontology, skills, algorithms, scenarios, DAGs, knowledge and Q&A over the YuanShu platform |
 
 ## compaction
 
@@ -543,6 +545,6 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-yuanshu-gateway` | yes | Same-origin Harness gateway for YuanShu Platform capabilities and Worker SSE |
-| `@deepseek-ai/dsh-yuanshu-login-server` | yes | undefined |
+| `@deepseek-ai/dsh-yuanshu-login-server` | yes | Serve the YuanShu sign-in page and the /yuanshu-token handoff, publishing __DSH_EXTERNAL_IDENTITY__ for the Harness web app |
 | `@deepseek-ai/dsh-yuanshu-qa-tool` | yes | YuanShu knowledge base Q&A Cordis tool — structured answers with citations |
 | `@deepseek-ai/dsh-yuanshu-tool` | yes | YuanShu platform agent tool - forward questions to YuanShu agents |

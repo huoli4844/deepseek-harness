@@ -23,7 +23,10 @@ export interface KeyValueStorage {
   removeItem(key: string): void
 }
 
-/** 浏览器 localStorage；在非浏览器环境或禁用存储时返回 undefined。 */
+/**
+ * 浏览器 localStorage；在非浏览器环境或禁用存储时返回 undefined。
+ * @returns Browser storage, or undefined when unavailable.
+ */
 export function defaultStorage(): KeyValueStorage | undefined {
   if (typeof window === 'undefined') return undefined
   try {
@@ -33,7 +36,11 @@ export function defaultStorage(): KeyValueStorage | undefined {
   }
 }
 
-/** 读取当前元枢 token；空白值视为未登录。 */
+/**
+ * 读取当前元枢 token；空白值视为未登录。
+ * @param storage - Browser storage to read; defaults to localStorage.
+ * @returns The first nonblank stored token, or undefined.
+ */
 export function readAuthToken(storage: KeyValueStorage | undefined = defaultStorage()): string | undefined {
   if (storage === undefined) return undefined
   for (const key of TOKEN_STORAGE_KEYS) {
@@ -48,7 +55,11 @@ export function readAuthToken(storage: KeyValueStorage | undefined = defaultStor
   return undefined
 }
 
-/** 读取登录页缓存的账号资料；损坏或形状不符时返回 undefined。 */
+/**
+ * 读取登录页缓存的账号资料；损坏或形状不符时返回 undefined。
+ * @param storage - Browser storage to read; defaults to localStorage.
+ * @returns Cached username and nickname, or undefined for unavailable or invalid data.
+ */
 export function readCachedProfile(storage: KeyValueStorage | undefined = defaultStorage()): YuanShuProfile | undefined {
   if (storage === undefined) return undefined
   let raw: string | null = null
@@ -60,14 +71,18 @@ export function readCachedProfile(storage: KeyValueStorage | undefined = default
   if (raw === null) return undefined
   let parsed: unknown
   try {
-    parsed = JSON.parse(raw) as unknown
+    parsed = JSON.parse(raw)
   } catch {
     return undefined
   }
   return toProfile(parsed)
 }
 
-/** 展示名：昵称优先，其次账号名。 */
+/**
+ * 展示名：昵称优先，其次账号名。
+ * @param profile - Cached or fetched account fields.
+ * @returns The trimmed nickname, then username, or undefined.
+ */
 export function displayName(profile: YuanShuProfile | undefined): string | undefined {
   const nickname = profile?.nickname?.trim()
   if (nickname !== undefined && nickname.length > 0) return nickname
@@ -75,17 +90,28 @@ export function displayName(profile: YuanShuProfile | undefined): string | undef
   return username !== undefined && username.length > 0 ? username : undefined
 }
 
-/** 头像首字；无资料时用元枢的“元”。 */
+/**
+ * 头像首字；无资料时用元枢的“元”。
+ * @param name - Display name, when available.
+ * @returns The first grapheme cluster, or the YuanShu fallback mark.
+ */
 export function avatarInitial(name: string | undefined): string {
-  return name === undefined || name.length === 0 ? '元' : [...name][0] as string
+  return name === undefined || name.length === 0
+    ? '元'
+    : new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(name)[Symbol.iterator]().next().value?.segment ?? '元'
 }
 
-/** 同源网关查询当前账号；未登录、网络失败或非 2xx 都返回 undefined。 */
+/**
+ * 同源网关查询当前账号；未登录、网络失败或非 2xx 都返回 undefined。
+ * @param token - Bearer token; defaults to the stored token.
+ * @param fetchImpl - HTTP implementation; defaults to global fetch.
+ * @returns Current account fields, or undefined for unavailable credentials, request failures, or invalid responses.
+ */
 export async function fetchCurrentUser(
   token: string | undefined = readAuthToken(),
   fetchImpl: typeof fetch | undefined = globalThis.fetch,
 ): Promise<YuanShuProfile | undefined> {
-  if (token === undefined || token.trim().length === 0 || fetchImpl === undefined) return undefined
+  if (token === undefined || token.trim().length === 0) return undefined
   let response: Response
   try {
     response = await fetchImpl('/yuanshu-api/user/me', {
@@ -98,7 +124,7 @@ export async function fetchCurrentUser(
   if (!response.ok) return undefined
   let payload: unknown
   try {
-    payload = await response.json() as unknown
+    payload = await response.json()
   } catch {
     return undefined
   }

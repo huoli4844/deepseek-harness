@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Menu, IconSettingsOutlineMedium, IconUserOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './YuanShuAccountLauncher.module.css'
+import type { NS } from './locales.ts'
 import { avatarInitial, displayName, readCachedProfile, type YuanShuProfile } from './profile.ts'
 
 /** 侧栏插件向界面提供的账号操作。 */
@@ -15,7 +16,7 @@ export interface YuanShuAccountInjected {
 
 /** 元枢身份入口组合在设置外壳的 single launcher 槽位里。 */
 export type YuanShuAccountLauncherProps =
-  PropsRuntime<'settings.launcher'> & PropsLocale<'yuanshu-account'> & InjectFace<YuanShuAccountInjected>
+  PropsRuntime<'settings.launcher'> & PropsLocale<typeof NS> & InjectFace<YuanShuAccountInjected>
 
 /** 单槽身份入口。
  * @param props - 侧栏几何、设置导航与元枢账号操作。

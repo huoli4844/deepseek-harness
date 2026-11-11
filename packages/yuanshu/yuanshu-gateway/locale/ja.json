@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu ゲートウェイ",
+    "description": "YuanShu の機能、Worker SSE、ナレッジ質問応答を同一オリジンの /yuanshu-api で中継します。"
+  }
+}

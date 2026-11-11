@@ -405,6 +405,14 @@ describe('package payload constraints', () => {
     expect(detailDocumentFiles(dir)).toEqual([])
   })
 
+  it('publishes only built assets for the YuanShu login page', () => {
+    const dir = 'apps/yuanshu-login'
+    const manifest = JSON.parse(readFileSync(join(import.meta.dirname, '..', dir, 'package.json'), 'utf8')) as WorkspaceManifest['manifest']
+    expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+    expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: ['src'] } }).join('\n'))
+      .toContain('package.json files must be ["dist"]')
+  })
+
   it('rejects a bundle whose locale detail document is missing from its publication files', () => {
     const dir = 'packages/experimental/badge-skill-bundle'
     const manifest = JSON.parse(readFileSync(join(import.meta.dirname, '..', dir, 'package.json'), 'utf8')) as WorkspaceManifest['manifest']

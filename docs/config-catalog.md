@@ -498,6 +498,8 @@ export interface ConnectionConfig {
    * an earlier process no longer authenticate. Default: false.
    */
   freshBrowserSession?: boolean
+  /** Sign-in path for unauthenticated index requests; omitted paths return 401. */
+  loginPath?: string
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
@@ -4924,9 +4926,10 @@ export interface Config {
 ## `@deepseek-ai/dsh-yuanshu-login-server`
 
 - `inject`: `webServer` · `connection` · `webApp`
-- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:34`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
+- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:35`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
 
 ```ts config-catalog
+/** Login asset directory and YuanShu authentication endpoint. */
 export interface Config {
   /** Path to the built login dist directory. Resolved automatically if not set. */
   readonly loginDist?: string
@@ -5051,6 +5054,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | — | [`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-yuanshu-account` | — | [`packages/client/ui-yuanshu-account/src/index.ts`](../packages/client/ui-yuanshu-account/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-yuanshu-chat` | — | [`packages/client/ui-yuanshu-chat/src/index.ts`](../packages/client/ui-yuanshu-chat/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |
 | `@deepseek-ai/dsh-command-feedback` | `commands` | [`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts) |

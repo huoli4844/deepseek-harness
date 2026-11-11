@@ -45,7 +45,7 @@ export interface YuanShuWorkbenchInjected {
 }
 
 interface CatalogGroup {
-  readonly title: YuanShuChatKey
+  readonly titleKey: YuanShuChatKey
   readonly rows: readonly CatalogRow[]
 }
 
@@ -68,31 +68,31 @@ interface HomeState {
 interface NavItem {
   readonly section: WorkbenchSection
   readonly glyph: string
-  readonly label: YuanShuChatKey
+  readonly labelKey: YuanShuChatKey
 }
 
 /** 左侧导航按入口分组：工作台、知识问答、能力库。 */
-const NAV_GROUPS: readonly { readonly title: YuanShuChatKey; readonly items: readonly NavItem[] }[] = [
+const NAV_GROUPS: readonly { readonly titleKey: YuanShuChatKey; readonly items: readonly NavItem[] }[] = [
   {
-    title: 'navGroupWorkbench',
-    items: [{ section: 'home', glyph: '⌂', label: 'navHome' }],
+    titleKey: 'navGroupWorkbench',
+    items: [{ section: 'home', glyph: '⌂', labelKey: 'navHome' }],
   },
   {
-    title: 'navGroupKnowledge',
+    titleKey: 'navGroupKnowledge',
     items: [
-      { section: 'qa', glyph: '✎', label: 'navQa' },
-      { section: 'knowledge', glyph: '▤', label: 'navKnowledge' },
+      { section: 'qa', glyph: '✎', labelKey: 'navQa' },
+      { section: 'knowledge', glyph: '▤', labelKey: 'navKnowledge' },
     ],
   },
   {
-    title: 'navGroupCapabilities',
+    titleKey: 'navGroupCapabilities',
     items: [
-      { section: 'overview', glyph: '◈', label: 'navOverview' },
-      { section: 'ontology', glyph: '◎', label: 'navOntology' },
-      { section: 'skill', glyph: '◇', label: 'navSkill' },
-      { section: 'algorithm', glyph: '∑', label: 'navAlgorithm' },
-      { section: 'scenario', glyph: '▣', label: 'navScenario' },
-      { section: 'dag', glyph: '⌘', label: 'navDag' },
+      { section: 'overview', glyph: '◈', labelKey: 'navOverview' },
+      { section: 'ontology', glyph: '◎', labelKey: 'navOntology' },
+      { section: 'skill', glyph: '◇', labelKey: 'navSkill' },
+      { section: 'algorithm', glyph: '∑', labelKey: 'navAlgorithm' },
+      { section: 'scenario', glyph: '▣', labelKey: 'navScenario' },
+      { section: 'dag', glyph: '⌘', labelKey: 'navDag' },
     ],
   },
 ]
@@ -122,15 +122,15 @@ const CAPABILITY_SECTION: Readonly<Record<CapabilityKind, WorkbenchSection>> = {
 const HOME_SECTIONS = ['metrics', 'risks', 'gates', 'milestones', 'tasks', 'scenes'] as const
 
 /** 首页指标卡。顺序即展示顺序。 */
-const HOME_METRICS: readonly { readonly key: keyof YuanShuHomeMetrics; readonly label: YuanShuChatKey }[] = [
-  { key: 'project_total', label: 'metricProjectTotal' },
-  { key: 'active_projects', label: 'metricActiveProjects' },
-  { key: 'open_risks', label: 'metricOpenRisks' },
-  { key: 'high_risks', label: 'metricHighRisks' },
-  { key: 'open_tasks', label: 'metricOpenTasks' },
-  { key: 'overdue_tasks', label: 'metricOverdueTasks' },
-  { key: 'pending_gates', label: 'metricPendingGates' },
-  { key: 'milestones_due_30d', label: 'metricMilestonesDue30' },
+const HOME_METRICS: readonly { readonly key: keyof YuanShuHomeMetrics; readonly labelKey: YuanShuChatKey }[] = [
+  { key: 'project_total', labelKey: 'metricProjectTotal' },
+  { key: 'active_projects', labelKey: 'metricActiveProjects' },
+  { key: 'open_risks', labelKey: 'metricOpenRisks' },
+  { key: 'high_risks', labelKey: 'metricHighRisks' },
+  { key: 'open_tasks', labelKey: 'metricOpenTasks' },
+  { key: 'overdue_tasks', labelKey: 'metricOverdueTasks' },
+  { key: 'pending_gates', labelKey: 'metricPendingGates' },
+  { key: 'milestones_due_30d', labelKey: 'metricMilestonesDue30' },
 ]
 
 function recordOf(value: unknown): Record<string, unknown> | undefined {
@@ -200,7 +200,7 @@ export function WorkbenchPanel({
     const result: Record<string, number> = { skill: 0, algorithm: 0, dag: 0, scenario: 0 }
     for (const capability of capabilities) {
       const target = CAPABILITY_SECTION[capability.kind]
-      if (target !== undefined) result[target] = (result[target] ?? 0) + 1
+      result[target] = (result[target] ?? 0) + 1
     }
     return result
   }, [capabilities])
@@ -309,14 +309,14 @@ export function WorkbenchPanel({
         ])
         overview = toOverviewEntries(overviewValue)
         groups = [
-          { title: 'ontologySpaces', rows: toCatalogRows(spaces) },
-          { title: 'ontologyCollections', rows: toCatalogRows(collections) },
-          { title: 'ontologyReleases', rows: toCatalogRows(releases) },
+          { titleKey: 'ontologySpaces', rows: toCatalogRows(spaces) },
+          { titleKey: 'ontologyCollections', rows: toCatalogRows(collections) },
+          { titleKey: 'ontologyReleases', rows: toCatalogRows(releases) },
         ]
       } else if (target === 'scenario') {
-        groups = [{ title: 'scenarioList', rows: toCatalogRows(await listScenarios()) }]
+        groups = [{ titleKey: 'scenarioList', rows: toCatalogRows(await listScenarios()) }]
       } else if (target === 'knowledge') {
-        groups = [{ title: 'knowledgeList', rows: toCatalogRows(await listKnowledgeCollections()) }]
+        groups = [{ titleKey: 'knowledgeList', rows: toCatalogRows(await listKnowledgeCollections()) }]
       } else {
         groups = []
       }
@@ -396,14 +396,14 @@ export function WorkbenchPanel({
   const renderCatalogGroups = (groups: readonly CatalogGroup[]) => (
     <>
       {groups.map(group => (
-        <div key={group.title} className={css.group}>
-          <div className={css.groupTitle}>{t(group.title)}</div>
+        <div key={group.titleKey} className={css.group}>
+          <div className={css.groupTitle}>{t(group.titleKey)}</div>
           {group.rows.length === 0
             ? <div className={css.empty}>{t('sectionEmpty')}</div>
             : (
               <ul className={css.list}>
                 {group.rows.map(row => (
-                  <li key={`${group.title}:${row.id}`} className={css.row}>
+                  <li key={`${group.titleKey}:${row.id}`} className={css.row}>
                     <div className={css.rowName}>{row.name}</div>
                     {row.description !== undefined && <div className={css.rowDesc}>{row.description}</div>}
                     {row.status !== undefined && <span className={css.rowStatus}>{row.status}</span>}
@@ -457,7 +457,7 @@ export function WorkbenchPanel({
       <ul className={css.list}>
         {sectionCapabilities.map(capability => (
           <li key={`${capability.kind}:${capability.id}`}>
-            <button className={`${css.row} ${css.rowButton}`} onClick={() => setSelected(capability)}>
+            <button className={`${css.row} ${css.rowButton}`} onClick={() => { setSelected(capability) }}>
               <span className={css.rowName}>{capability.name}</span>
               {capability.description !== undefined && <span className={css.rowDesc}>{capability.description}</span>}
               {capability.executable === false && <span className={css.rowStatus}>{t('resourceSkillHint')}</span>}
@@ -468,10 +468,10 @@ export function WorkbenchPanel({
     )
   }
 
-  const renderHomeBlock = (title: YuanShuChatKey, content: React.ReactNode, count?: number) => (
+  const renderHomeBlock = (titleKey: YuanShuChatKey, content: React.ReactNode, count?: number) => (
     <section className={css.homeBlock}>
       <div className={css.blockHeader}>
-        <span className={css.blockTitle}>{t(title)}</span>
+        <span className={css.blockTitle}>{t(titleKey)}</span>
         {count !== undefined && <span className={css.blockCount}>{count}</span>}
       </div>
       {content}
@@ -483,7 +483,7 @@ export function WorkbenchPanel({
       {HOME_METRICS.map(item => (
         <div key={item.key} className={css.metricCard}>
           <span className={css.metricValue}>{metrics[item.key]}</span>
-          <span className={css.metricLabel}>{t(item.label)}</span>
+          <span className={css.metricLabel}>{t(item.labelKey)}</span>
         </div>
       ))}
     </div>
@@ -657,7 +657,7 @@ export function WorkbenchPanel({
                 className={css.tenantSelect}
                 aria-label={t('activeTenant')}
                 value={tenant ?? ''}
-                onChange={event => changeTenant(event.target.value)}
+                onChange={(event) => { changeTenant(event.target.value) }}
               >
                 <option value="">{t('tenantDefault')}</option>
                 {tenants.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
@@ -678,7 +678,7 @@ export function WorkbenchPanel({
       return (
         <>
           <div className={css.backBar}>
-            <button className={css.backButton} onClick={() => setSelected(undefined)}>← {t('backToCatalog')}</button>
+            <button className={css.backButton} onClick={() => { setSelected(undefined) }}>← {t('backToCatalog')}</button>
           </div>
           <CapabilityDetail
             capability={selected}
@@ -730,8 +730,8 @@ export function WorkbenchPanel({
         </div>
         <nav className={css.navList} aria-label={t('workbenchTitle')}>
           {NAV_GROUPS.map(group => (
-            <div key={group.title} className={css.navGroup}>
-              <div className={css.navGroupTitle}>{t(group.title)}</div>
+            <div key={group.titleKey} className={css.navGroup}>
+              <div className={css.navGroupTitle}>{t(group.titleKey)}</div>
               {group.items.map((item) => {
                 const count = navCounts[item.section]
                 return (
@@ -739,10 +739,10 @@ export function WorkbenchPanel({
                     key={item.section}
                     className={`${css.navItem} ${section === item.section && selected === undefined ? css.navItemActive : ''}`}
                     aria-current={section === item.section ? 'page' : undefined}
-                    onClick={() => selectSection(item.section)}
+                    onClick={() => { selectSection(item.section) }}
                   >
                     <span className={css.navGlyph}>{item.glyph}</span>
-                    <span className={css.navLabel}>{t(item.label)}</span>
+                    <span className={css.navLabel}>{t(item.labelKey)}</span>
                     {count !== undefined && <span className={css.navCount}>{count}</span>}
                   </button>
                 )

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Pasarela de YuanShu",
+    "description": "Proxy del mismo origen /yuanshu-api para las capacidades de YuanShu, SSE de Worker y preguntas sobre conocimiento."
+  }
+}

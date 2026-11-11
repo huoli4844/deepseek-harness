@@ -21,7 +21,10 @@ export interface KeyValueStorage {
   removeItem(key: string): void
 }
 
-/** 浏览器 localStorage；在非浏览器环境或禁用存储时返回 undefined。 */
+/**
+ * 浏览器 localStorage；在非浏览器环境或禁用存储时返回 undefined。
+ * @returns Browser storage, or undefined when unavailable.
+ */
 export function defaultStorage(): KeyValueStorage | undefined {
   if (typeof window === 'undefined') return undefined
   try {
@@ -31,7 +34,11 @@ export function defaultStorage(): KeyValueStorage | undefined {
   }
 }
 
-/** 读取当前元枢 token；空白值视为未登录。 */
+/**
+ * 读取当前元枢 token；空白值视为未登录。
+ * @param storage - Browser storage to read; defaults to localStorage.
+ * @returns The first nonblank stored token, or undefined.
+ */
 export function readAuthToken(storage: KeyValueStorage | undefined = defaultStorage()): string | undefined {
   if (storage === undefined) return undefined
   for (const key of TOKEN_STORAGE_KEYS) {
@@ -46,7 +53,11 @@ export function readAuthToken(storage: KeyValueStorage | undefined = defaultStor
   return undefined
 }
 
-/** 读取用户显式选择的租户；未选择时由网关回退到 token 的当前租户。 */
+/**
+ * 读取用户显式选择的租户；未选择时由网关回退到 token 的当前租户。
+ * @param storage - Browser storage to read; defaults to localStorage.
+ * @returns The selected tenant, or undefined when none is available.
+ */
 export function readActiveTenant(storage: KeyValueStorage | undefined = defaultStorage()): string | undefined {
   if (storage === undefined) return undefined
   try {
@@ -57,7 +68,11 @@ export function readActiveTenant(storage: KeyValueStorage | undefined = defaultS
   }
 }
 
-/** 保存用户选择的租户；传 undefined 表示回到默认（当前）租户。 */
+/**
+ * 保存用户选择的租户；传 undefined 表示回到默认（当前）租户。
+ * @param tenantId - Selected tenant; undefined clears the selection.
+ * @param storage - Browser storage to update; defaults to localStorage.
+ */
 export function writeActiveTenant(tenantId: string | undefined, storage: KeyValueStorage | undefined = defaultStorage()): void {
   if (storage === undefined) return
   try {
@@ -89,7 +104,11 @@ export interface StoredQaSession {
   readonly messages: readonly StoredQaMessage[]
 }
 
-/** 读取已保存的问答会话；损坏或形状不符的数据按空会话处理。 */
+/**
+ * 读取已保存的问答会话；损坏或形状不符的数据按空会话处理。
+ * @param storage - Browser storage to read; defaults to localStorage.
+ * @returns Restorable session fields; invalid records become an empty session.
+ */
 export function loadQaSession(storage: KeyValueStorage | undefined = defaultStorage()): StoredQaSession {
   if (storage === undefined) return { messages: [] }
   let raw: string | null = null
@@ -101,7 +120,7 @@ export function loadQaSession(storage: KeyValueStorage | undefined = defaultStor
   if (raw === null) return { messages: [] }
   let parsed: unknown
   try {
-    parsed = JSON.parse(raw) as unknown
+    parsed = JSON.parse(raw)
   } catch {
     return { messages: [] }
   }
@@ -140,7 +159,11 @@ function readCitation(value: unknown): StoredQaCitation[] {
   }]
 }
 
-/** 保存问答会话；存储不可用时静默忽略，不影响会话本身。 */
+/**
+ * 保存问答会话；存储不可用时静默忽略，不影响会话本身。
+ * @param session - Question-and-answer session to persist.
+ * @param storage - Browser storage to update; defaults to localStorage.
+ */
 export function saveQaSession(session: StoredQaSession, storage: KeyValueStorage | undefined = defaultStorage()): void {
   if (storage === undefined) return
   try {
@@ -150,7 +173,10 @@ export function saveQaSession(session: StoredQaSession, storage: KeyValueStorage
   }
 }
 
-/** 清除持久化的问答会话。 */
+/**
+ * 清除持久化的问答会话。
+ * @param storage - Browser storage to update; defaults to localStorage.
+ */
 export function clearQaSession(storage: KeyValueStorage | undefined = defaultStorage()): void {
   if (storage === undefined) return
   try {

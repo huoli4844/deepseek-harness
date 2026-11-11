@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Шлюз YuanShu",
+    "description": "Прокси /yuanshu-api на том же источнике для возможностей YuanShu, SSE Worker и ответов по базе знаний."
+  }
+}

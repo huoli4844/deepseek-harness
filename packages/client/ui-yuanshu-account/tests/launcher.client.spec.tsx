@@ -5,12 +5,22 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { YuanShuAccountLauncher, type YuanShuAccountLauncherProps } from '../src/client/YuanShuAccountLauncher.tsx'
 import { zh, type YuanShuAccountKey } from '../src/client/locales.ts'
 
-function translate(key: YuanShuAccountKey): string {
-  return zh[key]
+function translate(key: string): string {
+  return zh[key as YuanShuAccountKey] ?? key
 }
 
 function props(overrides: Partial<YuanShuAccountLauncherProps> = {}): YuanShuAccountLauncherProps {
   return {
+    usePanelInfo: () => { throw new Error('unused account launcher hook') },
+    useSessions: () => { throw new Error('unused account launcher hook') },
+    useSessionStatus: () => { throw new Error('unused account launcher hook') },
+    useSessionRetainInfo: () => { throw new Error('unused account launcher hook') },
+    useRemoteAccess: () => { throw new Error('unused account launcher hook') },
+    useSessionAccess: () => { throw new Error('unused account launcher hook') },
+    useResource: () => { throw new Error('unused account launcher hook') },
+    useWorkspaceAccess: () => { throw new Error('unused account launcher hook') },
+    useWorkspaces: () => { throw new Error('unused account launcher hook') },
+    useContextMenu: () => { throw new Error('unused account launcher hook') },
     wide: true,
     settingsOpen: false,
     openSettings: vi.fn(),
@@ -19,7 +29,7 @@ function props(overrides: Partial<YuanShuAccountLauncherProps> = {}): YuanShuAcc
     switchAccount: vi.fn(),
     t: translate,
     ...overrides,
-  } as unknown as YuanShuAccountLauncherProps
+  }
 }
 
 beforeEach(() => { window.localStorage.clear() })
@@ -33,7 +43,7 @@ describe('YuanShuAccountLauncher', () => {
 
     const trigger = screen.getByRole('button', { name: '元枢账号' })
     expect(trigger.textContent).toContain('管理员')
-    await waitFor(() => expect(trigger.textContent).toContain('超级管理员'))
+    await waitFor(() => { expect(trigger.textContent).toContain('超级管理员') })
     expect(loadProfile).toHaveBeenCalledTimes(1)
   })
 
@@ -42,7 +52,7 @@ describe('YuanShuAccountLauncher', () => {
     render(<YuanShuAccountLauncher {...props({ loadProfile })} />)
     const trigger = screen.getByRole('button', { name: '元枢账号' })
     expect(trigger.textContent).toContain('元枢账号')
-    await waitFor(() => expect(loadProfile).toHaveBeenCalled())
+    await waitFor(() => { expect(loadProfile).toHaveBeenCalled() })
     expect(trigger.textContent).toContain('元枢账号')
   })
 

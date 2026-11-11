@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-yuanshu-client",
   "description": "YuanShu platform client — provider-neutral HTTP client for YuanShu APIs",
-  "version": "0.1.0",
+  "version": "0.2.2-rc.1",
   "publishConfig": {
     "access": "public"
   },
@@ -20,5 +20,17 @@
     "lib/index.js",
     "lib/types/**/*.d.ts"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/yuanshu/yuanshu-client"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:~"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/schemastery": "workspace:~"
+  }
 }

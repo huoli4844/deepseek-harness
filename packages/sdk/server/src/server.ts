@@ -349,7 +349,7 @@ export class HarnessSdkJsonRpcServer {
     if (typeof params.runId !== 'string' || params.runId.trim() === '') {
       throw new TypeError('session/create requires a non-empty runId')
     }
-    const bridge = params.capabilityBridge
+    const bridge = params.capabilityBridge as SessionCreateParams['capabilityBridge'] | undefined
     if (bridge === undefined || typeof bridge.url !== 'string' || typeof bridge.token !== 'string' || bridge.token.length < 32) {
       throw new TypeError('session/create requires a host-owned capability bridge')
     }
@@ -673,8 +673,12 @@ export class HarnessSdkJsonRpcServer {
    */
   async handleRequest(method: string, params: Record<string, unknown> | undefined): Promise<unknown> {
     switch (method) {
-      case 'initialize':
-        return this.initialize(params as unknown as InitializeParams)
+      case 'initialize': {
+        if (typeof params?.cwd !== 'string' || typeof params.provider !== 'string' || typeof params.model !== 'string') {
+          throw new TypeError('initialize requires cwd, provider and model strings')
+        }
+        return this.initialize({ ...params, cwd: params.cwd, provider: params.provider, model: params.model })
+      }
       case 'session/create':
         return this.create(params as unknown as SessionCreateParams)
       case 'session/prompt':

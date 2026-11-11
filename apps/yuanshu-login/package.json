@@ -1,7 +1,6 @@
 {
   "name": "@deepseek-ai/yuanshu-login",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.2-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3005",
@@ -23,5 +22,16 @@
     "typescript": "^6.0.3",
     "vite": "^8.0.13",
     "vue-tsc": "^3.3.1"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "apps/yuanshu-login"
+  },
+  "files": [
+    "dist"
+  ]
 }
