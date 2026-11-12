@@ -303,8 +303,39 @@ export interface YuanShuHomeMetrics {
   readonly high_risks: number
   readonly open_tasks: number
   readonly overdue_tasks: number
+  /** 负责人是当前用户且未完成的任务数。 */
+  readonly my_open_tasks: number
+  /** 负责人是当前用户且已逾期的任务数。 */
+  readonly my_overdue_tasks: number
   readonly pending_gates: number
   readonly milestones_due_30d: number
+}
+
+/** 首页任务状态分布；逾期是独立桶，各状态之和等于 total。 */
+export interface YuanShuHomeTaskStats {
+  readonly total: number
+  readonly pending: number
+  readonly in_progress: number
+  readonly overdue: number
+  readonly completed: number
+  readonly cancelled: number
+}
+
+/** 首页「我的项目」卡片。 */
+export interface YuanShuHomeProject {
+  readonly id: number
+  readonly code: string
+  readonly name: string
+  readonly stage: string
+  readonly status: string
+  readonly priority: string
+  readonly risk_level: string
+  readonly progress_percent: number
+  readonly manager_user_id: number
+  readonly manager_name?: string
+  readonly end_date?: string | null
+  readonly open_tasks: number
+  readonly open_risks: number
 }
 
 /** 首页风险行。 */
@@ -375,12 +406,214 @@ export interface YuanShuWorkbenchHome {
   readonly workbench: { readonly code: string; readonly name: string }
   readonly data_scope: { readonly scope_type: string; readonly description: string }
   readonly metrics: YuanShuHomeMetrics
+  /** 当前用户的任务状态分布，用于任务概览与看板列计数。 */
+  readonly my_task_stats?: YuanShuHomeTaskStats
+  /** 当前工作台的指标卡顺序；为空时客户端使用默认顺序。 */
+  readonly metric_keys?: readonly string[]
   readonly sections: readonly string[]
+  readonly projects: readonly YuanShuHomeProject[]
   readonly risks: readonly YuanShuHomeRisk[]
   readonly tasks: readonly YuanShuHomeTask[]
+  /** 负责人是当前用户的待办。 */
+  readonly my_tasks: readonly YuanShuHomeTask[]
   readonly gates: readonly YuanShuHomeGate[]
   readonly milestones: readonly YuanShuHomeMilestone[]
   readonly scenes: readonly YuanShuHomeScene[]
+}
+
+/** 工作台左侧业务栏目。 */
+export interface YuanShuWorkbenchNavItem {
+  readonly code: string
+  readonly title: string
+  /** 当前数据范围内的记录总数。 */
+  readonly count: number
+}
+
+/** 一组同域栏目。 */
+export interface YuanShuWorkbenchNavGroup {
+  readonly code: string
+  readonly title: string
+  readonly items: readonly YuanShuWorkbenchNavItem[]
+}
+
+/** 左侧栏目导航投影。 */
+export interface YuanShuWorkbenchNavigator {
+  readonly generated_at: string
+  readonly workbench: { readonly code: string; readonly name: string }
+  readonly data_scope: { readonly scope_type: string; readonly description: string }
+  readonly groups: readonly YuanShuWorkbenchNavGroup[]
+}
+
+/** 记录详情字段：顺序由后端决定，空值已被后端过滤。 */
+export interface YuanShuWorkbenchField {
+  readonly label: string
+  readonly value: string
+}
+
+/** 跨业务域归一后的记录行。 */
+export interface YuanShuWorkbenchRecord {
+  readonly id: number
+  readonly domain: string
+  readonly code: string
+  readonly title: string
+  readonly subtitle: string
+  readonly status: string
+  readonly priority: string
+  readonly owner_user_id: number
+  readonly owner_name?: string
+  readonly project_code: string
+  readonly project_name: string
+  /** YYYY-MM-DD；空字符串表示该域没有业务截止日期。 */
+  readonly due_date: string
+  readonly overdue: boolean
+  /** 该业务域自己的关键字段，右侧详情按序渲染。 */
+  readonly fields?: readonly YuanShuWorkbenchField[]
+}
+
+/** 一个业务栏目的分页记录。 */
+export interface YuanShuWorkbenchRecords {
+  readonly domain: string
+  readonly items: readonly YuanShuWorkbenchRecord[]
+  readonly total: number
+  readonly page: number
+  readonly page_size: number
+}
+
+/** 岗位简报上的一个指标。 */
+export interface YuanShuBriefingKPI {
+  readonly key: string
+  readonly label: string
+  readonly value: number
+  /** neutral | warning | danger */
+  readonly tone: string
+}
+
+/** 简报中的一个事项，可定位到数据探索里的记录。 */
+export interface YuanShuBriefingItem {
+  readonly id: string
+  readonly title: string
+  readonly meta: string
+  readonly domain: string
+  readonly record_id: number
+  readonly record_code: string
+  readonly due_date: string
+  readonly overdue: boolean
+  readonly tone?: string
+}
+
+/** 岗位简报：身份、数据范围、指标、今日事项与异常。 */
+export interface YuanShuWorkbenchBriefing {
+  readonly generated_at: string
+  readonly tenant?: { readonly id: string; readonly code: string; readonly name: string }
+  readonly workbench?: { readonly code?: string; readonly title?: string }
+  readonly data_scope?: { readonly description?: string }
+  readonly greeting: string
+  readonly kpis: readonly YuanShuBriefingKPI[]
+  readonly today: readonly YuanShuBriefingItem[]
+  readonly exceptions: readonly YuanShuBriefingItem[]
+}
+
+/** 决策依据。 */
+export interface YuanShuDecisionEvidence {
+  readonly label: string
+  readonly value: string
+}
+
+/** 决策动作。 */
+export interface YuanShuDecisionAction {
+  readonly code: string
+  readonly label: string
+}
+
+/** 一条待决策事项。 */
+export interface YuanShuDecisionItem {
+  readonly id: string
+  readonly kind: string
+  readonly title: string
+  readonly reason: string
+  readonly recommendation: string
+  /** high | medium | low */
+  readonly severity: string
+  readonly domain: string
+  readonly record_id: number
+  readonly record_code: string
+  readonly project_name: string
+  readonly deadline: string
+  readonly evidence: readonly YuanShuDecisionEvidence[]
+  readonly actions: readonly YuanShuDecisionAction[]
+}
+
+/** 待决策队列。 */
+export interface YuanShuDecisionQueue {
+  readonly generated_at: string
+  readonly total: number
+  readonly items: readonly YuanShuDecisionItem[]
+}
+
+/** 岗位面板区块：type 由客户端区块注册表渲染。 */
+export interface YuanShuPositionBlock {
+  readonly type: string
+  readonly title: string
+  readonly source?: string
+}
+
+/** 岗位 Agent 的角色设定。 */
+export interface YuanShuPositionAgent {
+  readonly code: string
+  readonly role: string
+  readonly goal: string
+  readonly rules: readonly string[]
+}
+
+/** 工作流的一步：做什么、用哪些工具、产出什么。 */
+export interface YuanShuWorkflowStep {
+  readonly title: string
+  readonly tools: readonly string[]
+  readonly output: string
+}
+
+/** 岗位 Agent 工作流配置。 */
+export interface YuanShuPositionWorkflow {
+  readonly code: string
+  readonly label: string
+  readonly intent: string
+  readonly trigger: string
+  readonly inputs: readonly string[]
+  readonly steps: readonly YuanShuWorkflowStep[]
+  readonly deliverable: string
+  readonly approval: string
+  readonly prompt: string
+}
+
+/** 可预览的岗位。 */
+export interface YuanShuPositionOption {
+  readonly code: string
+  readonly title: string
+}
+
+/** 岗位目录：当前岗位与租户内可预览的岗位。 */
+export interface YuanShuPositionCatalog {
+  readonly current: string
+  readonly options: readonly YuanShuPositionOption[]
+}
+
+function positionQuery(path: string, position?: string): string {
+  if (position === undefined || position === '') return path
+  return `${path}?position=${encodeURIComponent(position)}`
+}
+
+/** 岗位包：同一副面板骨架的装配描述。 */
+export interface YuanShuWorkbenchPosition {
+  readonly generated_at: string
+  readonly position: string
+  readonly title: string
+  readonly headline: string
+  readonly scope: { readonly type: string; readonly description: string }
+  readonly kpis: readonly { readonly key: string; readonly label: string }[]
+  readonly decision_kinds: readonly string[]
+  readonly blocks: readonly YuanShuPositionBlock[]
+  readonly agent: YuanShuPositionAgent
+  readonly workflows: readonly YuanShuPositionWorkflow[]
 }
 
 /** HTTP or API-level failure returned by a YuanShu request. */
@@ -830,6 +1063,60 @@ export class YuanShuClient {
    */
   getWorkbenchHome(): Promise<YuanShuWorkbenchHome> {
     return this.request('/api/v1/apps/shaoshi/workbench/home')
+  }
+
+  /** 读取岗位包：面板骨架的装配描述（指标、决策类型、区块与 Agent 动作）。
+   * @returns 当前账号岗位的面板装配描述。
+   */
+  getWorkbenchPosition(position?: string): Promise<YuanShuWorkbenchPosition> {
+    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/position', position))
+  }
+
+  /** 读取可预览的岗位目录。
+   * @returns 当前岗位与可选岗位列表。
+   */
+  getWorkbenchPositions(): Promise<YuanShuPositionCatalog> {
+    return this.request('/api/v1/apps/shaoshi/workbench/positions')
+  }
+
+  /** 读取岗位简报：指标、今日事项与异常。
+   * @returns 元枢投影的岗位简报。
+   */
+  getWorkbenchBriefing(position?: string): Promise<YuanShuWorkbenchBriefing> {
+    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/briefing', position))
+  }
+
+  /** 读取待决策队列：按影响与截止时间排序。
+   * @returns 待决策事项及其依据、建议和可执行动作。
+   */
+  getWorkbenchDecisionQueue(position?: string): Promise<YuanShuDecisionQueue> {
+    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/decision-queue', position))
+  }
+
+  /** 读取左侧业务栏目导航：按业务域分组的栏目与当前数据范围内的记录数。
+   * @returns 元枢计算的导航投影。
+   */
+  getWorkbenchNavigator(): Promise<YuanShuWorkbenchNavigator> {
+    return this.request('/api/v1/apps/shaoshi/workbench/navigator')
+  }
+
+  /** 读取某个业务栏目的跨项目记录（已归一成统一行）。
+   * @param domain - 导航返回的栏目 code。
+   * @param options - 分页、关键字与状态过滤。
+   * @returns 归一后的记录分页。
+   */
+  listWorkbenchRecords(
+    domain: string,
+    options: { page?: number; pageSize?: number; keyword?: string; status?: string } = {},
+  ): Promise<YuanShuWorkbenchRecords> {
+    const query = new URLSearchParams({
+      domain,
+      page: String(options.page ?? 1),
+      page_size: String(options.pageSize ?? 50),
+    })
+    if (options.keyword !== undefined && options.keyword.length > 0) query.set('keyword', options.keyword)
+    if (options.status !== undefined && options.status.length > 0) query.set('status', options.status)
+    return this.request(`/api/v1/apps/shaoshi/workbench/records?${query.toString()}`)
   }
 
   // ── Ontology / Scenario Catalogs（工作台只读目录） ───────────────────────

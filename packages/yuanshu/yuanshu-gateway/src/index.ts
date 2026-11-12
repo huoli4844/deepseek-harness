@@ -360,6 +360,48 @@ export function apply(ctx: Context, config: Config): void {
         return
       }
 
+      const workbenchPosition = parseQuery(url.toString()).position
+
+      if (relative === '/workbench/position') {
+        writeJSON(res, await requestClient.getWorkbenchPosition(workbenchPosition))
+        return
+      }
+
+      if (relative === '/workbench/positions') {
+        writeJSON(res, await requestClient.getWorkbenchPositions())
+        return
+      }
+
+      if (relative === '/workbench/briefing') {
+        writeJSON(res, await requestClient.getWorkbenchBriefing(workbenchPosition))
+        return
+      }
+
+      if (relative === '/workbench/decision-queue') {
+        writeJSON(res, await requestClient.getWorkbenchDecisionQueue(workbenchPosition))
+        return
+      }
+
+      if (relative === '/workbench/navigator') {
+        writeJSON(res, await requestClient.getWorkbenchNavigator())
+        return
+      }
+
+      if (relative === '/workbench/records') {
+        const query = parseQuery(url.toString())
+        const domain = query.domain ?? ''
+        if (domain === '') throw new GatewayRequestError('domain is required')
+        const page = query.page ? parseInt(query.page, 10) : undefined
+        const pageSize = query.page_size ? parseInt(query.page_size, 10) : undefined
+        writeJSON(res, await requestClient.listWorkbenchRecords(domain, {
+          ...(page === undefined || Number.isNaN(page) ? {} : { page }),
+          ...(pageSize === undefined || Number.isNaN(pageSize) ? {} : { pageSize }),
+          ...(query.keyword ? { keyword: query.keyword } : {}),
+          ...(query.status ? { status: query.status } : {}),
+        }))
+        return
+      }
+
       // ── Workbench catalogs ────────────────────────────────────────────
       //
       // 只读目录。可见性完全由元枢裁决：网关不改写 401/403/404，工作台

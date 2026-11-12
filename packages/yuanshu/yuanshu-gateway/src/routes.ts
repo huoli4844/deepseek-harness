@@ -46,6 +46,15 @@ const ROUTES: readonly RouteRule[] = [
   // Workbench profile & home (role projection computed by YuanShu)
   { path: exact('/workbench/profile'), methods: ['GET'] },
   { path: exact('/workbench/home'), methods: ['GET'] },
+  // Position pack: panel assembly shared by UI and Agent
+  { path: exact('/workbench/position'), methods: ['GET'] },
+  { path: exact('/workbench/positions'), methods: ['GET'] },
+  // Workbench position briefing & decision queue
+  { path: exact('/workbench/briefing'), methods: ['GET'] },
+  { path: exact('/workbench/decision-queue'), methods: ['GET'] },
+  // Workbench business navigation & normalized records
+  { path: exact('/workbench/navigator'), methods: ['GET'] },
+  { path: exact('/workbench/records'), methods: ['GET'] },
   // Workbench catalogs (read-only)
   { path: exact('/ontology/overview'), methods: ['GET'] },
   { path: exact('/ontology/spaces'), methods: ['GET'] },

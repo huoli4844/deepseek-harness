@@ -50,6 +50,12 @@ function requestError(payload: unknown, status: number, fallback: string): Workb
   return new WorkbenchRequestError(message, status, code)
 }
 
+/** 给岗位相关接口追加预览参数。 */
+function withPosition(path: string, position?: string): string {
+  if (position === undefined || position === '') return path
+  return `${path}?position=${encodeURIComponent(position)}`
+}
+
 /** 同源网关 JSON 请求。状态码必须保留给界面区分 401/403/404/429。 */
 async function gatewayRequest<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const headers: Record<string, string> = requestHeaders({ Accept: 'application/json' })
@@ -200,6 +206,19 @@ export function apply(ctx: ClientContext): void {
       ...capabilityActions,
       getWorkbenchProfile: () => gatewayRequest('/workbench/profile'),
       getWorkbenchHome: () => gatewayRequest('/workbench/home'),
+      getWorkbenchPosition: (position?: string) => gatewayRequest(withPosition('/workbench/position', position)),
+      getWorkbenchPositions: () => gatewayRequest('/workbench/positions'),
+      getWorkbenchBriefing: (position?: string) => gatewayRequest(withPosition('/workbench/briefing', position)),
+      getWorkbenchDecisionQueue: (position?: string) => gatewayRequest(withPosition('/workbench/decision-queue', position)),
+      getWorkbenchNavigator: () => gatewayRequest('/workbench/navigator'),
+      listWorkbenchRecords: (domain, options) => {
+        const query = new URLSearchParams({
+          domain,
+          page: String(options?.page ?? 1),
+          page_size: String(options?.pageSize ?? 100),
+        })
+        return gatewayRequest(`/workbench/records?${query.toString()}`)
+      },
       getCurrentUser: () => gatewayRequest('/user/me'),
       listTenants: () => gatewayRequest('/tenants'),
       listOntologyOverview: () => gatewayRequest('/ontology/overview'),
