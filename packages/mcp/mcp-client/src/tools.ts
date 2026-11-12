@@ -154,7 +154,8 @@ export async function syncTools(
           const result = await client.callTool(
             { name: tool.name, arguments: args },
             { signal: AbortSignal.any([execution.signal, opts.signal]),
-              timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
+              timeout: opts.toolCallTimeoutMs, resetTimeoutOnProgress: true,
+              onprogress: () => {}, toolDefinition: tool },
           )
           if (result.isError !== true || opts.redact === undefined) return result
           return { isError: true, content: [{ type: 'text', text: opts.redact(extractText(result.content as JsonValue[], tool.name)) }] }

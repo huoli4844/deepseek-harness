@@ -288,6 +288,49 @@ describe('syncTools', () => {
     expect(secondDisposers.size).toBe(1)
   })
 
+  it('keeps a progressing tool alive beyond its timeout interval', async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const timers: ReturnType<typeof setTimeout>[] = []
+    let markStarted: (() => void) | undefined
+    const started = new Promise<void>((resolve) => { markStarted = resolve })
+    serverTransport.onmessage = (message) => {
+      if (!('id' in message) || !('method' in message)) return
+      const params = 'params' in message ? message.params : undefined
+      if (message.method === 'tools/call') {
+        const meta = params && '_meta' in params ? params._meta : undefined
+        const token = meta && typeof meta === 'object' && 'progressToken' in meta ? meta.progressToken : undefined
+        for (let i = 1; i <= 6; i++) timers.push(setTimeout(() => {
+          void serverTransport.send({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: token, progress: i } })
+        }, i * 20))
+        timers.push(setTimeout(() => { void serverTransport.send({ jsonrpc: '2.0', id: message.id, result: { content: [{ type: 'text', text: 'complete' }] } }) }, 140))
+        markStarted?.()
+        return
+      }
+      const result = message.method === 'initialize'
+        ? { protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'progress', version: '1' } }
+        : { tools: [{ name: 'slow', inputSchema: { type: 'object' } }] }
+      void serverTransport.send({ jsonrpc: '2.0', id: message.id, result })
+    }
+    await serverTransport.start()
+    const client = new Client({ name: 'progress-test', version: '1' })
+    await client.connect(clientTransport)
+    try {
+      await syncTools(client, ctx, { ...defaultOpts, toolCallTimeoutMs: 60 }, new Map())
+      vi.useFakeTimers()
+      const pending = executeToolFixture(ctx, { signal: testToolSignal, callId: ToolCallId('long-progress'), name: 'mcp__srv__slow', arguments: {} })
+      await started
+      await vi.advanceTimersByTimeAsync(140)
+      const result = await pending
+      expect(result.error).toBeUndefined()
+      expect(textAt(result.content)).toBe('complete')
+    } finally {
+      for (const timer of timers) clearTimeout(timer)
+      vi.useRealTimers()
+      await client.close()
+      await serverTransport.close()
+    }
+  })
+
   it('validates outputs with the complete SDK definition after paginated discovery', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     serverTransport.onmessage = (message) => {
