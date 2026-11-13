@@ -8,6 +8,18 @@
     @submit="onSubmit"
   >
     <div class="login-field">
+      <label class="login-field__label" for="login-tenant">租户代码（默认租户可留空）</label>
+      <t-form-item name="tenantCode">
+        <t-input
+          id="login-tenant"
+          v-model="formData.tenantCode"
+          size="large"
+          autocomplete="organization"
+          placeholder="请输入所属租户代码"
+        />
+      </t-form-item>
+    </div>
+    <div class="login-field">
       <label class="login-field__label" for="login-account">账号</label>
       <t-form-item name="account">
         <t-input
@@ -95,6 +107,7 @@ import { useSessionStore } from '@/stores/session'
 const session = useSessionStore()
 
 const INITIAL_DATA = {
+  tenantCode: '',
   account: '',
   password: '',
   remember: false,
@@ -125,6 +138,7 @@ const onSubmit = async (ctx: SubmitContext) => {
       formData.value.password,
       '', // captcha_id
       '', // captcha_code
+      formData.value.tenantCode,
     )
     if (result.requires_totp && result.totp_challenge_id) {
       pendingTotpChallengeId.value = result.totp_challenge_id

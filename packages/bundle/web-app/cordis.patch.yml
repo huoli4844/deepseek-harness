@@ -191,15 +191,11 @@
         compressionLevel: 1
         compressionThresholdBytes: 1024
 
-    # YuanShu Platform gateway: proxies requests from the harness web server
-    # to the 元枢 platform backend API at localhost:8081.
-    # Re-enabled after isolating the real cause of "DeepSeek request extension
-    # preparation failed": that failure came from the yuanshu-tool request
-    # extension contributor, not from this route-only gateway (it registers no
-    # LLM request fields). The gateway refuses unregistered paths and methods.
+    # The workbench consumes delegated MCP through this gateway. Agent tools
+    # are enabled separately by the YuanShu profile.
     - id: yuanshu-gateway
       name: '@deepseek-ai/dsh-yuanshu-gateway'
-      inject: [webServer]
+      inject: [webServer, credentials]
       config:
         baseURL: http://localhost:8081
         prefix: /yuanshu-api

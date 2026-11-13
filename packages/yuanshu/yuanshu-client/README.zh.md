@@ -9,7 +9,7 @@ kind: "package-library"
 
 ## 概述
 
-使用 `YuanShuClient` 可以从负责用户操作的包调用元枢智能体、租户、能力和知识端点。客户端允许注入 `fetch` 实现，以便控制传输和测试。它不会注册 Harness 工具或 Cordis 服务。
+用户授权的企业能力通过 `YuanShuMcp` 和官方 MCP 协议调用。`YuanShuClient` 保留用于登录、租户、文件及显式旧 HTTP 操作；两个客户端都不会注册 Harness 工具或 Cordis 服务。
 
 ## 目录
 
@@ -27,7 +27,7 @@ kind: "package-library"
 
 ### 何时使用
 
-需要元枢 HTTP 或 SSE 操作时，可从相应插件中使用客户端；若 Agent 需要调用这些操作，则挂载 `yuanshu-tool` 等插件。
+企业能力使用 `YuanShuMcp` 发现 MCP 目录、读取资源、订阅更新并调用工具。仅剩余 HTTP 操作或明确选择回退传输时使用 `YuanShuClient`。
 
 ### 入口
 
@@ -46,7 +46,7 @@ const capabilities = await client.listCapabilities()
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-客户端集中处理 URL 拼接、Bearer 和租户请求头、JSON 响应信封及 SSE 解码。认证状态保存在每个客户端实例中；需要服务并发用户的调用方应按请求创建或配置客户端。
+`YuanShuMcp` 基于官方 MCP 客户端实现 OAuth resource 发现、PKCE issuer 校验、按用户隔离 grant、刷新和撤销。`YuanShuClient` 处理剩余 HTTP 请求，不提供 MCP 凭据。
 
 | 文件 | 作用 |
 |---|---|
@@ -72,7 +72,7 @@ const capabilities = await client.listCapabilities()
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与延期工作
 
-- **不会自动重试** — 网络错误和非成功响应的重试决策由调用方负责。
+- **不会自动重试业务操作** — SDK 只会在认证拒绝后刷新凭据并重试一次；网络错误、已受理 Run 和结果未知的业务操作由调用方决定是否重试。
 
 <a id="dev-note"></a>
 ### 开发备注

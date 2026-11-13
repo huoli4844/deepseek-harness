@@ -4965,6 +4965,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
     ],
   },
+  {
+    key: 'yuanshuEnterprise',
+    summary: 'Host service; Session resource authorization precedes every Remote method.',
+    description: 'Host service; Session resource authorization precedes every Remote method.',
+    methods: [
+      {
+        signature: '@Remote({ resources: { session: (request: EnterpriseAuthorization) => request.sessionId } }) async authorize(request: EnterpriseAuthorization): Promise<{ authorized: boolean }>',
+        description: 'Bind explicit platform consent to an authorized DSH Session. Tokens never enter its log.',
+        parameters: [{ name: 'request', description: 'current console login, selected tenant, scope, and Session.' }],
+        returns: 'authorization status without credentials.',
+      },
+      {
+        signature: '@Remote({ resources: { session: (sessionId: SessionId) => sessionId } }) async revoke(sessionId: SessionId): Promise<{ authorized: boolean }>',
+        description: 'Revoke one Session\'s current platform grant and remove selected tools.',
+        parameters: [{ name: 'sessionId', description: 'Session authorized by the Remote resource policy.' }],
+        returns: 'authorization status after revocation.',
+      },
+    ],
+  },
 ]
 
 /** Every harness event, sorted by name. */
@@ -6688,6 +6707,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'EncodedImageAttachment',
     declaration: 'export interface EncodedImageAttachment {\n    mediaType: ImageMediaType;\n    data: string;\n    name?: string;\n}',
+  },
+  {
+    name: 'EnterpriseAuthorization',
+    declaration: 'export interface EnterpriseAuthorization {\n    readonly sessionId: SessionId;\n    readonly consoleToken: string;\n    readonly tenant: string;\n    readonly scope: \'enterprise:read\' | \'enterprise:read enterprise:execute\';\n}',
   },
   {
     name: 'EpochHeader',

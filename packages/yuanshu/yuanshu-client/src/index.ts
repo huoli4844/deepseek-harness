@@ -1,9 +1,15 @@
+import type { YuanShuMcp } from './mcp.ts'
+export { YuanShuMcp, YuanShuMcpError } from './mcp.ts'
+export type { YuanShuMcpOptions, YuanShuMcpGrant, YuanShuMcpCredentials } from './mcp.ts'
+
 /** Options for connecting to a YuanShu API endpoint. */
 export interface YuanShuClientConfig {
   readonly baseURL: string
   readonly token?: string
   readonly tenantId?: string
   readonly fetch?: typeof globalThis.fetch
+  /** Explicit enterprise channel; absent preserves the legacy adapter for rollback. */
+  readonly enterprise?: YuanShuMcp
 }
 
 /** Standard success envelope returned by YuanShu endpoints. */
@@ -699,6 +705,7 @@ function dagInvokeBody(request: YuanShuDagInvokeRequest): Record<string, unknown
 
 /** Sends authenticated HTTP requests to YuanShu and decodes JSON or SSE responses. */
 export class YuanShuClient {
+  private readonly enterprise: YuanShuMcp | undefined
   private readonly baseURL: string
   private readonly fetcher: typeof globalThis.fetch
   private token: string | undefined
@@ -706,6 +713,7 @@ export class YuanShuClient {
 
   /** @param config - Endpoint, credentials, tenant, and optional fetch implementation. */
   constructor(config: YuanShuClientConfig) {
+    this.enterprise = config.enterprise
     this.baseURL = config.baseURL
     this.fetcher = config.fetch ?? globalThis.fetch
     this.token = config.token
@@ -940,6 +948,23 @@ export class YuanShuClient {
     return this.request(`/api/v1/dag/history?${query.toString()}`)
   }
 
+  /** Read the original execution, including failed terminal status and artifacts.
+   * @param executionId - Platform execution handle.
+   * @returns Original execution detail; never starts an execution.
+   */
+  getExecution(executionId: string): Promise<unknown> {
+    return this.request(`/api/v1/execution-runs/${encodeURIComponent(executionId)}`)
+  }
+
+  /** Request cancellation of the original execution.
+   * @param executionId - Platform execution handle.
+   * @param key - Stable key for this cancellation intent.
+   * @returns Recorded cancellation intent and current state.
+   */
+  cancelExecution(executionId: string, key: string): Promise<unknown> {
+    return this.request(`/api/v1/execution-runs/${encodeURIComponent(executionId)}/cancel`, { method: 'POST', body: { idempotency_key: key }, headers: { 'Idempotency-Key': key } })
+  }
+
   // ── Client Workbench（普通客户通道） ─────────────────────────────────────
   //
   // 普通业务角色没有 `system:*` 管理权限，只使用 `/api/v1/client/*`。服务端
@@ -1002,6 +1027,19 @@ export class YuanShuClient {
     })
   }
 
+  /**
+   * Admit a published asset through the explicit HTTP rollback transport.
+   * @param kind - Published asset family.
+   * @param id - Platform asset identifier.
+   * @param request - Frozen input and stable key shared with the MCP attempt.
+   * @returns The original platform execution handle, including idempotent reuse.
+   */
+  submitClientExecution(kind: 'skills' | 'algorithms', id: string | number, request: YuanShuExecutionRequest): Promise<YuanShuExecutionHandle> {
+    return this.request(`/api/v1/client/${kind}/${encodeURIComponent(String(id))}/executions`, {
+      method: 'POST', body: executionBody(request), ...executionHeaders(request),
+    })
+  }
+
   /** 列出一次算法的历史执行记录。
    * @param id - 算法 ID。
    * @param limit - 可选的页大小。
@@ -1055,49 +1093,52 @@ export class YuanShuClient {
    * @returns 元枢计算的 profile 投影。
    */
   getWorkbenchProfile(): Promise<YuanShuWorkbenchProfile> {
-    return this.request('/api/v1/apps/shaoshi/workbench/profile')
+    return this.request('/api/v1/client/workbench/profile')
   }
 
   /** 读取岗位工作台首页聚合（指标、风险、任务、门径、里程碑与场景）。
    * @returns 元枢计算的首页载荷，区块顺序由服务端 `sections` 决定。
    */
   getWorkbenchHome(): Promise<YuanShuWorkbenchHome> {
-    return this.request('/api/v1/apps/shaoshi/workbench/home')
+    return this.request('/api/v1/client/workbench/home')
   }
 
   /** 读取岗位包：面板骨架的装配描述（指标、决策类型、区块与 Agent 动作）。
+   * @param position - 可选岗位预览代码，平台仍校验当前用户的数据范围。
    * @returns 当前账号岗位的面板装配描述。
    */
   getWorkbenchPosition(position?: string): Promise<YuanShuWorkbenchPosition> {
-    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/position', position))
+    return this.request(positionQuery('/api/v1/client/workbench/position', position))
   }
 
   /** 读取可预览的岗位目录。
    * @returns 当前岗位与可选岗位列表。
    */
   getWorkbenchPositions(): Promise<YuanShuPositionCatalog> {
-    return this.request('/api/v1/apps/shaoshi/workbench/positions')
+    return this.request('/api/v1/client/workbench/positions')
   }
 
   /** 读取岗位简报：指标、今日事项与异常。
+   * @param position - 可选岗位预览代码，不授予该岗位的额外权限。
    * @returns 元枢投影的岗位简报。
    */
   getWorkbenchBriefing(position?: string): Promise<YuanShuWorkbenchBriefing> {
-    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/briefing', position))
+    return this.request(positionQuery('/api/v1/client/workbench/briefing', position))
   }
 
   /** 读取待决策队列：按影响与截止时间排序。
+   * @param position - 可选岗位预览代码，返回当前用户可见的待决策事项。
    * @returns 待决策事项及其依据、建议和可执行动作。
    */
   getWorkbenchDecisionQueue(position?: string): Promise<YuanShuDecisionQueue> {
-    return this.request(positionQuery('/api/v1/apps/shaoshi/workbench/decision-queue', position))
+    return this.request(positionQuery('/api/v1/client/workbench/decision-queue', position))
   }
 
   /** 读取左侧业务栏目导航：按业务域分组的栏目与当前数据范围内的记录数。
    * @returns 元枢计算的导航投影。
    */
   getWorkbenchNavigator(): Promise<YuanShuWorkbenchNavigator> {
-    return this.request('/api/v1/apps/shaoshi/workbench/navigator')
+    return this.request('/api/v1/client/workbench/navigator')
   }
 
   /** 读取某个业务栏目的跨项目记录（已归一成统一行）。
@@ -1116,7 +1157,7 @@ export class YuanShuClient {
     })
     if (options.keyword !== undefined && options.keyword.length > 0) query.set('keyword', options.keyword)
     if (options.status !== undefined && options.status.length > 0) query.set('status', options.status)
-    return this.request(`/api/v1/apps/shaoshi/workbench/records?${query.toString()}`)
+    return this.request(`/api/v1/client/workbench/records?${query.toString()}`)
   }
 
   // ── Ontology / Scenario Catalogs（工作台只读目录） ───────────────────────
@@ -1180,6 +1221,11 @@ export class YuanShuClient {
    * @returns The decoded event stream.
    */
   async *executeWorkerStream(request: YuanShuExecuteRequest, signal?: AbortSignal): AsyncIterable<YuanShuSseEvent> {
+    if (this.enterprise !== undefined) {
+      const result = await this.request(`/api/v1/workers/${encodeURIComponent(request.worker_type)}/execute`, { method: 'POST', body: request, ...(signal === undefined ? {} : { signal }) })
+      yield { event: 'complete', data: result }
+      return
+    }
     const response = await this.raw(`/api/v1/workers/${encodeURIComponent(request.worker_type)}/execute-stream`, {
       method: 'POST', body: request, ...(signal === undefined ? {} : { signal }),
     })
@@ -1207,6 +1253,11 @@ export class YuanShuClient {
    * @returns Events from the YuanShu response stream.
    */
   async *askQuestionStream(request: AskKnowledgeQuestionRequest, signal?: AbortSignal): AsyncIterable<YuanShuSseEvent> {
+    if (this.enterprise !== undefined) {
+      const result = await this.askQuestion(request)
+      yield { event: 'complete', data: result }
+      return
+    }
     const response = await this.raw('/api/v1/knowledge-bases/qa/ask/stream', {
       method: 'POST', body: request, ...(signal === undefined ? {} : { signal }),
     })
@@ -1274,6 +1325,24 @@ export class YuanShuClient {
     path: string,
     options: { method?: string; body?: unknown; signal?: AbortSignal; headers?: Readonly<Record<string, string>> } = {},
   ): Promise<T> {
+    if (this.enterprise !== undefined && !path.startsWith('/api/v1/auth/') && !path.startsWith('/api/v1/user/') && !path.startsWith('/api/v1/files/')) {
+      const operation = enterpriseOperation(path, options.body, options.method ?? 'GET')
+      if (/^(skill|algorithm|dag)_[0-9]+_execute$/u.test(operation.name)) {
+        const definition = (await this.enterprise.tools()).find(tool => tool.name === operation.name)
+        const schema = definition?.inputSchema.properties
+        const revision = schema?.revision_id
+        if (revision === null || typeof revision !== 'object' || !('const' in revision) || typeof revision.const !== 'number') throw new YuanShuError('Published revision unavailable; rediscover capabilities', 409, 'MCP_REVISION_UNAVAILABLE')
+        operation.args.revision_id = revision.const
+      }
+      const result = await this.enterprise.call(operation.name, operation.args, options.signal)
+      // Reading a failed terminal Run still returns that original record to the UI.
+      if (result.isError === true && (options.method ?? 'GET') !== 'GET') throw new YuanShuBusinessError(result.structuredContent)
+      if (result.isError === true && !isBusinessRecord(result.structuredContent)) throw new YuanShuBusinessError(result.structuredContent)
+      if (result.resultType === 'input_required') throw new YuanShuError('Platform input or approval required', 409, 'MCP_INPUT_REQUIRED')
+      const envelope = result.structuredContent
+      if (envelope === null || typeof envelope !== 'object' || !('schema_version' in envelope) || envelope.schema_version !== '1' || !('data' in envelope)) throw new YuanShuError('Invalid enterprise result schema', 502, 'MCP_RESULT_INVALID')
+      return envelope.data as T
+    }
     return readResponse<T>(await this.raw(path, options))
   }
 
@@ -1351,4 +1420,78 @@ export async function* parseSse(body: ReadableStream<Uint8Array>): AsyncIterable
     if (chunk.done) break
   }
   const result = flush(); if (result) yield result
+}
+
+/** A rejected or uncertain business result retaining the platform's recovery handle. */
+export class YuanShuBusinessError extends YuanShuError {
+  constructor(readonly businessResult: unknown) {
+    super('Enterprise operation failed; inspect the original Run before retrying', 502, 'MCP_BUSINESS_FAILED')
+  }
+
+  /** Business writes require recovery using their original handle before any retry. */
+  override get retryable(): boolean { return false }
+}
+
+function isBusinessRecord(value: unknown): value is { schema_version: '1'; data: unknown } {
+  return value !== null && typeof value === 'object' && 'schema_version' in value && value.schema_version === '1' && 'data' in value
+}
+
+function enterpriseOperation(path: string, body: unknown, method: string): { name: string; args: Record<string, unknown> } {
+  const url = new URL(path, 'http://localhost')
+  const args: Record<string, unknown> = Object.fromEntries(url.searchParams)
+  for (const key of ['page', 'page_size', 'limit', 'after_seq', 'release_id', 'asset_id']) {
+    const value = args[key]
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      if (!Number.isSafeInteger(parsed) || parsed < 0) throw new YuanShuError('Invalid numeric query parameter', 400, 'MCP_ARGUMENT_INVALID')
+      args[key] = parsed
+    }
+  }
+  if (body !== undefined) {
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new YuanShuError('Enterprise input must be an object', 400)
+    Object.assign(args, body)
+  }
+  const fixed: Record<string, string> = {
+    '/api/v1/client/capabilities': 'capabilities_list',
+    '/api/v1/client/workbench/profile': 'workbench_profile',
+    '/api/v1/client/workbench/home': 'workbench_home',
+    '/api/v1/client/workbench/position': 'workbench_position',
+    '/api/v1/client/workbench/positions': 'workbench_positions',
+    '/api/v1/client/workbench/briefing': 'workbench_briefing',
+    '/api/v1/client/workbench/decision-queue': 'workbench_decisions',
+    '/api/v1/client/workbench/navigator': 'workbench_navigator',
+    '/api/v1/client/workbench/records': 'workbench_records',
+    '/api/v1/knowledge-bases/qa/ask': 'knowledge_ask',
+    '/api/v1/knowledge-bases/collections': 'knowledge_collections',
+    '/api/v1/client/dag/history': 'dag_history',
+    '/api/v1/dag/history': 'dag_history',
+    '/api/v1/ontology-platform/overview': 'ontology_overview',
+    '/api/v1/ontology-platform/spaces': 'ontology_spaces',
+    '/api/v1/ontology-platform/collections': 'ontology_collections',
+    '/api/v1/ontology-platform/releases': 'ontology_releases',
+    '/api/v1/agent/definitions': 'scenarios_list',
+    '/api/v1/knowledge-bases/qa/sessions': 'knowledge_sessions',
+    '/api/v1/knowledge-bases/qa/readiness': 'knowledge_readiness',
+  }
+  const name = fixed[url.pathname]
+  if (name !== undefined) return { name, args }
+  const asset = /^\/api\/v1\/(?:client\/)?(skills|algorithms)\/([0-9]+)\/(execute|executions)$/u.exec(url.pathname)
+  if (asset !== null) {
+    if (method === 'GET') return { name: 'executions_list', args: { ...args, asset_kind: asset[1] === 'skills' ? 'skill' : 'algorithm', asset_id: Number(asset[2]) } }
+    const kind = asset[1] === 'skills' ? 'skill' : 'algorithm'
+    return { name: `${kind}_${String(asset[2])}_execute`, args }
+  }
+  const dag = /^\/api\/v1\/(?:client\/)?dag\/definitions\/([0-9]+)\/invoke$/u.exec(url.pathname)
+  if (dag !== null) return { name: `dag_${String(dag[1])}_execute`, args }
+  const execution = /^\/api\/v1\/execution-runs\/([^/]+)(\/cancel)?$/u.exec(url.pathname)
+  if (execution !== null) return { name: execution[2] === undefined ? 'execution_get' : 'execution_cancel', args: { ...args, executionID: decodeURIComponent(String(execution[1])) } }
+  const history = /^\/api\/v1\/client\/dag\/history\/([0-9]+)$/u.exec(url.pathname)
+  if (history !== null) return { name: 'dag_run_get', args: { ...args, id: history[1] } }
+  const document = /^\/api\/v1\/knowledges\/([0-9]+)$/u.exec(url.pathname)
+  if (document !== null) return { name: 'knowledge_document', args: { ...args, id: document[1] } }
+  const turns = /^\/api\/v1\/knowledge-bases\/qa\/sessions\/([^/]+)\/turns$/u.exec(url.pathname)
+  if (turns !== null) return { name: 'knowledge_session_turns', args: { ...args, session_id: decodeURIComponent(String(turns[1])) } }
+  const worker = /^\/api\/v1\/workers\/([^/]+)\/execute$/u.exec(url.pathname)
+  if (worker !== null) return { name: 'agent_delegate', args: { ...args, worker_type: decodeURIComponent(String(worker[1])) } }
+  throw new YuanShuError('This enterprise operation has no MCP projection; no legacy fallback was executed', 501, 'MCP_OPERATION_UNAVAILABLE')
 }

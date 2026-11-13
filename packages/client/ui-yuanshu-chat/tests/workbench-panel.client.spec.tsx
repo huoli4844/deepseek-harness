@@ -454,7 +454,7 @@ describe('yuanshu workbench', () => {
 
   it('renders the section list when the server sends null collections', async () => {
     render(<WorkbenchPanel {...props({
-      getWorkbenchHome: async () => ({
+      getWorkbenchHome: async () => JSON.parse(JSON.stringify({
         ...workbenchHome,
         sections: ['metrics', 'risks', 'gates', 'milestones', 'tasks', 'scenes'],
         metric_keys: null,
@@ -463,7 +463,7 @@ describe('yuanshu workbench', () => {
         gates: null,
         milestones: null,
         scenes: null,
-      } as unknown as YuanShuWorkbenchHome),
+      })) as YuanShuWorkbenchHome,
     })} />)
 
     fireEvent.click(screen.getByRole('button', { name: '经营看板' }))

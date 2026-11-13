@@ -4,6 +4,7 @@ import type { LoginResponse } from '@/stores/session'
 export interface LoginRequest {
   username: string
   password: string
+  tenant_code?: string
   captcha_id?: string
   captcha_code?: string
 }

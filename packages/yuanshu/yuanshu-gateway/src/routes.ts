@@ -1,4 +1,4 @@
-import { YuanShuError } from '@deepseek-ai/dsh-yuanshu-client'
+import { YuanShuBusinessError, YuanShuError, YuanShuMcpError } from '@deepseek-ai/dsh-yuanshu-client'
 
 /** 客户端请求本身不合法（不是元枢返回的错误）。 */
 export class GatewayRequestError extends Error {
@@ -29,6 +29,15 @@ function exact(path: string): RegExp {
  * `startsWith`，防止 `/execute-anything`、`/knowledges/../../admin` 一类路径穿透。
  */
 const ROUTES: readonly RouteRule[] = [
+  { path: exact('/mcp/status'), methods: ['GET'] },
+  { path: exact('/mcp/revoke'), methods: ['POST'] },
+  { path: exact('/mcp/config'), methods: ['GET'] },
+  { path: exact('/mcp/authorize'), methods: ['POST'] },
+  { path: exact('/mcp/workbench'), methods: ['GET'] },
+  { path: exact('/mcp/read'), methods: ['GET'] },
+  { path: exact('/mcp/tools'), methods: ['GET'] },
+  { path: exact('/mcp/call'), methods: ['POST'] },
+  { path: exact('/mcp/resource'), methods: ['GET'] },
   // Worker API
   { path: exact('/capabilities'), methods: ['GET'] },
   { path: exact('/tenants'), methods: ['GET'] },
@@ -61,6 +70,8 @@ const ROUTES: readonly RouteRule[] = [
   { path: exact('/ontology/collections'), methods: ['GET'] },
   { path: exact('/ontology/releases'), methods: ['GET'] },
   { path: exact('/scenarios'), methods: ['GET'] },
+  { path: /^\/executions\/[^/]+$/u, methods: ['GET'] },
+  { path: /^\/executions\/[^/]+\/cancel$/u, methods: ['POST'] },
   // Capability execution
   { path: /^\/skills\/[^/]+\/execute$/u, methods: ['POST'] },
   { path: /^\/skills\/[^/]+\/executions$/u, methods: ['POST'] },
@@ -98,7 +109,7 @@ export function isAllowedRoute(path: string): boolean {
  * @returns Upstream status, a client-input status, or 502 for unexpected failures.
  */
 export function errorStatus(error: unknown): number {
-  if (error instanceof YuanShuError) return error.status
+  if ((error instanceof YuanShuError || error instanceof YuanShuMcpError)) return error.status
   if (error instanceof GatewayRequestError) return error.status
   if (error instanceof SyntaxError) return 400
   return 502
@@ -109,8 +120,12 @@ export function errorStatus(error: unknown): number {
  * @param error - Request failure to serialize.
  * @returns Error message and any upstream business error code.
  */
-export function errorBody(error: unknown): { error: string; code?: number | string } {
-  if (error instanceof YuanShuError) {
+export function errorBody(error: unknown): { error: string; code?: number | string; business_result?: unknown; retryable?: boolean } {
+  if (error instanceof YuanShuBusinessError) return {
+    error: error.message, ...error.code === undefined ? {} : { code: error.code },
+    business_result: error.businessResult, retryable: false,
+  }
+  if ((error instanceof YuanShuError || error instanceof YuanShuMcpError)) {
     return error.code === undefined ? { error: error.message } : { error: error.message, code: error.code }
   }
   return { error: error instanceof Error ? error.message : String(error) }

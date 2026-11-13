@@ -37,6 +37,8 @@ import {
 
 /** 工作台主视图注入面。 */
 export interface YuanShuWorkbenchInjected {
+  readonly authorizeEnterprise?: () => Promise<unknown>
+  readonly revokeEnterprise?: () => Promise<unknown>
   readonly askQuestionStream: (request: AskKnowledgeQuestionRequest, signal?: AbortSignal) => AsyncIterable<YuanShuSseEvent>
   readonly listCapabilities: () => Promise<readonly CapabilityOption[]>
   readonly runSkill: (id: string, input: unknown) => Promise<unknown>
@@ -316,6 +318,7 @@ function dateLabel(value: string | null | undefined): string | undefined {
 
 /** 元枢岗位工作台：首页投影 + 知识问答 + 能力库。 */
 export function WorkbenchPanel({
+  authorizeEnterprise, revokeEnterprise,
   askQuestionStream,
   listCapabilities,
   runSkill,
@@ -342,6 +345,8 @@ export function WorkbenchPanel({
   listKnowledgeCollections,
   t,
 }: InjectFace<YuanShuWorkbenchInjected> & PropsLocale<typeof NS>): React.JSX.Element {
+  const [authorizationBusy,setAuthorizationBusy] = useState(false)
+  const [authorizationError,setAuthorizationError] = useState(false)
   const [section, setSection] = useState<WorkbenchSection>('home')
   const [selected, setSelected] = useState<CapabilityOption>()
   const [capabilities, setCapabilities] = useState<readonly CapabilityOption[]>([])
@@ -970,22 +975,22 @@ export function WorkbenchPanel({
     const cards = [
       {
         key: 'mine', tone: css.metricBlue, icon: 'tasks' as const, iconTone: css.iconBlue,
-        label: 'statMyTasks' as const, value: stats.total,
+        labelKey: 'statMyTasks' as const, value: stats.total,
         sub: t('statInProgressCount', { count: stats.in_progress }), danger: false,
       },
       {
         key: 'done', tone: css.metricGreen, icon: 'check' as const, iconTone: css.iconGreen,
-        label: 'statCompleted' as const, value: stats.completed,
+        labelKey: 'statCompleted' as const, value: stats.completed,
         sub: t('statCompletionRate', { percent: completionRate }), danger: false,
       },
       {
         key: 'pending', tone: css.metricOrange, icon: 'clock' as const, iconTone: css.iconOrange,
-        label: 'statPending' as const, value: stats.pending,
+        labelKey: 'statPending' as const, value: stats.pending,
         sub: t('statOverdueHint', { count: stats.overdue }), danger: stats.overdue > 0,
       },
       {
         key: 'projects', tone: css.metricPurple, icon: 'flag' as const, iconTone: css.iconPurple,
-        label: 'statProjects' as const, value: metrics.project_total,
+        labelKey: 'statProjects' as const, value: metrics.project_total,
         sub: t('statInProgressCount', { count: metrics.active_projects }), danger: false,
       },
     ]
@@ -995,7 +1000,7 @@ export function WorkbenchPanel({
           <div key={card.key} className={`${css.dashMetric} ${card.tone}`}>
             <span className={`${css.metricIcon} ${card.iconTone}`}><StatIcon kind={card.icon} /></span>
             <div className={css.metricBody}>
-              <span className={css.metricLabel}>{t(card.label)}</span>
+              <span className={css.metricLabel}>{t(card.labelKey)}</span>
               <span className={css.metricNumber}>
                 {card.value}
                 <span className={css.metricUnit}>{t('unitCount')}</span>
@@ -1390,7 +1395,10 @@ export function WorkbenchPanel({
 
   // 原经营看板保留为次要视图：驾驶舱负责"今天做什么"，看板负责"整体怎么样"。
   // 后端空切片会序列化成 null，这里统一兜底，避免任一集合为 null 时整块看板白屏。
-  const normalizeHome = (value: YuanShuWorkbenchHome): YuanShuWorkbenchHome => ({
+  const normalizeHome = (value: {
+    [Key in keyof YuanShuWorkbenchHome]: NonNullable<YuanShuWorkbenchHome[Key]> extends readonly unknown[]
+      ? YuanShuWorkbenchHome[Key] | null : YuanShuWorkbenchHome[Key]
+  }): YuanShuWorkbenchHome => ({
     ...value,
     sections: value.sections ?? [],
     projects: value.projects ?? [],
@@ -1602,7 +1610,7 @@ export function WorkbenchPanel({
               <button
                 key={option.code}
                 type="button"
-                className={`${css.positionChip} ${position?.position === option.code ? css.positionChipActive : ''}`}
+                className={`${css.positionChip} ${position.position === option.code ? css.positionChipActive : ''}`}
                 onClick={() => {
                   setPositionCode(option.code)
                   void loadCockpit(option.code)
@@ -1903,6 +1911,18 @@ export function WorkbenchPanel({
             {dashboardHome && <span className={css.headerDate}>{headerDate}</span>}
           </div>
           <div className={css.headerRight}>
+            {authorizeEnterprise !== undefined && <button type="button" className={css.linkButton} disabled={authorizationBusy} onClick={() => {
+              setAuthorizationBusy(true); setAuthorizationError(false)
+              void authorizeEnterprise().then(() => { window.location.reload() })
+                .catch(() => { setAuthorizationError(true) }).finally(() => { setAuthorizationBusy(false) })
+            }}>{t('authorizeEnterprise')}</button>}
+            {revokeEnterprise !== undefined && <button type="button" className={css.linkButton} disabled={authorizationBusy} onClick={() => {
+              setAuthorizationBusy(true); setAuthorizationError(false)
+              void revokeEnterprise().then(() => { window.location.reload() })
+                .catch(() => { setAuthorizationError(true) }).finally(() => { setAuthorizationBusy(false) })
+            }}>{t('revokeEnterprise')}</button>}
+            {authorizationError && <span role="alert" className={css.error}>{t('authorizationFailed')}</span>}
+
             {dashboardHome && (
               <input
                 className={css.search}

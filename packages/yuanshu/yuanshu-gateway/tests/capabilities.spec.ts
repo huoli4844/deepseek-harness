@@ -31,7 +31,7 @@ async function startGateway(): Promise<
   const active = new Context()
   context = active
   await active.plugin(WebServer, { host: '127.0.0.1', port: 0 })
-  apply(active, { baseURL: 'http://yuanshu.test' })
+  apply(active, { baseURL: 'http://localhost:8081', enterpriseTransport: 'legacy-http' })
   const port = Number(new URL(active.webServer.getOrigin()).port)
 
   return (path, init = {}) => new Promise<GatewayResponse>((resolve, reject) => {
@@ -88,7 +88,7 @@ it('proxies a skill execution and forwards the caller token', async () => {
   expect(response.status).toBe(200)
   expect(response.body).toEqual({ result: { ok: true } })
   expect(calls).toHaveLength(1)
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/skills/7/execute')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/skills/7/executions')
   expect(calls[0]?.init?.method).toBe('POST')
   expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({ input_data: { question: 'hello' } })
   const headers = calls[0]?.init?.headers as Record<string, string>
@@ -128,7 +128,7 @@ it('forwards the idempotency key and artifact ids for async executions', async (
   })
 
   expect(response.status).toBe(200)
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/algorithms/3/executions')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/algorithms/3/executions')
   expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({
     input_data: { x: 1 }, input_artifact_ids: ['a-1'], idempotency_key: 'key-1',
   })
@@ -146,7 +146,7 @@ it('maps a DAG invoke body to the YuanShu contract', async () => {
   })
 
   expect(response.status).toBe(200)
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/dag/definitions/flow-1/invoke')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/dag/definitions/flow-1/invoke')
   expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({
     input: { q: 1 }, conversation_id: 'c-1', conversationVars: { v: 2 }, trace_id: 't-1',
   })
@@ -159,7 +159,7 @@ it('lists DAG history with a page size', async () => {
   const response = await call('/yuanshu-api/dag/history?page_size=20')
 
   expect(response.status).toBe(200)
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/dag/history?page=1&page_size=20')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/dag/history?page=1&page_size=20')
 })
 
 it('forwards the DAG definition filter and reads run detail through the client channel', async () => {
@@ -169,8 +169,8 @@ it('forwards the DAG definition filter and reads run detail through the client c
   await call('/yuanshu-api/dag/history?page_size=20&dag_definition_id=flow-1')
   const detail = await call('/yuanshu-api/dag/history/33')
 
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/dag/history?page=1&page_size=20&dag_definition_id=flow-1')
-  expect(calls[1]?.url).toBe('http://yuanshu.test/api/v1/client/dag/history/33')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/dag/history?page=1&page_size=20&dag_definition_id=flow-1')
+  expect(calls[1]?.url).toBe('http://localhost:8081/api/v1/client/dag/history/33')
   expect(detail.status).toBe(200)
   expect(detail.body).toEqual({ id: 33, status: 'success' })
 })
@@ -209,7 +209,7 @@ it('uses the client capability catalog for ordinary users', async () => {
   const response = await call('/yuanshu-api/capabilities')
 
   expect(response.status).toBe(200)
-  expect(calls[0]?.url).toBe('http://yuanshu.test/api/v1/client/capabilities')
+  expect(calls[0]?.url).toBe('http://localhost:8081/api/v1/client/capabilities')
   expect(response.body).toEqual([
     { kind: 'skill', id: '7', name: '报表技能', description: '生成月报', executable: true, raw: { kind: 'skill', id: 7, name: '报表技能', description: '生成月报' } },
     { kind: 'skill', id: '8', name: '本体资源', executable: false, interactionMode: 'resource', raw: { kind: 'skill', id: 8, name: '本体资源', executable: false, interaction_mode: 'resource' } },
@@ -260,8 +260,8 @@ it('resolves the current tenant when the browser only sends a token', async () =
 
   expect(response.status).toBe(200)
   expect(calls.map(call => call.url)).toEqual([
-    'http://yuanshu.test/api/v1/user/tenants',
-    'http://yuanshu.test/api/v1/client/capabilities',
+    'http://localhost:8081/api/v1/user/tenants',
+    'http://localhost:8081/api/v1/client/capabilities',
   ])
   const headers = calls[1]?.init?.headers as Record<string, string>
   expect(headers['X-Active-Tenant']).toBe('default')

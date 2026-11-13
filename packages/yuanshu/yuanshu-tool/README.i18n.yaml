@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/yuanshu/yuanshu-tool/README.md
 /:
-  en: d3deee6660682595
-  zh: f128901a5d0de80a
+  en: 832b08be69b9d744
+  zh: 4c4369d01076ef0b
 /deepseek-ai-dsh-yuanshu-tool:
   en: 8e5bc00a52d347a8
   zh: b081bbbebcdfb11c
 /deepseek-ai-dsh-yuanshu-tool/summary:
-  en: 28c25859355084a8
-  zh: 854592ee97cfb604
+  en: 1a95daab58a2038c
+  zh: 9f62d890d3666f81
 /deepseek-ai-dsh-yuanshu-tool/table-of-contents:
   en: d152484eb41ac6b4
   zh: fb147198fefdf835
@@ -18,38 +18,38 @@
   en: 70c8217e6ad23724
   zh: 4fa94fdc03282a79
 /deepseek-ai-dsh-yuanshu-tool/use-this-package/when-to-choose-it:
-  en: 8e11a2103974684a
-  zh: a7098b4235520be2
+  en: 9de675b23cc6d509
+  zh: 7bea5d9b18787621
 /deepseek-ai-dsh-yuanshu-tool/use-this-package/minimal-configuration:
-  en: 6f8f54eeaeaebf9b
-  zh: 28eb6026edf2d009
+  en: 24da77f9cb8bdd6c
+  zh: ce6eb0244b0d161a
 /deepseek-ai-dsh-yuanshu-tool/understand-the-implementation:
-  en: 0ebe422b66b90839
-  zh: 7e702ccddc68403d
+  en: 7d10d991a7901a5b
+  zh: 7cccf28e27cabbc4
 /deepseek-ai-dsh-yuanshu-tool/further-exploration:
-  en: 0fac31f749145e18
-  zh: f99e26937fc2aed3
+  en: 4332514613338e09
+  zh: 9405db1dda95e945
 /deepseek-ai-dsh-yuanshu-tool/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
-/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution:
-  en: c2f7ab7993e5c0e1
-  zh: c2f7ab7993e5c0e1
-/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/what-the-model-sees:
-  en: 51ec13e39f73e562
-  zh: e8ad3d626ba3f03b
-/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/what-the-model-sees/tool-description:
+/deepseek-ai-dsh-yuanshu-tool/model-experience/enterprise-capability-selection:
+  en: be53c8cacb91e568
+  zh: c704791d7c9bf62d
+/deepseek-ai-dsh-yuanshu-tool/model-experience/enterprise-capability-selection/what-the-model-sees:
+  en: f686d747f0cc2a7f
+  zh: 2630a2b81c5f6fae
+/deepseek-ai-dsh-yuanshu-tool/model-experience/enterprise-capability-selection/what-the-model-sees/tool-description:
   en: 163f477a7dd52e3f
   zh: 163f477a7dd52e3f
-/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/token-effect:
-  en: 6167ce67ab348ca7
-  zh: d84848efdd2e9736
-/deepseek-ai-dsh-yuanshu-tool/model-experience/yuanshu-worker-execution/kv-cache-effect:
+/deepseek-ai-dsh-yuanshu-tool/model-experience/enterprise-capability-selection/token-effect:
+  en: 32f0fad06d48b7b3
+  zh: 85abafc99aa53ffb
+/deepseek-ai-dsh-yuanshu-tool/model-experience/enterprise-capability-selection/kv-cache-effect:
   en: abab59ed453553f3
   zh: 2dc5dab0194ef458
 /deepseek-ai-dsh-yuanshu-tool/known-limitations-and-deferred-work:
-  en: debc2ab147d8f625
-  zh: d53753daf4bf7e63
+  en: dac5d04e2024c592
+  zh: 2673d1037bc7c204
 /deepseek-ai-dsh-yuanshu-tool/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 8ec3e73528ddb1a6

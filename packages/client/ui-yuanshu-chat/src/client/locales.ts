@@ -5,6 +5,18 @@ export const NS = 'yuanshu-chat'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'selectTenant': '选择租户',
+  'enterpriseUnavailable': '企业能力暂不可用，请检查登录、租户与授权；结果不确定时先查询原运行。',
+  'inputSchema': '平台入参规范',
+  'supplementalInput': '补充业务输入；确认不会赋予审批权限。',
+  'submitInput': '提交补充输入',
+  'dismissInput': '关闭补充输入',
+  'originalRun': '原平台运行',
+  'requestCancel': '申请取消原运行',
+  'authorizeSession': '授权本聊天企业工具',
+  'authorizeEnterprise': '授权当前租户企业能力',
+  'revokeEnterprise': '撤销企业能力授权',
+  'authorizationFailed': '授权未完成，请先登录并选择租户',
   'milliseconds': '毫秒',
   /** Tab label shown in the conversation header */
   'viewTab': '元枢工作台',
@@ -197,6 +209,18 @@ export const zh = {
 
 /** English dictionary, key-identical to the Chinese source of truth. */
 export const en: Record<YuanShuChatKey, string> = {
+  'selectTenant': 'Select tenant',
+  'enterpriseUnavailable': 'Enterprise content unavailable. Check login, tenant and authorization; inspect the original Run before retrying uncertain work.',
+  'inputSchema': 'Platform input schema',
+  'supplementalInput': 'Supply business input. Confirmation does not grant approver rights.',
+  'submitInput': 'Submit input',
+  'dismissInput': 'Dismiss input',
+  'originalRun': 'Original platform Run',
+  'requestCancel': 'Request cancellation',
+  'authorizeSession': 'Authorize enterprise tools for this chat',
+  'authorizeEnterprise': 'Authorize enterprise access for this tenant',
+  'revokeEnterprise': 'Revoke enterprise access',
+  'authorizationFailed': 'Authorization failed. Sign in and select a tenant first.',
   'milliseconds': 'ms',
   'viewTab': 'YuanShu Workbench',
   'inputPlaceholder': 'Type your question...',

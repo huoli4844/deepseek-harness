@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this plugin when the Agent needs to query YuanShu knowledge collections and receive an answer with citations. The tool supports follow-up session ids, collection filters, application selection, and thinking depth. It returns a plain-text answer; citation links are not rendered as a rich card.
+This package is a legacy HTTP compatibility tool and is disabled in the YuanShu profile. New enterprise knowledge retrieval uses the user-authorized MCP catalog and evidence resources exposed by `yuanshu-tool`.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Add the plugin beside `dsh-tools` and configure a reachable YuanShu endpoint.
 
 ### When to choose it
 
-Choose this plugin when the task requires knowledge retrieval, citations, or a continuing Q&A session. Use [`yuanshu-tool`](../yuanshu-tool/README.md) for general worker execution.
+Keep this plugin only for deployments that explicitly retain its HTTP endpoint and provide a user-scoped token. Do not configure an instance token for the MCP enterprise path.
 
 ### Minimal configuration
 
@@ -43,7 +43,7 @@ Choose this plugin when the task requires knowledge retrieval, citations, or a c
 | Field | Default | Meaning |
 |---|---|---|
 | `baseURL` | required | YuanShu API base URL |
-| `token` | unset | Optional bearer token; otherwise the plugin checks `YUANSHU_TOKEN` and `~/.dsh/yuanshu-token` |
+| `token` | unset | Explicit legacy HTTP bearer token; there is no environment or file fallback |
 | `streaming` | `false` | Read the SSE endpoint before returning the final answer |
 
 See the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-yuanshu-qa-tool) for the accepted fields.

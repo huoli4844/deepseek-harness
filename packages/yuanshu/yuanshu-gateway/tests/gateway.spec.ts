@@ -34,7 +34,7 @@ it.each(['/qa/ask/stream', '/execute-stream'])('aborts the YuanShu SSE request a
   const active = new Context()
   context = active
   await active.plugin(WebServer, { host: '127.0.0.1', port: 0 })
-  apply(active, { baseURL: 'http://yuanshu.test' })
+  apply(active, { baseURL: 'http://localhost:8081', enterpriseTransport: 'legacy-http' })
 
   const port = Number(new URL(active.webServer.getOrigin()).port)
   const client = httpRequest({

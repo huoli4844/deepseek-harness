@@ -5,7 +5,7 @@ import type { AskKnowledgeQuestionRequest, YuanShuSseEvent } from '@deepseek-ai/
 import { ChatPanel, type YuanShuChatInjected } from '../src/client/ChatPanel.tsx'
 import { zh, type YuanShuChatKey } from '../src/client/locales.ts'
 import { WorkbenchRequestError, type CapabilityOption } from '../src/client/workbench.ts'
-import { loadQaSession, QA_SESSION_STORAGE_KEY } from '../src/client/storage.ts'
+import { loadQaSession, qaStorageIdentity, QA_SESSION_STORAGE_KEY } from '../src/client/storage.ts'
 
 type PanelProps = Parameters<typeof ChatPanel>[0]
 
@@ -43,6 +43,8 @@ async function selectCapability(name: string, key: string): Promise<void> {
 
 beforeEach(() => {
   window.localStorage.clear()
+  window.localStorage.setItem('yuanshu-token', `e30.${btoa(JSON.stringify({ user_id: 1 }))}.signature`)
+  window.localStorage.setItem('yuanshu-active-tenant', '1')
   Object.defineProperty(Element.prototype, 'scrollIntoView', {
     configurable: true,
     writable: true,
@@ -273,6 +275,7 @@ describe('knowledge Q&A session', () => {
 
   it('restores a stored transcript when the panel mounts', () => {
     window.localStorage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify({
+      owner: qaStorageIdentity(),
       sessionId: 'sess-9',
       messages: [
         { role: 'user', content: '上次的问题' },
@@ -288,6 +291,7 @@ describe('knowledge Q&A session', () => {
 
   it('starts a fresh session when the user clears the conversation', async () => {
     window.localStorage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify({
+      owner: qaStorageIdentity(),
       sessionId: 'sess-9',
       messages: [{ role: 'user', content: '旧问题' }],
     }))

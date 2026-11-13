@@ -1,19 +1,17 @@
-- id: session-persistence-jsonl
-  name: '@deepseek-ai/dsh-session-persistence-jsonl'
-  disabled: true
-
 # yuanshu-gateway, yuanshu-login-server and ui-yuanshu-chat are mounted by the
 # @deepseek-ai/dsh-web-app bundle patch; mounting them here again would insert
 # duplicate entries for the same ids.
 
-- id: yuanshu-tool
-  name: '@deepseek-ai/dsh-yuanshu-tool'
-  config:
-    baseURL: http://localhost:8081
-    defaultWorkerType: general_assistant
+- insert:
+    - id: yuanshu-tool
+      name: '@deepseek-ai/dsh-yuanshu-tool'
+      config:
+        baseURL: http://localhost:8081
+        enterpriseTransport: mcp
 
-- id: yuanshu-qa-tool
-  name: '@deepseek-ai/dsh-yuanshu-qa-tool'
-  config:
-    baseURL: http://localhost:8081
-    streaming: false
+    - id: yuanshu-qa-tool
+      disabled: true
+      name: '@deepseek-ai/dsh-yuanshu-qa-tool'
+      config:
+        baseURL: http://localhost:8081
+        streaming: false

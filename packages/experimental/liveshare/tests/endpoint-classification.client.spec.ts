@@ -13,6 +13,10 @@ import { VIEWER_ENDPOINT_CLASSES, assertSameViewerActions } from '../src/endpoin
 const CLASSIFIED = Object.keys(VIEWER_ENDPOINT_CLASSES)
 
 describe('viewer endpoint classification', () => {
+  it('keeps enterprise credential mutations private to the owner', () => {
+    expect(COMPLETE_VIEWER_ENDPOINT_CLASSES['yuanshuEnterprise/authorize']).toBe('owner-only')
+    expect(COMPLETE_VIEWER_ENDPOINT_CLASSES['yuanshuEnterprise/revoke']).toBe('owner-only')
+  })
   it('exports the compiled classification without changing its keys', () => {
     expect(Object.keys(COMPLETE_VIEWER_ENDPOINT_CLASSES)).toEqual(CLASSIFIED)
   })

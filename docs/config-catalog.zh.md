@@ -5091,8 +5091,8 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-yuanshu-gateway`
 
-- `inject`: `webServer`
-- `source`: [`packages/yuanshu/yuanshu-gateway/src/index.ts:14`](../packages/yuanshu/yuanshu-gateway/src/index.ts)
+- `inject`: `webServer` · `credentials`
+- `source`: [`packages/yuanshu/yuanshu-gateway/src/index.ts:17`](../packages/yuanshu/yuanshu-gateway/src/index.ts)
 
 ```ts config-catalog
 /** Gateway endpoint and optional server-side credentials. */
@@ -5103,6 +5103,18 @@ export interface Config {
   readonly token?: string
   /** Same-origin path prefix registered by the gateway. */
   readonly prefix?: string
+  /** Route enterprise operations through MCP; legacy-http is an explicit rollback choice. */
+  readonly enterpriseTransport?: 'mcp' | 'legacy-http'
+  /** Registered MCP public client id. */
+  readonly mcpClientId?: string
+  /** Exact callback URI registered with the platform. */
+  readonly mcpRedirectUri?: string
+  /** MCP issuer; omission resolves from baseURL at plugin activation. */
+  readonly mcpIssuer?: string
+  /** Protected MCP resource URL; omission resolves from baseURL at plugin activation. */
+  readonly mcpResource?: string
+  /** Budget for protocol and OAuth requests. */
+  readonly mcpTimeoutMs?: number
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-gateway -->
@@ -5132,7 +5144,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-yuanshu-qa-tool`
 
 - `inject`: `tools`
-- `source`: [`packages/yuanshu/yuanshu-qa-tool/src/index.ts:15`](../packages/yuanshu/yuanshu-qa-tool/src/index.ts)
+- `source`: [`packages/yuanshu/yuanshu-qa-tool/src/index.ts:12`](../packages/yuanshu/yuanshu-qa-tool/src/index.ts)
 
 ```ts config-catalog
 /** YuanShu knowledge Q&A endpoint, credentials, and request mode. */
@@ -5152,18 +5164,38 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-yuanshu-tool`
 
-- `inject`: `tools`
-- `source`: [`packages/yuanshu/yuanshu-tool/src/index.ts:11`](../packages/yuanshu/yuanshu-tool/src/index.ts)
+- `inject`: `tools` · `credentials` · `typert` · `agents`
+- `source`: [`packages/yuanshu/yuanshu-tool/src/index.ts:14`](../packages/yuanshu/yuanshu-tool/src/index.ts)
 
 ```ts config-catalog
 /** YuanShu worker tool endpoint, credentials, and default worker choice. */
 export interface Config {
   /** Base URL of the YuanShu platform API. */
   readonly baseURL: string
-  /** 该实例显式配置的 bearer token；不提供时工具不注册。 */
+  /** Instance bearer credential accepted only in explicit legacy-http mode. */
   readonly token?: string
   /** Worker type used when the tool input omits `worker_type`. */
   readonly defaultWorkerType?: string
+  /** Explicit migration mode; MCP never falls back after failure. */
+  readonly enterpriseTransport?: 'mcp' | 'legacy-http'
+  /** Expected authorization server issuer; defaults to the platform base URL. */
+  readonly mcpIssuer?: string
+  /** MCP resource audience; defaults to the platform client MCP endpoint. */
+  readonly mcpResource?: string
+  /** Pre-registered OAuth client identifier. */
+  readonly mcpClientId?: string
+  /** Registered callback URI used with PKCE authorization. */
+  readonly mcpRedirectUri?: string
+  /** Timeout in milliseconds for each ordinary MCP request. */
+  readonly mcpTimeoutMs?: number
+  /** Maximum pages accepted from an authorized capability catalog. */
+  readonly maxCatalogPages?: number
+  /** Maximum capabilities selected for one local task. */
+  readonly maxSelectedTools?: number
+  /** Maximum capability descriptions returned by one catalog selection. */
+  readonly catalogResultLimit?: number
+  /** Maximum UTF-8 bytes of a complete resource JSON returned to the model. */
+  readonly maxResourceResultBytes?: number
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-tool -->

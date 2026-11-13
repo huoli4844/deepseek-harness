@@ -18,7 +18,9 @@
 // disabled (recorded fixtures must not embed this repo's AGENTS.md);
 // session-title-llm disabled (its fire-and-forget title call would race the
 // loop for the session's replay cursor); webserver pinned to port 0 with the
-// built dist; ordinary keyless modes disable both direct adapters and fill the open
+// built dist; YuanShu deployment rows disabled (enterprise integration is
+// exercised by yuanshu-enterprise-live against its own platform and CLI profile);
+// ordinary keyless modes disable both direct adapters and fill the open
 // llm seam post-boot with installLlmReplay on the settled root ctx
 // (the plugin-row path discards the ReplayHandle; the direct install keeps
 // assertConsumed for the teardown fixture-consumption check).
@@ -584,6 +586,12 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   const surfaceContext = webRuntimeConfig?.surfaceContext !== false
   // The scaffold's own overrides, above every bundle layer like `--patch` overlays.
   const overlayPatches: PatchOptions[] = [
+    // Generic account and conversation fixtures target the DeepSeek surface.
+    // The enterprise browser suite owns YuanShu identity and business views.
+    { id: 'yuanshu-gateway', disabled: true },
+    { id: 'yuanshu-login-server', disabled: true },
+    { id: 'ui-yuanshu-chat', disabled: true },
+    { id: 'ui-yuanshu-account', disabled: true },
     // Without HMR the profile applies configuration changes at its next start.
     ...options.profile?.hmr === false ? [{ id: 'hmr', disabled: true }] : [],
     { id: 'session-log-deepseek', config: { enabled: false } },

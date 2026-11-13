@@ -1,4 +1,6 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-yuanshu-tool/remote'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import type { AskKnowledgeQuestionRequest, YuanShuSseEvent } from '@deepseek-ai/dsh-yuanshu-client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -9,7 +11,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { ChatPanel } from './ChatPanel.tsx'
-import { WorkbenchPanel, type YuanShuWorkbenchInjected } from './WorkbenchPanel.tsx'
+import { EnterpriseWorkbench, type EnterpriseWorkbenchInjected } from './EnterpriseWorkbench.tsx'
+import { enterpriseResourceProvider } from './enterprise-resource.ts'
+import type {} from '@deepseek-ai/dsh-client-resources/client'
 import { YuanShuIcon } from './YuanShuIcon.tsx'
 import { NS, en, zh, type YuanShuChatKey } from './locales.ts'
 import type { YuanShuChatInjected } from './ChatPanel.tsx'
@@ -22,7 +26,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-export const inject = ['slots', 'locale']
+export const inject = ['slots', 'locale', 'remote', 'resources']
 
 /** 读取当前请求的 Authorization。每次调用都重新读取，登录后无需刷新页面。 */
 function authHeaders(): Record<string, string> {
@@ -50,16 +54,10 @@ function requestError(payload: unknown, status: number, fallback: string): Workb
   return new WorkbenchRequestError(message, status, code)
 }
 
-/** 给岗位相关接口追加预览参数。 */
-function withPosition(path: string, position?: string): string {
-  if (position === undefined || position === '') return path
-  return `${path}?position=${encodeURIComponent(position)}`
-}
-
 /** 同源网关 JSON 请求。状态码必须保留给界面区分 401/403/404/429。 */
-async function gatewayRequest<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+async function gatewayRequest<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   const headers: Record<string, string> = requestHeaders({ Accept: 'application/json' })
-  const request: RequestInit = { method: init.method ?? 'GET', headers }
+  const request: RequestInit = { method: init.method ?? 'GET', headers, ...init.signal === undefined ? {} : { signal: init.signal } }
   if (init.body !== undefined) {
     headers['Content-Type'] = 'application/json'
     request.body = JSON.stringify(init.body)
@@ -158,16 +156,27 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'yuanshu-chat: dictionaries')
 
   const t = ctx.locale.bind(NS)
+  ctx.effect(() => ctx.resources.register(enterpriseResourceProvider((path, signal) => gatewayRequest(path, { signal }))), 'yuanshu: enterprise resources')
   const capabilityActions: YuanShuChatInjected = {
+    authorizeSession: async (sessionId) => {
+      const consoleToken = readAuthToken(), tenant = readActiveTenant()
+      if (consoleToken === undefined || tenant === undefined) throw new Error('Select the current platform user and tenant before authorization')
+      const result = await ctx.remote.yuanshuEnterprise.authorize({ sessionId, consoleToken, tenant, scope: 'enterprise:read enterprise:execute' })
+      if (!result.ok) throw new Error(result.error.message)
+    },
+    revokeSession: async (sessionId) => {
+      const result = await ctx.remote.yuanshuEnterprise.revoke(sessionId)
+      if (!result.ok) throw new Error(result.error.message)
+    },
     askQuestionStream: (request, signal) => askQuestionStream(request, signal),
     listCapabilities: async () => toCapabilityOptions(await gatewayRequest<unknown>('/capabilities')),
     runSkill: (id, input) => gatewayRequest(`/skills/${encodeURIComponent(id)}/execute`, {
       method: 'POST',
-      body: { input_data: input },
+      body: { input_data: input, idempotency_key: idempotencyKey() },
     }),
     runAlgorithm: (id, input) => gatewayRequest(`/algorithms/${encodeURIComponent(id)}/execute`, {
       method: 'POST',
-      body: { input_data: input, draft: false },
+      body: { input_data: input, draft: false, idempotency_key: idempotencyKey() },
     }),
     invokeDag: (id, input) => gatewayRequest(`/dag/definitions/${encodeURIComponent(id)}/invoke`, {
       method: 'POST',
@@ -202,33 +211,12 @@ export function apply(ctx: ClientContext): void {
     name: 'main',
     key: 'yuanshu',
     locale: NS,
-    inject: (): YuanShuWorkbenchInjected => ({
-      ...capabilityActions,
-      getWorkbenchProfile: () => gatewayRequest('/workbench/profile'),
-      getWorkbenchHome: () => gatewayRequest('/workbench/home'),
-      getWorkbenchPosition: (position?: string) => gatewayRequest(withPosition('/workbench/position', position)),
-      getWorkbenchPositions: () => gatewayRequest('/workbench/positions'),
-      getWorkbenchBriefing: (position?: string) => gatewayRequest(withPosition('/workbench/briefing', position)),
-      getWorkbenchDecisionQueue: (position?: string) => gatewayRequest(withPosition('/workbench/decision-queue', position)),
-      getWorkbenchNavigator: () => gatewayRequest('/workbench/navigator'),
-      listWorkbenchRecords: (domain, options) => {
-        const query = new URLSearchParams({
-          domain,
-          page: String(options?.page ?? 1),
-          page_size: String(options?.pageSize ?? 100),
-        })
-        return gatewayRequest(`/workbench/records?${query.toString()}`)
-      },
-      getCurrentUser: () => gatewayRequest('/user/me'),
-      listTenants: () => gatewayRequest('/tenants'),
-      listOntologyOverview: () => gatewayRequest('/ontology/overview'),
-      listOntologySpaces: () => gatewayRequest('/ontology/spaces?page=1&page_size=100'),
-      listOntologyCollections: () => gatewayRequest('/ontology/collections?page=1&page_size=100'),
-      listOntologyReleases: () => gatewayRequest('/ontology/releases?page=1&page_size=50'),
-      listScenarios: () => gatewayRequest('/scenarios?page=1&page_size=100'),
-      listKnowledgeCollections: () => gatewayRequest('/knowledges?limit=100'),
+    inject: (): EnterpriseWorkbenchInjected => ({
+      authorize: () => gatewayRequest('/mcp/authorize', { method: 'POST', body: { consent: 'approve', scope: 'enterprise:read enterprise:execute' } }),
+      revoke: () => gatewayRequest('/mcp/revoke', { method: 'POST' }),
+      call: (name, args, continuation) => gatewayRequest('/mcp/call', { method: 'POST', body: { name, arguments: args, ...continuation } }),
     }),
-  }, WorkbenchPanel))
+  }, EnterpriseWorkbench))
 
   // 侧栏入口：点击后由布局切到同 key 的 main 面板。
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-yuanshu-gateway",
   "description": "Same-origin Harness gateway for YuanShu Platform capabilities and Worker SSE",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -16,7 +16,10 @@
   "files": [
     "locale/*.json",
     "lib/index.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "scripts": {
@@ -28,7 +31,8 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "workspace:~",
-    "@deepseek-ai/dsh-yuanshu-client": "workspace:*"
+    "@deepseek-ai/dsh-yuanshu-client": "workspace:*",
+    "@deepseek-ai/dsh-credentials": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

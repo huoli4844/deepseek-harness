@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `YuanShuClient` to call YuanShu worker, tenant, capability, and knowledge endpoints from a package that owns the user-facing operation. The client accepts an injected `fetch` implementation for controlled transports and tests. It does not register a Harness tool or Cordis service.
+Use `YuanShuMcp` for user-authorized enterprise capabilities over the official MCP protocol. `YuanShuClient` remains for login, tenant, file, and explicit legacy HTTP operations; neither client registers a Harness tool or Cordis service.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ Use `YuanShuClient` to call YuanShu worker, tenant, capability, and knowledge en
 
 ### When to use it
 
-Use the client from a plugin that needs YuanShu HTTP or SSE operations; mount a plugin such as `yuanshu-tool` when the Agent should call those operations.
+Use `YuanShuMcp` for MCP discovery, resources, subscriptions, and enterprise tool calls. Use `YuanShuClient` only for the remaining HTTP operations or an explicitly selected rollback transport.
 
 ### Entry point
 
@@ -46,7 +46,7 @@ const capabilities = await client.listCapabilities()
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The client centralizes URL joining, bearer and tenant headers, JSON envelope handling, and SSE decoding. It keeps authentication state on each client instance; consumers that serve concurrent users should create or configure clients per request.
+`YuanShuMcp` wraps the official MCP client with OAuth resource discovery, PKCE issuer checks, per-user grants, refresh, and revocation. `YuanShuClient` centralizes the remaining HTTP request behavior and never supplies MCP credentials.
 
 | File | Role |
 |---|---|
@@ -71,7 +71,7 @@ The library does not construct model requests or change provider cache reuse.
 
 ## Known Limitations and Deferred Work
 
-- **No automatic retries** — callers own retry decisions for network errors and non-success responses.
+- **No automatic business retries** — the SDK may refresh credentials once after an authentication rejection, but callers own retry decisions for network errors, accepted Runs, and unknown business outcomes.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-挂载此浏览器插件后，可以在元枢工作台面板和会话页签中使用元枢平台：左侧列出本体、Skill、算法、场景、DAG 与知识库目录，右侧打开能力运行区或问答。插件会向同源 `/yuanshu-api` 网关发送请求，并从 `localStorage.yuanshu-token` 读取浏览器 token。Host profile 必须同时挂载元枢网关。
+挂载此浏览器插件后，可以消费元枢平台经鉴权的 MCP 能力目录和应用工作台。它向同源 `/yuanshu-api` 网关发送请求，并从 `localStorage.yuanshu-token` 读取登录 token；网关管理按用户与租户隔离的独立 MCP 授权。Host profile 必须挂载元枢网关。
 
 ## 目录
 
@@ -38,6 +38,8 @@ kind: "package-reference"
 ```
 
 该视图没有插件配置。Host 需要提供登录页和同源网关路由。
+
+选择租户并明确授权企业访问。工具结果只刷新原 Run，不重新加载身份或能力目录。刷新、选择租户、授权和撤销授权会重新加载目录。页面重载仅恢复当前登录主体所属的原 Run 句柄，再查询平台；不会重新提交业务操作。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

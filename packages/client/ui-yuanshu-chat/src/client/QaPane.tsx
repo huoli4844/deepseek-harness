@@ -5,6 +5,7 @@ import type { YuanShuChatKey } from './locales.ts'
 import { failureKey } from './workbench.ts'
 import {
   clearQaSession,
+  qaStorageIdentity,
   loadQaSession,
   saveQaSession,
   type StoredQaCitation,
@@ -31,6 +32,7 @@ function uid(): string {
 /** 知识问答面板，供会话页签与工作台共用。 */
 export function QaPane({ askQuestionStream, t }: QaPaneProps) {
   // 刷新恢复：会话 id 与已展示消息一起恢复，避免刷新后服务端另起会话。
+  const owner = useRef(qaStorageIdentity())
   const [restored] = useState(loadQaSession)
   const [sessionId, setSessionId] = useState<string | undefined>(restored.sessionId)
   const [messages, setMessages] = useState<ChatMessage[]>(() => restored.messages.map(message => ({
@@ -73,6 +75,7 @@ export function QaPane({ askQuestionStream, t }: QaPaneProps) {
 
   // 只持久化成型的消息；流式占位与空消息不进入恢复快照。
   useEffect(() => {
+    if (owner.current !== qaStorageIdentity()) return
     saveQaSession({
       ...(sessionId === undefined ? {} : { sessionId }),
       messages: messages
@@ -89,6 +92,12 @@ export function QaPane({ askQuestionStream, t }: QaPaneProps) {
     const question = inputText.trim()
     if (!question || loading) return
 
+    const identityChanged = owner.current !== qaStorageIdentity()
+    if (identityChanged) {
+      owner.current = qaStorageIdentity()
+      setMessages([])
+      setSessionId(undefined)
+    }
     const userMsg: ChatMessage = { id: uid(), role: 'user', content: question }
     addMessage(userMsg)
     setInputText('')
@@ -101,7 +110,7 @@ export function QaPane({ askQuestionStream, t }: QaPaneProps) {
     try {
       const request: AskKnowledgeQuestionRequest = {
         question,
-        ...(sessionId === undefined ? {} : { session_id: sessionId }),
+        ...(sessionId === undefined || identityChanged ? {} : { session_id: sessionId }),
       }
       abortRef.current = new AbortController()
 

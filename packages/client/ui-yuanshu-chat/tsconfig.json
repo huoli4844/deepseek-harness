@@ -6,11 +6,40 @@
     "jsx": "react-jsx"
   },
   "references": [
-    { "path": "../ui-conversation/tsconfig.client.json" },
-    { "path": "../ui-layout" },
-    { "path": "../ui-sidebar" },
-    { "path": "../../yuanshu/yuanshu-client" },
-    { "path": "../../util/crypto" }
+    {
+      "path": "../ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-layout"
+    },
+    {
+      "path": "../ui-sidebar"
+    },
+    {
+      "path": "../../yuanshu/yuanshu-client"
+    },
+    {
+      "path": "../../util/crypto"
+    },
+    {
+      "path": "../../yuanshu/yuanshu-tool"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../resources"
+    },
+    {
+      "path": "../../typert/protocol"
+    }
   ],
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.css"
+  ]
 }

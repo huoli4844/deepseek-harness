@@ -1,5 +1,5 @@
 ---
-description: "Give the Agent a tool for sending a task to a configured YuanShu worker and returning its response."
+description: "Discover and consume user-authorized YuanShu enterprise capabilities through MCP."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this plugin when the Agent needs to delegate a task to a YuanShu worker. The tool returns the platform response as text and accepts an optional worker type and session id. Network and platform failures reject the tool call with an actionable YuanShu error.
+Mount this plugin when an Agent needs YuanShu enterprise capabilities. The tool discovers the current user's authorized MCP catalog and selects only the requested capabilities; it does not use an instance token or silently retry through HTTP.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Add the plugin beside `dsh-tools` and configure a reachable YuanShu endpoint.
 
 ### When to choose it
 
-Choose this tool for general YuanShu worker execution. Use [`yuanshu-qa-tool`](../yuanshu-qa-tool/README.md) when the task needs knowledge-base retrieval and citations.
+Choose this tool for DSH-hosted tasks that consume YuanShu enterprise capabilities. The platform remains authoritative for user, tenant, role, data, approval, budget, idempotency, and execution state.
 
 ### Minimal configuration
 
@@ -37,14 +37,14 @@ Choose this tool for general YuanShu worker execution. Use [`yuanshu-qa-tool`](.
 - name: '@deepseek-ai/dsh-yuanshu-tool'
   config:
     baseURL: http://localhost:8081
-    defaultWorkerType: general_assistant
+    enterpriseTransport: mcp
 ```
 
 | Field | Default | Meaning |
 |---|---|---|
 | `baseURL` | required | YuanShu API base URL |
-| `token` | unset | Optional bearer token; otherwise the plugin checks `YUANSHU_TOKEN` and `~/.dsh/yuanshu-token` |
-| `defaultWorkerType` | `general_assistant` | Worker type when the model omits `worker_type` |
+| `enterpriseTransport` | `mcp` | Use user-authorized MCP; `legacy-http` is an explicit rollback setting |
+| `mcpClientId` | `dsh-yuanshu` | Registered public OAuth client identifier |
 
 See the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-yuanshu-tool) for the accepted fields.
 
@@ -54,7 +54,9 @@ See the generated [configuration catalog](../../../docs/config-catalog.md#deepse
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The plugin registers `yuanshu_agent` through `ctx.tools`; the registration disposer is owned by the plugin fiber. It resolves one token at setup and uses it for worker requests made by that plugin instance.
+The plugin registers a session-scoped enterprise catalog tool. Each call is bound to the active user's grant and tenant; MCP failures are returned without replaying a business request through the legacy HTTP path.
+
+`enterprise_resource` measures the complete resource JSON in UTF-8 bytes before returning it to the model. `maxResourceResultBytes` defaults to 65,536 bytes; oversized resources return a diagnostic with the original URI and size, without resource content. No partial resource is presented as complete.
 
 | File | Role |
 |---|---|
@@ -65,27 +67,27 @@ The plugin registers `yuanshu_agent` through `ctx.tools`; the registration dispo
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [YuanShu client](../yuanshu-client/README.md) — HTTP and SSE behavior.
+- [YuanShu client](../yuanshu-client/README.md) — delegated authorization and MCP requests.
 - [YuanShu Q&A tool](../yuanshu-qa-tool/README.md) — knowledge retrieval with citations.
 
 <a id="model-experience"></a>
 ## Model Experience
 
-### YuanShu worker execution
+### Enterprise capability selection
 
 #### What the model sees
 
-The tool is named `yuanshu_agent`. It accepts a required `task`, an optional `worker_type`, and an optional `session_id`; the output contains the YuanShu worker response serialized as text. The description presented to the model is:
+The session-scoped `enterprise_catalog` tool discovers authorized tools, resources, and templates; selecting names exposes only those tools for the current session. `enterprise_resource` reads a URI returned by the platform. The catalog text marks resource content as untrusted task context.
 
 ##### Tool description
 
 ```markdown
-Forward a question to YuanShu platform agent (智能问数Agent, 知识库问答Agent, etc.) and get the answer. Use this when you need to query data or get knowledge-based answers from the YuanShu platform.
+Discover authorized platform tools and evidence/Skill resources. Search for the current task, then select only needed tool names. Platform data, approval and budget rules remain authoritative.
 ```
 
 #### Token effect
 
-The tool name, description, and parameter schema are included when tools are exposed to the model. The returned response adds tokens according to the platform result size.
+Selected tool names, descriptions and parameter schemas enter the model context. Resource results add tokens within `maxResourceResultBytes`; this UTF-8 byte limit is not a tokenizer-specific token estimate.
 
 #### KV Cache effect
 
@@ -93,7 +95,7 @@ The tool definition stays stable for one plugin configuration. Each tool result 
 
 ## Known Limitations and Deferred Work
 
-- **No built-in retry or timeout policy** — the model-visible tool call waits on the YuanShu HTTP request, and the plugin does not retry a failed request.
+- **Oversized resources require another query** — resources have no client-side paging; request a smaller result with the platform query tools or explicitly increase the resource budget. Unknown business outcomes require reading the original Run before another write.
 
 <a id="dev-note"></a>
 ### Dev Note

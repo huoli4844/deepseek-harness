@@ -207,6 +207,32 @@ register(server: string, provider: McpResourceProvider): () => void
 
 Source: [`packages/mcp/mcp-resources/src/index.ts`](../../packages/mcp/mcp-resources/src/index.ts)
 
+<a id="ctxyuanshuenterprise--enterpriseservice"></a>
+
+### `ctx.yuanshuEnterprise` — `EnterpriseService`
+
+Host service; Session resource authorization precedes every Remote method.
+
+```ts cordis-catalog
+/**
+ * Bind explicit platform consent to an authorized DSH Session. Tokens never enter its log.
+ * @param request - current console login, selected tenant, scope, and Session.
+ * @returns authorization status without credentials.
+ */
+@Remote({ resources: { session: (request: EnterpriseAuthorization) => request.sessionId } }) async authorize(request: EnterpriseAuthorization): Promise<{ authorized: boolean }>
+
+/**
+ * Revoke one Session's current platform grant and remove selected tools.
+ * @param sessionId - Session authorized by the Remote resource policy.
+ * @returns authorization status after revocation.
+ */
+@Remote({ resources: { session: (sessionId: SessionId) => sessionId } }) async revoke(sessionId: SessionId): Promise<{ authorized: boolean }>
+```
+
+Types: [SessionId](core.md)
+
+Source: [`packages/yuanshu/yuanshu-tool/src/enterprise.ts`](../../packages/yuanshu/yuanshu-tool/src/enterprise.ts)
+
 <a id="mcp-manager-events"></a>
 
 ### `mcp-manager/*` events

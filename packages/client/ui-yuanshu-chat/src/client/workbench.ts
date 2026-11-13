@@ -322,7 +322,7 @@ export function extractExecutionId(value: unknown): string | undefined {
   const direct = record.execution_id
   if (typeof direct === 'string' && direct.length > 0) return direct
   if (typeof direct === 'number') return String(direct)
-  const data = record.data
+  const data = record.data ?? record.execution ?? record.run
   if (data !== null && typeof data === 'object' && !Array.isArray(data)) {
     return extractExecutionId(data)
   }

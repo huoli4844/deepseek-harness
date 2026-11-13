@@ -39,10 +39,11 @@ export const useSessionStore = defineStore('session', {
         localStorage.setItem(USER_KEY, JSON.stringify({ username: this.username, nickname: this.nickname }))
       }
     },
-    async login(account: string, password: string, captcha_id = '', captcha_code = '') {
+    async login(account: string, password: string, captcha_id = '', captcha_code = '', tenantCode = '') {
       const resp = await loginApi({
         username: account,
         password,
+        ...(tenantCode.trim() ? { tenant_code: tenantCode.trim() } : {}),
         captcha_id,
         captcha_code,
       })

@@ -20,6 +20,10 @@ pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps 
 
 ## 完成状态观察
 
+共享 scaffold 禁用元枢 gateway、登录服务、聊天和账号条目，因为其录制会话与账号控件使用 DeepSeek 组合。企业场景自行启动元枢 profile，不使用该覆盖层。
+
+[`yuanshu-enterprise-live.e2e.ts`](yuanshu-enterprise-live.e2e.ts) 驱动已启动的受支持 Web profile，连接完整元枢 API、隔离 PostgreSQL 和 Docker 执行器。它要求 loopback 地址 `MCP_BROWSER_DSH_URL` 和一次性夹具账号密码 `MCP_BROWSER_PASSWORD`；缺少变量时跳过，不能算验收通过。`MCP_BROWSER_EVIDENCE_DIR` 接收截图。场景验证制造数据、PKCE 授权持久化与撤销、独立用户审批，以及离线重载后恢复原 Run；这些确定性平台工具不需要模型密钥。
+
 依赖状态的用例使用 Workspace、接纳、附件和模型流屏障，区分可见中间状态与已完成操作。模型选择器的持久化断言等待默认设置保存完成，不以菜单关闭作为完成信号。详情关闭等待框架过渡结束；归档验证为 seed Session 设置显式标题，并跨重载跟踪该身份。[CI 测试可靠性工作流](../../../.agents/skills/dsh-ci-test-reliability/SKILL.md#synchronize-on-state)负责这些同步规则。
 
 [空闲提交交接](idle-submission-handoff.e2e.ts)对 Host 帧和浏览器中的消息归位的等待使用 scaffold 的 30 秒 Turn 完成预算。Vitest 负责 scaffold 清理，使 replay 消耗检查错误不会覆盖场景中失败的断言。

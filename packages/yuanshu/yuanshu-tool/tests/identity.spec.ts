@@ -25,7 +25,7 @@ it('does not register the agent tool without an explicit token', () => {
   vi.stubEnv('YUANSHU_TOKEN', 'stale-file-token')
   const { ctx, registered } = fakeContext()
 
-  apply(ctx, { baseURL: 'http://yuanshu.test' })
+  apply(ctx, { baseURL: 'http://yuanshu.test', enterpriseTransport: 'legacy-http' })
 
   expect(registered).toHaveLength(0)
 })
@@ -38,7 +38,7 @@ it('executes with the per-instance token and no implicit credential', async () =
   }))
   const { ctx, registered } = fakeContext()
 
-  apply(ctx, { baseURL: 'http://yuanshu.test', token: 'instance-token' })
+  apply(ctx, { baseURL: 'http://yuanshu.test', enterpriseTransport: 'legacy-http', token: 'instance-token' })
 
   expect(registered).toHaveLength(1)
   const tool = registered[0]

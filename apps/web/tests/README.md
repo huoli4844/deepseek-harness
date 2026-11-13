@@ -20,6 +20,10 @@ Every scenario requires the whole client composition to activate. The product bo
 
 ## Completion observations
 
+The shared scaffold disables the YuanShu gateway, login server, chat and account rows because its recorded conversations and account controls use the DeepSeek composition. The enterprise scenario boots its own YuanShu profile and does not use this overlay.
+
+[`yuanshu-enterprise-live.e2e.ts`](yuanshu-enterprise-live.e2e.ts) drives an already running supported Web profile against the complete YuanShu API, isolated PostgreSQL and Docker executor. It requires `MCP_BROWSER_DSH_URL` on loopback and `MCP_BROWSER_PASSWORD` for the disposable fixture accounts; missing values skip these cases and do not constitute acceptance. `MCP_BROWSER_EVIDENCE_DIR` receives screenshots. The scenario checks manufacturing data, PKCE grant persistence/revocation, separate-user approval and original Run recovery after offline reload; no model key is required for these deterministic platform tools.
+
 State-sensitive cases use Workspace, admission, attachment, and model-stream barriers to separate visible intermediate states from completed operations. Model-picker persistence assertions wait for the saved default, independently of menu closure. Details close waits for frame transitions; archive verification assigns an explicit title to the seeded Session and follows that identity across reload. The [CI test reliability workflow](../../../.agents/skills/dsh-ci-test-reliability/SKILL.md#synchronize-on-state) owns these synchronization rules.
 
 [Idle-submission handoff](idle-submission-handoff.e2e.ts) waits up to the scaffold's 30-second turn-completion budget for Host frames and browser placement. Vitest owns scaffold teardown so a replay-consumption error does not replace the failed scenario assertion.

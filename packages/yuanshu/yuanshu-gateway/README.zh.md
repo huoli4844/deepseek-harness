@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-当浏览器功能需要访问选定的元枢 API、且不应直接跨域请求平台时，挂载此插件。网关通过 Harness Web 服务器转发智能体执行、知识问答、租户和能力查询。它使用请求中的 Bearer token，或使用配置的服务器默认 token。
+挂载此插件以连接 DSH 浏览器功能与元枢。企业能力默认通过官方 MCP 客户端和用户 OAuth grant 调用；同源路由用于登录、租户选择和文件传输等选定 HTTP 操作。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 何时选择
 
-浏览器调用需要同源传输时选择网关。服务器端插件可以直接调用 [`yuanshu-client`](../yuanshu-client/README.zh.md)。
+浏览器侧元枢访问使用此网关。仅在明确的回退窗口中设置 `enterpriseTransport: legacy-http`；MCP 调用失败不会自动回退到 HTTP。
 
 ### 最小配置
 
@@ -43,8 +43,12 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `baseURL` | 必填 | 元枢 API 基础 URL |
-| `token` | 未设置 | 请求没有授权头时使用的默认 Bearer token |
 | `prefix` | `/yuanshu-api` | 同源路由前缀 |
+| `enterpriseTransport` | `mcp` | 企业能力使用 MCP；`legacy-http` 仅用于显式回退 |
+| `mcpClientId` | `dsh-yuanshu` | 已注册的公共 OAuth 客户端标识 |
+| `mcpIssuer` | 根据 `baseURL` 推导 | 预期授权服务器 issuer |
+| `mcpResource` | 根据 `baseURL` 推导 | 受保护的 MCP 资源 URL |
+| `mcpRedirectUri` | 本地回环回调 | 已注册的 Authorization Code + PKCE 回调地址 |
 
 完整字段列表见生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-yuanshu-gateway)。
 
@@ -54,7 +58,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-路由为每个请求创建 YuanShu 客户端，避免一个浏览器用户的 Bearer token 或租户请求头改变其他请求的凭据。路由只拥有选定的 API 路径，不提供通用上游代理。
+网关按已认证的 DSH 用户和所选租户隔离 MCP grant。用户作用域客户端负责 MCP 发现、issuer/resource 校验、刷新和撤销；平台登录 token 或实例级 Bearer token 不能作为 MCP 授权。
 
 | 文件 | 作用 |
 |---|---|

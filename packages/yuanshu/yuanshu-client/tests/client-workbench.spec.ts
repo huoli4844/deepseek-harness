@@ -175,8 +175,8 @@ describe('YuanShuClient client workbench', () => {
     const home = await client.getWorkbenchHome()
 
     expect(calls.map(call => call.url)).toEqual([
-      'https://yuan-shu.example/api/v1/apps/shaoshi/workbench/profile',
-      'https://yuan-shu.example/api/v1/apps/shaoshi/workbench/home',
+      'https://yuan-shu.example/api/v1/client/workbench/profile',
+      'https://yuan-shu.example/api/v1/client/workbench/home',
     ])
     expect(profile.workbench.code).toBe('tenant-admin')
     expect(home.metrics.project_total).toBe(1)

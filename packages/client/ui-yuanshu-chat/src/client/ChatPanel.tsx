@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AskKnowledgeQuestionRequest, YuanShuSseEvent } from '@deepseek-ai/dsh-yuanshu-client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './ChatPanel.module.css'
 import type { NS, YuanShuChatKey } from './locales.ts'
@@ -17,6 +18,8 @@ import {
 
 /** 会话页签与工作台共享的元枢能力调用面。 */
 export interface YuanShuChatInjected {
+  readonly authorizeSession?: (sessionId: SessionId) => Promise<void>
+  readonly revokeSession?: (sessionId: SessionId) => Promise<void>
   readonly askQuestionStream: (request: AskKnowledgeQuestionRequest, signal?: AbortSignal) => AsyncIterable<YuanShuSseEvent>
   readonly listCapabilities: () => Promise<readonly CapabilityOption[]>
   readonly runSkill: (id: string, input: unknown) => Promise<unknown>
@@ -41,6 +44,7 @@ function groupLabel(kind: CapabilityKind, t: (key: YuanShuChatKey) => string): s
 /** 会话内入口：能力工具栏 + 问答或单个能力运行。 */
 export function ChatPanel({
   askQuestionStream,
+  authorizeSession, revokeSession, sessionId,
   listCapabilities,
   runSkill,
   runAlgorithm,
@@ -49,13 +53,24 @@ export function ChatPanel({
   listDagHistory,
   getDagHistoryDetail,
   t,
-}: InjectFace<YuanShuChatInjected> & PropsLocale<typeof NS>): React.JSX.Element {
+}: InjectFace<YuanShuChatInjected> & PropsLocale<typeof NS> & { readonly sessionId?: SessionId }): React.JSX.Element {
   const [capabilities, setCapabilities] = useState<readonly CapabilityOption[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const catalogLoadedRef = useRef(false)
 
   const [selectedKey, setSelectedKey] = useState('qa')
+  const [authorizationBusy, setAuthorizationBusy] = useState(false)
+  const [authorizationError, setAuthorizationError] = useState<string | null>(null)
+  const authorize = async (revoke: boolean): Promise<void> => {
+    if (sessionId === undefined) return
+    setAuthorizationBusy(true); setAuthorizationError(null)
+    try {
+      if (revoke) await revokeSession?.(sessionId)
+      else await authorizeSession?.(sessionId)
+    } catch { setAuthorizationError(t('authorizationFailed')) }
+    finally { setAuthorizationBusy(false) }
+  }
 
   const groups = useMemo(() => groupCapabilities(capabilities), [capabilities])
   const selectedCapability = useMemo(() => {
@@ -91,6 +106,9 @@ export function ChatPanel({
   return (
     <div className={css.container}>
       <div className={css.toolbar}>
+        {sessionId !== undefined && authorizeSession !== undefined && <button disabled={authorizationBusy} onClick={() => { void authorize(false) }}>{t('authorizeSession')}</button>}
+        {sessionId !== undefined && revokeSession !== undefined && <button disabled={authorizationBusy} onClick={() => { void authorize(true) }}>{t('revokeEnterprise')}</button>}
+        {authorizationError !== null && <span role="alert">{authorizationError}</span>}
         <select
           className={css.capabilitySelect}
           value={selectedKey}

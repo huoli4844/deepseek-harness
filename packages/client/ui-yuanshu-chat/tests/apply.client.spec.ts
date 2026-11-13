@@ -1,3 +1,5 @@
+import { apply as applyResources } from '@deepseek-ai/dsh-client-resources/client'
+import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -25,7 +27,9 @@ function localeStub(): {
 describe('yuanshu browser plugin registration', () => {
   it('registers the workbench main view, sidebar entry, and conversation Q&A tab', async () => {
     const ctx = new Context()
+    new TestRemote(ctx)
     new SlotRegistry(ctx)
+    applyResources(ctx)
     ctx.provide('locale', localeStub() as never)
     const owner = ctx.slots.register({
       name: 'root',

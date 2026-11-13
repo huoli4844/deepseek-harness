@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this browser plugin to work with the YuanShu platform from a workbench panel and a conversation tab. The workbench lists ontology, Skills, algorithms, scenarios, DAGs and knowledge catalogs on the left and opens capability runners or Q&A on the right. It sends requests to the same-origin `/yuanshu-api` gateway and reads the browser token from `localStorage.yuanshu-token`. The YuanShu gateway must be mounted in the Host profile.
+Mount this browser plugin to consume the YuanShu platform's authenticated MCP capability catalog and application workbench. It sends requests to the same-origin `/yuanshu-api` gateway and reads the login token from `localStorage.yuanshu-token`; the gateway owns the separate user and tenant MCP grant. The YuanShu gateway must be mounted in the Host profile.
 
 ## Table of Contents
 
@@ -38,6 +38,8 @@ Choose this view for browser-based knowledge Q&A. The model-facing [`yuanshu_qa`
 ```
 
 The view has no plugin configuration. It expects the Host to serve the login page and same-origin gateway routes.
+
+Select a tenant and explicitly authorize enterprise access. Tool results refresh the original Run without reloading identity or the capability catalog. Refresh, tenant selection, authorization and revocation reload the catalog. Reload restores only the authenticated owner's original Run handle and queries the platform again; it never resubmits the business operation.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation

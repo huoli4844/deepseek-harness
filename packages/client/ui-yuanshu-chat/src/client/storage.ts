@@ -1,10 +1,4 @@
-/** 元枢工作台的浏览器持久化：身份 token 与知识问答会话。
- *
- * 身份只有一份：登录页写入的元枢 token 就是工作台、网关和工具链路的
- * principal。这里不在插件启动时缓存 token，而是在每次请求前读取，避免
- * 用户先打开页面、后完成登录时界面继续使用空凭据。
- */
-
+/** Browser display-cache ownership. Console JWTs authorize login only; enterprise access uses separate OAuth grants in the host vault. */
 /** 登录页可能写入 token 的键，按优先级从新到旧。 */
 export const TOKEN_STORAGE_KEYS = ['yuanshu-token', 'workbench-client-token', 'yuanshu-login-token'] as const
 
@@ -54,7 +48,7 @@ export function readAuthToken(storage: KeyValueStorage | undefined = defaultStor
 }
 
 /**
- * 读取用户显式选择的租户；未选择时由网关回退到 token 的当前租户。
+ * 读取用户显式选择的租户；未选择时企业授权与问答持久化不可用。
  * @param storage - Browser storage to read; defaults to localStorage.
  * @returns The selected tenant, or undefined when none is available.
  */
@@ -81,6 +75,26 @@ export function writeActiveTenant(tenantId: string | undefined, storage: KeyValu
   } catch {
     // 存储不可用时仅失去刷新后的租户记忆，不影响本次会话。
   }
+}
+
+/**
+ * Partition display-only cache by console subject and explicitly selected tenant.
+ * JWT claims select a local cache only; the platform independently verifies authorization.
+ * Opaque, missing or malformed login tokens disable persistence. Legacy unowned records are ignored.
+ * @param storage - Login and tenant storage.
+ * @returns Non-secret display-cache owner, or undefined when no subject is available.
+ */
+export function qaStorageIdentity(storage: KeyValueStorage | undefined = defaultStorage()): string | undefined {
+  const token = readAuthToken(storage), selectedTenant = readActiveTenant(storage)
+  if (token === undefined || selectedTenant === undefined) return undefined
+  try {
+    const part = token.split('.')[1]
+    if (part === undefined) return undefined
+    const payload: unknown = JSON.parse(atob(part.replace(/-/gu, '+').replace(/_/gu, '/')))
+    if (payload === null || typeof payload !== 'object' || !('user_id' in payload) || !Number.isSafeInteger(payload.user_id) || Number(payload.user_id) <= 0) return undefined
+    const issuer = 'iss' in payload && typeof payload.iss === 'string' ? payload.iss : ''
+    return JSON.stringify([issuer, payload.user_id, selectedTenant])
+  } catch { return undefined }
 }
 
 /** 一条可恢复的引用；只保存展示所需字段。 */
@@ -126,6 +140,8 @@ export function loadQaSession(storage: KeyValueStorage | undefined = defaultStor
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return { messages: [] }
   const record = parsed as Record<string, unknown>
+  const owner = qaStorageIdentity(storage)
+  if (owner === undefined || record.owner !== owner) return { messages: [] }
   const sessionId = typeof record.sessionId === 'string' && record.sessionId.length > 0 ? record.sessionId : undefined
   const messages = Array.isArray(record.messages) ? record.messages.flatMap(readMessage) : []
   return { ...(sessionId === undefined ? {} : { sessionId }), messages }
@@ -167,7 +183,9 @@ function readCitation(value: unknown): StoredQaCitation[] {
 export function saveQaSession(session: StoredQaSession, storage: KeyValueStorage | undefined = defaultStorage()): void {
   if (storage === undefined) return
   try {
-    storage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify(session))
+    const owner = qaStorageIdentity(storage)
+    if (owner === undefined) return
+    storage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify({ ...session, owner }))
   } catch {
     // 配额已满或被浏览器禁用时只失去刷新恢复能力，不阻断问答。
   }

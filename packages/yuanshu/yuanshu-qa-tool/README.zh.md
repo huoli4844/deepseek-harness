@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-当 Agent 需要查询元枢知识集合并获取带引用的答案时，挂载此插件。工具支持后续会话 ID、集合筛选、应用选择和思考深度。结果以纯文本返回，引用不会渲染为富卡片。
+此包是旧 HTTP 兼容工具，在元枢 profile 中默认禁用。新的企业知识检索使用 `yuanshu-tool` 提供的用户授权 MCP 目录和证据资源。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 何时选择
 
-任务需要知识检索、引用或连续问答会话时选择此插件。通用智能体执行请使用 [`yuanshu-tool`](../yuanshu-tool/README.zh.md)。
+仅当部署显式保留其 HTTP 端点且提供用户级 token 时保留此插件。MCP 企业通道不得配置实例级 token。
 
 ### 最小配置
 
@@ -43,7 +43,7 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `baseURL` | 必填 | 元枢 API 基础 URL |
-| `token` | 未设置 | 可选 Bearer token；否则依次读取 `YUANSHU_TOKEN` 和 `~/.dsh/yuanshu-token` |
+| `token` | 未设置 | 旧 HTTP 路径显式提供的 Bearer token；不读取环境变量或 token 文件 |
 | `streaming` | `false` | 读取完整 SSE 响应后再返回最终答案 |
 
 完整字段列表见生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-yuanshu-qa-tool)。

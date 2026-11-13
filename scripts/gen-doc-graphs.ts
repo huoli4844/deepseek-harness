@@ -713,6 +713,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Reconciles mcp-client instances against its volatile servers configuration, aggregates their connection statuses, and serves restart and probe to management surfaces.',
   },
   {
+    key: 'yuanshuEnterprise',
+    pkg: 'yuanshu-tool',
+    title: 'Session enterprise MCP access',
+    mode: 'service',
+    consumers: ['client-ui-yuanshu-chat'],
+    note: 'Binds user consent to an authorized Session, selects discovered platform tools and revokes its grant; execution remains in YuanShu.',
+  },
+  {
     key: 'schedule',
     pkg: 'schedule',
     title: 'Host scheduled messages',

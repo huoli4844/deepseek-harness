@@ -16,7 +16,6 @@ export interface ProductPackagePolicy {
  * Optional integrations may be reached by an optional bundle without becoming default capabilities.
  */
 export const PRODUCT_PACKAGE_POLICY: Readonly<Record<string, ProductPackagePolicy>> = {
-  'packages/yuanshu/yuanshu-tool': { category: 'optional', reason: 'Agent tool mounted by the explicitly selected YuanShu profile.' },
   'packages/yuanshu/yuanshu-qa-tool': { category: 'optional', reason: 'Knowledge Q&A tool mounted by the explicitly selected YuanShu profile.' },
   'packages/core/agent-tool-presentation': { category: 'optional', reason: 'Deprecated selector retained for existing executor configurations.' },
   'packages/browser-use/browser-use': { category: 'optional', reason: 'Service definition used by explicitly selected browser providers.' },

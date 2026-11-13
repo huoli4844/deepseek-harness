@@ -1,6 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -66,29 +63,9 @@ function formatAnswer(result: AskKnowledgeQuestionResponse): string {
   return lines.join('\n')
 }
 
-/** Resolve the YuanShu auth token: config > env var > shared token file. */
-function resolveToken(config: Config): string | undefined {
-  // 1) Direct config
-  if (config.token) return config.token
-
-  // 2) Environment variable
-  const envToken = process.env.YUANSHU_TOKEN
-  if (envToken) return envToken
-
-  // 3) Shared token file (written by yuanshu-login web app)
-  const tokenFile = join(homedir(), '.dsh', 'yuanshu-token')
-  try {
-    const fileToken = readFileSync(tokenFile, 'utf8').trim()
-    if (fileToken) return fileToken
-  } catch {
-    // File doesn't exist or unreadable — fall through
-  }
-
-  return undefined
-}
-
 export function apply(ctx: Context, config: Config): void {
-  const token = resolveToken(config)
+  const token = config.token
+  if (!token) return
   const client = new YuanShuClient({
     baseURL: config.baseURL,
     ...(token ? { token } : {}),

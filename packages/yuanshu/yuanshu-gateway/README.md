@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Mount this plugin when a browser feature needs selected YuanShu APIs without making cross-origin requests to the platform. The gateway forwards worker execution, knowledge Q&A, tenant, and capability calls through the Harness web server. It accepts a request bearer token or a configured server-side default.
+Mount this plugin to connect DSH browser features to YuanShu. Enterprise tools use the official MCP client with a user-scoped OAuth grant by default; the same-origin routes expose login and selected HTTP operations such as tenant selection and file transfer.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Add the package as a Cordis plugin and configure the upstream URL.
 
 ### When to choose it
 
-Choose the gateway for browser-side calls that need same-origin transport. Server-side plugins can call [`yuanshu-client`](../yuanshu-client/README.md) directly.
+Choose the gateway for browser-side YuanShu access. Set `enterpriseTransport: legacy-http` only during an explicit rollback window; MCP failures never fall back to HTTP.
 
 ### Minimal configuration
 
@@ -43,8 +43,12 @@ Choose the gateway for browser-side calls that need same-origin transport. Serve
 | Field | Default | Meaning |
 |---|---|---|
 | `baseURL` | required | YuanShu API base URL |
-| `token` | unset | Default bearer token when the request has no authorization header |
 | `prefix` | `/yuanshu-api` | Same-origin route prefix |
+| `enterpriseTransport` | `mcp` | `mcp` for user-authorized enterprise capabilities; `legacy-http` for explicit rollback |
+| `mcpClientId` | `dsh-yuanshu` | Registered public OAuth client identifier |
+| `mcpIssuer` | derived from `baseURL` | Expected authorization server issuer |
+| `mcpResource` | derived from `baseURL` | Protected MCP resource URL |
+| `mcpRedirectUri` | loopback callback | Registered Authorization Code + PKCE callback |
 
 See the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-yuanshu-gateway) for the accepted fields.
 
@@ -54,7 +58,7 @@ See the generated [configuration catalog](../../../docs/config-catalog.md#deepse
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The route creates a YuanShu client for each request so one browser user's bearer token or tenant header cannot change another request's credentials. The route owns only the selected API paths; it does not expose a generic upstream proxy.
+The gateway keeps MCP grants scoped to the authenticated DSH user and selected tenant. MCP discovery, issuer/resource checks, refresh, and revoke are handled by the user-scoped client; a platform login token or instance-wide bearer token is not accepted as MCP authorization.
 
 | File | Role |
 |---|---|

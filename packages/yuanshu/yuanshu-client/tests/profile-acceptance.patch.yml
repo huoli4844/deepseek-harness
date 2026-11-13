@@ -1,0 +1,25 @@
+# Local browser acceptance overlay; points the supported Web profile at loopback only.
+- insert:
+    - id: yuanshu-tool
+      name: '@deepseek-ai/dsh-yuanshu-tool'
+      config:
+        baseURL: http://127.0.0.1:18091
+        enterpriseTransport: mcp
+        mcpClientId: dsh-yuanshu
+        mcpRedirectUri: http://localhost:3065/yuanshu-mcp/callback
+
+- id: yuanshu-gateway
+  name: '@deepseek-ai/dsh-yuanshu-gateway'
+  inject: [webServer, credentials]
+  config:
+    baseURL: http://127.0.0.1:18091
+    prefix: /yuanshu-api
+    enterpriseTransport: mcp
+    mcpClientId: dsh-yuanshu
+    mcpRedirectUri: http://localhost:3065/yuanshu-mcp/callback
+
+- id: yuanshu-login-server
+  name: '@deepseek-ai/dsh-yuanshu-login-server'
+  inject: [webServer, connection, webApp]
+  config:
+    yuanshuApiUrl: http://127.0.0.1:18091

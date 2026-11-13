@@ -1,14 +1,17 @@
+import { createHash } from 'node:crypto'
+import { credentialKey } from '@deepseek-ai/dsh-credentials'
+import type { YuanShuMcpGrant } from '@deepseek-ai/dsh-yuanshu-client'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
-import { YuanShuClient } from '@deepseek-ai/dsh-yuanshu-client'
+import { YuanShuMcp, YuanShuClient } from '@deepseek-ai/dsh-yuanshu-client'
 import type { YuanShuDagInvokeRequest, YuanShuExecuteRequest, YuanShuExecutionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { AskKnowledgeQuestionRequest } from '@deepseek-ai/dsh-yuanshu-client'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { GatewayRequestError, allowedMethods, errorBody, errorStatus } from './routes.ts'
 
 export const name = 'yuanshu-gateway'
-export const inject = ['webServer']
+export const inject = ['webServer', 'credentials']
 
 /** Gateway endpoint and optional server-side credentials. */
 export interface Config {
@@ -18,8 +21,20 @@ export interface Config {
   readonly token?: string
   /** Same-origin path prefix registered by the gateway. */
   readonly prefix?: string
+  /** Route enterprise operations through MCP; legacy-http is an explicit rollback choice. */
+  readonly enterpriseTransport?: 'mcp' | 'legacy-http'
+  /** Registered MCP public client id. */
+  readonly mcpClientId?: string
+  /** Exact callback URI registered with the platform. */
+  readonly mcpRedirectUri?: string
+  /** MCP issuer; omission resolves from baseURL at plugin activation. */
+  readonly mcpIssuer?: string
+  /** Protected MCP resource URL; omission resolves from baseURL at plugin activation. */
+  readonly mcpResource?: string
+  /** Budget for protocol and OAuth requests. */
+  readonly mcpTimeoutMs?: number
 }
-export const Config: z<Config> = z.object({ baseURL: z.string().required(), token: z.string(), prefix: z.string().default('/yuanshu-api') })
+export const Config: z<Config> = z.object({ baseURL: z.string().required(), token: z.string(), prefix: z.string().default('/yuanshu-api'), enterpriseTransport: z.union(['mcp', 'legacy-http']).default('mcp'), mcpClientId: z.string().default('dsh-yuanshu'), mcpRedirectUri: z.string().default('http://localhost:3000/yuanshu-mcp/callback'), mcpIssuer: z.string(), mcpResource: z.string(), mcpTimeoutMs: z.number().min(1).default(30_000) })
 
 /**
  * Gateway routes exposed on the prefix path.
@@ -62,11 +77,14 @@ export const Config: z<Config> = z.object({ baseURL: z.string().required(), toke
  */
 async function body(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
+  let size = 0
   for await (const chunk of req) {
     const value: unknown = chunk
     if (typeof value !== 'string' && !(value instanceof Uint8Array)) throw new GatewayRequestError('Invalid request body')
-    chunks.push(Buffer.from(value))
-    if (Buffer.concat(chunks).length > 1024 * 1024) throw new Error('request body too large')
+    const buffer = Buffer.from(value)
+    size += buffer.length
+    if (size > 1024 * 1024) throw new GatewayRequestError('request body too large', 413)
+    chunks.push(buffer)
   }
   const text = Buffer.concat(chunks).toString('utf8')
   return text ? JSON.parse(text) : undefined
@@ -176,7 +194,13 @@ function resolveToken(config: Config): string | undefined {
 }
 
 export function apply(ctx: Context, config: Config): void {
-  const token = resolveToken(config)
+  const enterpriseMode = config.enterpriseTransport ?? 'mcp'
+  const mcpIssuer = config.mcpIssuer ?? config.baseURL.replace(/\/+$/u, '')
+  const mcpResource = config.mcpResource ?? `${config.baseURL.replace(/\/+$/u, '')}/api/v1/client/mcp`
+  const mcpClientId = config.mcpClientId ?? 'dsh-yuanshu'
+  const mcpRedirectUri = config.mcpRedirectUri ?? 'http://localhost:3000/yuanshu-mcp/callback'
+  if (enterpriseMode === 'mcp' && config.token !== undefined) throw new GatewayRequestError('MCP user mode forbids instance-level bearer credentials')
+  const token = enterpriseMode === 'legacy-http' ? resolveToken(config) : undefined
   const prefix = config.prefix ?? '/yuanshu-api'
   const route: WebRoute = { kind: 'prefix', path: prefix, handler: async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
@@ -203,7 +227,29 @@ export function apply(ctx: Context, config: Config): void {
     const effectiveToken = typeof auth === 'string'
       ? auth.replace(/^Bearer\s+/u, '')
       : token
+    const key = credentialKey('yuanshu-gateway', `user-${createHash('sha256').update(JSON.stringify([mcpIssuer, mcpResource, effectiveToken ?? '', tenant ?? ''])).digest('hex')}`)
+    const credentials = {
+      read: async (): Promise<YuanShuMcpGrant | undefined> => {
+        const record = await ctx.credentials.readRecord(key)
+        return record?.kind === 'grant' && record.payload !== null ? readGrant(record.payload) : undefined
+      },
+      write: async (value: YuanShuMcpGrant | undefined): Promise<void> => {
+        if (value === undefined) await ctx.credentials.deleteRecord(key)
+        else await ctx.credentials.modifyRecord(key, () => Promise.resolve({ kind: 'grant', payload: value }))
+      },
+      rotate: async (update: (current: YuanShuMcpGrant | undefined) => Promise<YuanShuMcpGrant | undefined>): Promise<void> => {
+        await ctx.credentials.modifyRecord(key, async (current) => {
+          const value = await update(current?.kind === 'grant' && current.payload !== null ? readGrant(current.payload) : undefined)
+          return { kind: 'grant', payload: value ?? null }
+        })
+      },
+    }
+    const mcp = new YuanShuMcp({
+      resource: mcpResource, issuer: mcpIssuer, clientId: mcpClientId, redirectUri: mcpRedirectUri,
+      timeoutMs: config.mcpTimeoutMs ?? 30_000, credentials,
+    })
     const requestClient = new YuanShuClient({
+      ...enterpriseMode === 'mcp' ? { enterprise: mcp } : {},
       baseURL: config.baseURL,
       ...(effectiveToken === undefined ? {} : { token: effectiveToken }),
       ...(tenant === undefined ? {} : { tenantId: tenant }),
@@ -212,12 +258,70 @@ export function apply(ctx: Context, config: Config): void {
     // 元枢要求多租户用户显式选择租户（X-Active-Tenant），而元枢登录页只保存 token。
     // 浏览器未指定租户时，用 token 解析用户的当前租户，避免 admin 这类多租户账号
     // 直接收到 `tenant selection required`。
-    if (tenant === undefined && effectiveToken !== undefined) {
-      const resolved = await resolveCurrentTenant(requestClient, effectiveToken)
-      if (resolved !== undefined) requestClient.setAuth(effectiveToken, resolved)
-    }
-
     try {
+      if (tenant === undefined && effectiveToken !== undefined) {
+        const resolved = await resolveCurrentTenant(requestClient)
+        if (resolved !== undefined) requestClient.setAuth(effectiveToken, resolved)
+      }
+
+      if (relative === '/mcp/config') {
+        writeJSON(res, {
+          enterpriseTransport: enterpriseMode, resource: mcpResource, issuer: mcpIssuer, clientId: mcpClientId,
+          redirectUri: mcpRedirectUri, timeoutMs: config.mcpTimeoutMs ?? 30_000,
+        }); return
+      }
+      if (relative === '/mcp/authorize') {
+        const input = requireObject(await body(req))
+        if (effectiveToken === undefined || tenant === undefined || input.consent !== 'approve' || (input.scope !== 'enterprise:read' && input.scope !== 'enterprise:read enterprise:execute')) throw new GatewayRequestError('Current login, explicit tenant and consent required', 401)
+        await mcp.authorize(effectiveToken, tenant, input.scope)
+        writeJSON(res, { authorized: true }); return
+      }
+      if (relative === '/mcp/status') { writeJSON(res, { authorized: await credentials.read() !== undefined }); return }
+      if (relative === '/mcp/revoke') { await mcp.revoke(); writeJSON(res, { authorized: false }); return }
+      if (relative === '/mcp/workbench') {
+        const result = await mcp.call('workbench_describe', {})
+        const envelope = result.structuredContent
+        if (result.isError || envelope === null || typeof envelope !== 'object' || !('data' in envelope)) throw new GatewayRequestError('Workbench descriptor unavailable', 503)
+        writeJSON(res, envelope.data); return
+      }
+      if (relative === '/mcp/read') {
+        const query = parseQuery(url.toString())
+        if (query.name === undefined || query.arguments === undefined) throw new GatewayRequestError('Read tool and arguments required')
+        const tool = (await mcp.tools()).find(item => item.name === query.name)
+        if (tool?.annotations?.readOnlyHint !== true) throw new GatewayRequestError('Only declared read tools may be used as resources')
+        writeJSON(res, await mcp.call(query.name, requireObject(JSON.parse(query.arguments)))); return
+      }
+      if (relative === '/mcp/tools') { writeJSON(res, await mcp.tools()); return }
+      if (relative === '/mcp/call') {
+        const input = requireObject(await body(req))
+        if (typeof input.name !== 'string') throw new GatewayRequestError('Tool name required')
+        const continuation: { requestState?: string; inputResponses?: Record<string, { action: 'accept' | 'decline' | 'cancel'; content?: Record<string, string | number | boolean | string[]> }> } = {}
+        if (input.requestState !== undefined) {
+          if (typeof input.requestState !== 'string') throw new GatewayRequestError('Invalid continuation state')
+          continuation.requestState = input.requestState
+        }
+        if (input.inputResponses !== undefined) {
+          const responses = requireObject(input.inputResponses)
+          continuation.inputResponses = {}
+          for (const [id, raw] of Object.entries(responses)) {
+            const response = requireObject(raw)
+            if (response.action !== 'accept' && response.action !== 'decline' && response.action !== 'cancel') throw new GatewayRequestError('Invalid user input action')
+            const content: Record<string, string | number | boolean | string[]> = {}
+            if (response.content !== undefined) for (const [key, value] of Object.entries(requireObject(response.content))) {
+              if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || (Array.isArray(value) && value.every(item => typeof item === 'string'))) content[key] = value
+              else throw new GatewayRequestError('Supplemental input must contain primitive values')
+            }
+            continuation.inputResponses[id] = { action: response.action, content }
+          }
+        }
+        const result = await mcp.callWithInput(input.name, requireObject(input.arguments), continuation)
+        writeJSON(res, result); return
+      }
+      if (relative === '/mcp/resource') {
+        const uri = parseQuery(url.toString()).uri
+        if (uri === undefined) throw new GatewayRequestError('Resource URI required')
+        writeJSON(res, await mcp.resource(uri)); return
+      }
       // ── Worker API ────────────────────────────────────────────────────
 
       if (relative === '/capabilities') {
@@ -442,21 +546,28 @@ export function apply(ctx: Context, config: Config): void {
       if (relative.endsWith('/execute') && relative.startsWith('/skills/')) {
         const id = pathParam(relative, /^\/skills\/([^/]+)\/execute$/u)
         const record = requireObject(await body(req))
-        writeJSON(res, await requestClient.executeClientSkill(id, record.input_data))
+        writeJSON(res, config.enterpriseTransport === 'legacy-http'
+          ? await requestClient.submitClientExecution('skills', id, executionRequest(record, req.headers['idempotency-key']))
+          : await requestClient.submitSkillExecution(id, executionRequest(record, req.headers['idempotency-key'])))
         return
       }
 
       if (relative.endsWith('/executions') && relative.startsWith('/skills/')) {
         const id = pathParam(relative, /^\/skills\/([^/]+)\/executions$/u)
         const input = await body(req)
-        writeJSON(res, await requestClient.submitSkillExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        const execution = executionRequest(input, req.headers['idempotency-key'])
+        writeJSON(res, config.enterpriseTransport === 'legacy-http'
+          ? await requestClient.submitClientExecution('skills', id, execution)
+          : await requestClient.submitSkillExecution(id, execution))
         return
       }
 
       if (relative.endsWith('/execute') && relative.startsWith('/algorithms/')) {
         const id = pathParam(relative, /^\/algorithms\/([^/]+)\/execute$/u)
         const record = requireObject(await body(req))
-        writeJSON(res, await requestClient.executeClientAlgorithm(id, record.input_data))
+        writeJSON(res, config.enterpriseTransport === 'legacy-http'
+          ? await requestClient.submitClientExecution('algorithms', id, executionRequest(record, req.headers['idempotency-key']))
+          : await requestClient.submitAlgorithmExecution(id, executionRequest(record, req.headers['idempotency-key'])))
         return
       }
 
@@ -471,14 +582,31 @@ export function apply(ctx: Context, config: Config): void {
           return
         }
         const input = await body(req)
-        writeJSON(res, await requestClient.submitAlgorithmExecution(id, executionRequest(input, req.headers['idempotency-key'])))
+        const execution = executionRequest(input, req.headers['idempotency-key'])
+        writeJSON(res, config.enterpriseTransport === 'legacy-http'
+          ? await requestClient.submitClientExecution('algorithms', id, execution)
+          : await requestClient.submitAlgorithmExecution(id, execution))
         return
       }
 
       if (relative.startsWith('/dag/definitions/') && relative.endsWith('/invoke')) {
         const id = pathParam(relative, /^\/dag\/definitions\/([^/]+)\/invoke$/u)
         const input = await body(req)
-        writeJSON(res, await requestClient.invokeClientDag(id, dagInvokeRequest(input, req.headers['idempotency-key'])))
+        const invoke = dagInvokeRequest(input, req.headers['idempotency-key'])
+        writeJSON(res, await requestClient.invokeClientDag(id, invoke))
+        return
+      }
+
+      const execution = /^\/executions\/([^/]+)(\/cancel)?$/u.exec(relative)
+      if (execution !== null) {
+        const id = decodeURIComponent(String(execution[1]))
+        if (execution[2] === undefined) writeJSON(res, await requestClient.getExecution(id))
+        else {
+          const record = requireObject(await body(req))
+          const key = idempotencyKey(record, req.headers['idempotency-key'])
+          if (key === undefined || key.trim() === '') throw new GatewayRequestError('idempotency_key required')
+          writeJSON(res, await requestClient.cancelExecution(id, key))
+        }
         return
       }
 
@@ -505,6 +633,8 @@ export function apply(ctx: Context, config: Config): void {
     } catch (error) {
       if (res.headersSent) { res.destroy(); return }
       writeJSON(res, errorBody(error), errorStatus(error))
+    } finally {
+      await mcp.close()
     }
   } }
   ctx.effect(() => ctx.webServer.register(route), 'yuanshu-gateway: route')
@@ -516,9 +646,6 @@ function writeJSON(res: ServerResponse, value: unknown, status = 200): void {
   res.end(output)
 }
 
-/** 最近一次 token → 当前租户的解析结果，避免每次请求都多打一次租户接口。 */
-let tenantCache: { readonly token: string; readonly tenant: string } | undefined
-
 function headerValue(value: string | readonly string[] | undefined): string | undefined {
   const raw: unknown = Array.isArray(value) ? value[0] : value
   const trimmed = typeof raw === 'string' ? raw.trim() : undefined
@@ -526,16 +653,24 @@ function headerValue(value: string | readonly string[] | undefined): string | un
 }
 
 /** 用 token 解析用户当前租户；失败时返回 undefined，让元枢自行返回租户错误。 */
-async function resolveCurrentTenant(client: YuanShuClient, token: string): Promise<string | undefined> {
-  if (tenantCache?.token === token) return tenantCache.tenant
+async function resolveCurrentTenant(client: YuanShuClient): Promise<string | undefined> {
   try {
     const tenants = await client.listTenants()
     const current = tenants.find(item => item.current === true) ?? tenants[0]
     const value = current?.code ?? current?.id
     if (typeof value !== 'string' && typeof value !== 'number') return undefined
-    tenantCache = { token, tenant: String(value) }
-    return tenantCache.tenant
+    return String(value)
   } catch {
     return undefined
+  }
+}
+
+/** Validate a stored OAuth grant before it can reach a remote request. */
+function readGrant(value: unknown): YuanShuMcpGrant {
+  const record = requireObject(value)
+  if (typeof record.accessToken !== 'string' || typeof record.refreshToken !== 'string' || typeof record.expiresAt !== 'number' || typeof record.issuer !== 'string' || typeof record.resource !== 'string' || typeof record.clientId !== 'string') throw new GatewayRequestError('Stored MCP grant is invalid; authorize again', 401)
+  return {
+    accessToken: record.accessToken, refreshToken: record.refreshToken, expiresAt: record.expiresAt,
+    issuer: record.issuer, resource: record.resource, clientId: record.clientId,
   }
 }

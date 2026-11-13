@@ -28,6 +28,7 @@ import {
   defaultStorage,
   loadQaSession,
   QA_SESSION_STORAGE_KEY,
+  qaStorageIdentity,
   readAuthToken,
   saveQaSession,
   TOKEN_STORAGE_KEYS,
@@ -370,7 +371,7 @@ describe('browser storage', () => {
   })
 
   it('round-trips the Q&A session and clears it', () => {
-    const storage = memoryStorage()
+    const storage = memoryStorage({ 'yuanshu-token': `e30.${btoa(JSON.stringify({ user_id: 1 }))}.signature`, 'yuanshu-active-tenant': '1' })
     saveQaSession({
       sessionId: 'sess-1',
       messages: [
@@ -390,11 +391,26 @@ describe('browser storage', () => {
     expect(loadQaSession(storage)).toEqual({ messages: [] })
   })
 
+  it('does not restore another subject, tenant, or an unowned legacy transcript', () => {
+    const storage = memoryStorage({ 'yuanshu-token': `e30.${btoa(JSON.stringify({ user_id: 1 }))}.signature`, 'yuanshu-active-tenant': '1' })
+    saveQaSession({ sessionId: 'private', messages: [{ role: 'user', content: 'private' }] }, storage)
+    storage.setItem('yuanshu-active-tenant', '2')
+    expect(loadQaSession(storage)).toEqual({ messages: [] })
+    storage.setItem('yuanshu-active-tenant', '1')
+    storage.setItem('yuanshu-token', `e30.${btoa(JSON.stringify({ user_id: 2 }))}.signature`)
+    expect(loadQaSession(storage)).toEqual({ messages: [] })
+    storage.setItem('yuanshu-token', 'opaque')
+    expect(loadQaSession(storage)).toEqual({ messages: [] })
+    storage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify({ sessionId: 'legacy', messages: [] }))
+    expect(loadQaSession(storage)).toEqual({ messages: [] })
+  })
+
   it('recovers from corrupted or hostile stored transcripts', () => {
-    const storage = memoryStorage({ [QA_SESSION_STORAGE_KEY]: '{not json' })
+    const storage = memoryStorage({ [QA_SESSION_STORAGE_KEY]: '{not json', 'yuanshu-token': `e30.${btoa(JSON.stringify({ user_id: 1 }))}.signature`, 'yuanshu-active-tenant': '1' })
     expect(loadQaSession(storage)).toEqual({ messages: [] })
 
     storage.setItem(QA_SESSION_STORAGE_KEY, JSON.stringify({
+      owner: qaStorageIdentity(storage),
       sessionId: 42,
       messages: [
         { role: 'system', content: 'ignore' },
