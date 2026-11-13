@@ -64,7 +64,15 @@ describe('web e2e: credential mask in user text', () => {
     await page.getByRole('button', { name: 'Show secret', exact: true }).click()
     await expect.poll(() => text.textContent()).toBe(PROMPT)
     // The monospace run keeps one mask character per original character, so revealing does not move the line.
-    expect({ run: await run.boundingBox(), bubble: await text.boundingBox() }).toEqual(masked)
+    const revealed = { run: await run.boundingBox(), bubble: await text.boundingBox() }
+    for (const key of ['run', 'bubble'] as const) {
+      expect(revealed[key]).not.toBeNull()
+      expect(masked[key]).not.toBeNull()
+      for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+        // Blink rounds separately shaped inline runs to 1/64 CSS-pixel units.
+        expect(Math.abs(revealed[key]![dimension] - masked[key]![dimension])).toBeLessThanOrEqual(1 / 64)
+      }
+    }
     await page.getByRole('button', { name: 'Hide secret', exact: true }).click()
     await expect.poll(() => text.textContent()).not.toContain(KEY)
     expect(tripwire.pageErrors).toEqual([])

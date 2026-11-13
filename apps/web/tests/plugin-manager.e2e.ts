@@ -296,6 +296,14 @@ describe('web e2e: plugin manager', () => {
       await probe.setViewportSize({ width: 1280, height: 480 })
       await body.evaluate((element) => { element.scrollTop = 0 })
       await expect.poll(() => bar.evaluate(element => element.hasAttribute('data-compact'))).toBe(false)
+      // ResizeObserver updates the responsive header after the viewport change;
+      // measure scroll travel only after that layout has reached the wide form.
+      await expect.poll(() => bar.evaluate(element => {
+        const tablist = element.querySelector('[role="tablist"]')!
+        const toolbar = element.querySelector('[data-plugin-toolbar]')!
+        return toolbar.getBoundingClientRect().top < tablist.getBoundingClientRect().bottom
+          && tablist.getBoundingClientRect().width >= 240
+      })).toBe(true)
       const range = await body.evaluate(element => element.scrollHeight - element.clientHeight)
       await probe.setViewportSize({ width: 1280, height: 480 + range - 30 })
       await expect.poll(() => body.evaluate(element => element.scrollHeight - element.clientHeight)).toBe(30)
@@ -692,6 +700,9 @@ describe('web e2e: plugin manager', () => {
       await expect.poll(() => refresh.isEnabled()).toBe(true)
       await probe.setViewportSize({ width: 390, height: 844 })
       await probe.evaluate(() => document.fonts.ready)
+      // CDP touch has no locator actionability wait; finish the header's resize
+      // transition before using its measured control coordinates.
+      await probe.clock.runFor(500)
       const calls = vi.spyOn(scaffold.ctx.pluginManager, 'listBundles')
       try {
         await tap(refresh)
