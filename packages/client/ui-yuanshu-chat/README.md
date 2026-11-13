@@ -41,11 +41,15 @@ The view has no plugin configuration. It expects the Host to serve the login pag
 
 Select a tenant and explicitly authorize enterprise access. Tool results refresh the original Run without reloading identity or the capability catalog. Refresh, tenant selection, authorization and revocation reload the catalog. Reload restores only the authenticated owner's original Run handle and queries the platform again; it never resubmits the business operation.
 
+Large tables show a preview of up to 100 rows and 12 columns. Oversized objects and deeply nested values also show a preview notice and an explicit control to expand the complete returned JSON. The preview never changes the platform result or implies that a server-paginated response contains the whole dataset.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
 <details>
 <summary>Implementation internals — click to expand</summary>
+
+Original scenario handles restore through `scenario_run_get`; cancellation uses `scenario_run_cancel` so the platform can propagate it to the existing workflow nodes and execution queue. The view displays confirmed platform states and keeps no second business execution record.
 
 The plugin registers its locale dictionary and injects a conversation view through the slot registry. The view sends SSE requests to the Host gateway and renders the completed answer and citations.
 

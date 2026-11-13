@@ -536,8 +536,12 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   const ctx = scaffold.ctx
   expect(ctx.llm.listProviders().some(provider => provider.id === 'deepseek-messages')).toBe(false)
   expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'deepseek-official', model: 'deepseek-flash' })
+  const signedIn = await fetch(scaffold.authenticatedUrl, { redirect: 'manual' })
+  const cookie = signedIn.headers.get('set-cookie')?.split(';', 1)[0]
+  expect(cookie).toBeDefined()
+  await signedIn.body?.cancel()
   const index = await fetch(`http://127.0.0.1:${String(ctx.webServer.port)}`, {
-    headers: { 'accept-encoding': 'gzip' },
+    headers: { 'accept-encoding': 'gzip', cookie: cookie! },
   })
   expect(index.headers.get('content-encoding')).toBe('gzip')
   expect(index.headers.get('vary')).toContain('Accept-Encoding')

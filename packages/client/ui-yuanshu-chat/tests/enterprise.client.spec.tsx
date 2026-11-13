@@ -46,6 +46,33 @@ describe('enterprise workbench', () => {
     expect(await screen.findByRole('cell', { name: /^Q-2026-001$/ })).toBeTruthy()
     expect(screen.getByRole('cell', { name: /^Incoming material inspection$/ })).toBeTruthy()
   })
+  it('labels a bounded table preview and makes every omitted row and column available', async () => {
+    const rows = Array.from({ length: 101 }, (_, index) => ({
+      ...Object.fromEntries(Array.from({ length: 12 }, (_, column) => [`column_${column}`, index])),
+      evidence: index === 100 ? 'last-row-evidence' : 'quality-evidence',
+    }))
+    render(<EnterpriseWorkbench {...props(async () => ({ structuredContent: { data: { rows } } }))} />)
+    fireEvent.change(screen.getByRole('combobox', { name: zh.selectCapability }), { target: { value: 'algorithm_1_execute' } })
+    fireEvent.click(screen.getByRole('button', { name: zh.run }))
+    expect(await screen.findByText('当前为结果预览，部分内容未显示。')).toBeTruthy()
+    expect(screen.queryByText(/last-row-evidence/u)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '查看完整 JSON 结果' }))
+    expect(screen.getByText(/last-row-evidence/u).textContent).toBe(JSON.stringify(rows, null, 2))
+    fireEvent.click(screen.getByRole('button', { name: '收起完整结果' }))
+    expect(screen.queryByText(/last-row-evidence/u)).toBeNull()
+  })
+
+  it('keeps deeply nested and long values accessible beyond the preview limit', async () => {
+    let value: unknown = `quality-${'中'.repeat(16001)}-complete-evidence`
+    for (let depth = 0; depth < 9; depth++) value = { nested: value }
+    render(<EnterpriseWorkbench {...props(async () => ({ structuredContent: { data: value } }))} />)
+    fireEvent.change(screen.getByRole('combobox', { name: zh.selectCapability }), { target: { value: 'algorithm_1_execute' } })
+    fireEvent.click(screen.getByRole('button', { name: zh.run }))
+    expect(await screen.findByText('当前为结果预览，部分内容未显示。')).toBeTruthy()
+    expect(screen.queryByText(/complete-evidence/u)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '查看完整 JSON 结果' }))
+    expect(screen.getByText(/complete-evidence/u).textContent).toContain('中'.repeat(16001))
+  })
   it('pins the discovered revision and restores only the original execution handle', async () => {
     const call = vi.fn<Props['call']>(async () => ({ structuredContent: { data: { execution: { execution_id: 'original-1' } } } }))
     const view = render(<EnterpriseWorkbench {...props(call)} />)
@@ -75,6 +102,24 @@ describe('enterprise workbench', () => {
     view.rerender(<EnterpriseWorkbench {...props(call)} />)
     expect(screen.queryByText('old-owner-result')).toBeNull()
     expect(localStorage.getItem('yuanshu-enterprise-original-run')).toBeNull()
+  })
+
+  it('restores the scenario handle and propagates cancellation through its original workflow', async () => {
+    const call = vi.fn<Props['call']>(async () => ({ structuredContent: { data: { run_id: 'scenario-original', scenario_run_id: 'business-original', status: 'QUEUED' } } }))
+    const base = props(call)
+    const reads: string[] = []
+    const useResource: Props['useResource'] = <P extends ResourceProtocol,>(address: string) => { reads.push(address); return base.useResource<P>(address) }
+    const view = render(<EnterpriseWorkbench {...base} useResource={useResource} />)
+    fireEvent.change(screen.getByRole('combobox', { name: zh.selectCapability }), { target: { value: 'algorithm_1_execute' } })
+    fireEvent.click(screen.getByRole('button', { name: zh.run }))
+    await screen.findByRole('heading', { name: zh.originalRun })
+    expect(JSON.parse(localStorage.getItem('yuanshu-enterprise-original-run') ?? '{}')).toMatchObject({ tool: 'scenario_run_get', args: { run_id: 'scenario-original' } })
+    view.unmount()
+    render(<EnterpriseWorkbench {...base} useResource={useResource} />)
+    expect(reads.some(address => address.includes('scenario_run_get'))).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: zh.requestCancel }))
+    await waitFor(() => { expect(call).toHaveBeenCalledWith('scenario_run_cancel', expect.objectContaining({ run_id: 'scenario-original' }), undefined) })
+    expect(call).toHaveBeenCalledTimes(2)
   })
   it('requires explicit supplemental approval input before continuing', async () => {
     const call = vi.fn(async (_name, _args, continuation) => continuation === undefined ? { resultType: 'input_required', requestState: 'state', inputRequests: { business_input: { method: 'elicitation/create', params: { requestedSchema: { type: 'object', properties: { decision: { type: 'string', enum: ['approved', 'rejected'] } }, required: ['decision'] } } } } } : { structuredContent: { outcome: 'succeeded' } })

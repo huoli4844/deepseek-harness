@@ -18,6 +18,12 @@ function records(value: unknown): Record<string, unknown>[] {
     return item as Record<string, unknown>
   })
 }
+function scenarioState(result: CallToolResult): Record<string, unknown> {
+  const value = result.structuredContent as { data?: Record<string, unknown>; outcome?: string }
+  assert(value.data, 'original scenario state missing')
+  if (result.isError === true) assert.equal(value.outcome, String(value.data.status).toLowerCase(), 'protocol error cannot stand in for a business state')
+  return value.data
+}
 async function main(): Promise<void> {
   const resource = process.env.MCP_PROBE_URL
   assert(resource)
@@ -29,6 +35,169 @@ async function main(): Promise<void> {
   let client = open(0)
   const name = 'algorithm_991001_execute'
   try {
+    const professionals = records(data(await client.call('scenarios_list', { limit: 100 })).items)
+    const professional = professionals.find(item => item.id === 991010)
+    assert(professional && typeof professional.revision_id === 'number', 'published professional Agent missing')
+    assert(!JSON.stringify(professionals).includes('runtime_policy'), 'management policy leaked')
+    const delegation = { agent_id: 991010, revision_id: professional.revision_id, task: 'evaluate procurement samples', session_id: 'dsh-professional-parent', idempotency_key: 'mcp-professional-1' }
+    const deniedRevision = await client.call('agent_delegate', { ...delegation, revision_id: 1 })
+    assert.equal(deniedRevision.isError, true, 'stale professional revision accepted')
+    const delegated = data(await client.call('agent_delegate', delegation))
+    assert(typeof delegated.run_id === 'string', 'durable professional Run missing')
+    assert.equal(data(await client.call('agent_delegate', delegation)).run_id, delegated.run_id, 'delegation duplicated Run')
+    const waitProfessional = async (id: string, acceptHandoff = false): Promise<Record<string, unknown>> => {
+      for (let attempt = 0; attempt < 150; attempt++) {
+        const result = await client.call('run_get', { run_id: id })
+        const envelope = result.structuredContent as { data: Record<string, unknown> }
+        assert(envelope.data, 'professional original Run missing')
+        if (['succeeded', 'failed', 'cancelled', 'timed_out', ...(acceptHandoff ? ['pending_handoff'] : [])].includes(String(envelope.data.status).toLowerCase())) return envelope.data
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      throw new Error('professional task did not reach a terminal state')
+    }
+    const professionalRun = await waitProfessional(delegated.run_id)
+    assert.equal(String(professionalRun.status).toLowerCase(), 'succeeded', JSON.stringify(professionalRun))
+    assert.equal(professionalRun.session_id, delegation.session_id, 'DSH parent correlation lost')
+    assert.equal(professionalRun.asset_manifest_id, 'mcp-agent-manifest-991010')
+    const professionalLedger = data(await client.call('run_ledger', { run_id: delegated.run_id }))
+    assert(JSON.stringify(professionalLedger).includes('call_algorithm'), 'professional tool ledger missing')
+    const constrained = professionals.find(item => item.id === 991011)
+    assert(constrained)
+    const limited = data(await client.call('agent_delegate', { ...delegation, agent_id: 991011, revision_id: constrained.revision_id, idempotency_key: 'mcp-professional-budget-1' }))
+    assert(typeof limited.run_id === 'string')
+    const limitedRun = await waitProfessional(limited.run_id)
+    assert.notEqual(String(limitedRun.status).toLowerCase(), 'succeeded', 'platform budget was bypassed')
+    process.stdout.write('DSH_MCP_PROFESSIONAL_PASS original_run=true real_bound_algorithm=true revision_pinned=true parent_session=true budget_denied=true\n')
+    const fixtureControl = async (operation: string): Promise<void> => {
+      const response = await fetch(new URL(`/_fixture/${operation}`, resource), { method: 'POST', headers: { authorization: `Bearer ${actors[0]!.token}` } })
+      assert.equal(response.status, 200, `fixture ${operation} failed`)
+    }
+    const actionArgs = { release_id: 991030, action_key: 'mcp.fixture.inspection', consumer_id: 'mcp-action-fixture', consumer_type: 'client', purpose: 'inspection', environment: 'test', idempotency_key: 'mcp-action-request-1', input: { project_id: 'PROC-001', operation_key: 'mcp-action-receipt-1' } }
+    assert.equal(data(await client.call('action_preflight', { ...actionArgs, idempotency_key: 'mcp-action-preflight-1' })).dry_run, true)
+    const action = data(await client.call('action_request', actionArgs))
+    assert.equal(action.status, 'approval_required')
+    assert.equal(data(await client.call('action_request', actionArgs)).execution_id, action.execution_id)
+    assert((await client.call('action_approve', { execution_id: action.execution_id, idempotency_key: 'mcp-action-approve-1', credential: 'arbitrary-string', decision: 'approved' })).isError)
+    assert((await client.call('action_approve', { execution_id: action.execution_id, idempotency_key: 'mcp-action-approve-1', decision: 'approved' })).isError, 'requester approved their own Action')
+    const actionApprover = open(1)
+    try {
+      assert((await actionApprover.call('action_get', { execution_id: action.execution_id })).isError, 'cross-user Action read was accepted')
+      await fixtureControl('disable-approver')
+      await assert.rejects(actionApprover.call('action_approve', { execution_id: action.execution_id, idempotency_key: 'mcp-action-approve-1', decision: 'approved' }))
+      await fixtureControl('enable-approver')
+      assert.equal(data(await actionApprover.call('action_approve', { execution_id: action.execution_id, idempotency_key: 'mcp-action-approve-1', decision: 'approved' })).status, 'approved')
+      assert((await actionApprover.call('action_approve', { execution_id: action.execution_id, idempotency_key: 'mcp-action-approve-1', decision: 'rejected' })).isError)
+      assert((await actionApprover.call('action_execute', { execution_id: action.execution_id, idempotency_key: 'mcp-action-other-execute' })).isError)
+      const executed = data(await client.call('action_execute', { execution_id: action.execution_id, idempotency_key: 'mcp-action-execute-1' }))
+      assert.equal(executed.status, 'succeeded')
+      assert(JSON.stringify(executed.result_json).includes('mcp-action-receipt-1'))
+      assert(JSON.stringify(executed.result_json).includes('persisted_calls'))
+      assert.equal(data(await client.call('action_execute', { execution_id: action.execution_id, idempotency_key: 'mcp-action-execute-2' })).status, 'succeeded')
+      assert.equal(data(await client.call('action_request', actionArgs)).status, 'succeeded', 'completed Action was reopened')
+      const rejected = data(await client.call('action_request', { ...actionArgs, idempotency_key: 'mcp-action-reject-1' }))
+      assert.equal(data(await actionApprover.call('action_approve', { execution_id: rejected.execution_id, idempotency_key: 'mcp-action-reject-decision', decision: 'rejected' })).status, 'rejected')
+      assert((await client.call('action_execute', { execution_id: rejected.execution_id, idempotency_key: 'mcp-action-rejected-execute' })).isError)
+      process.stdout.write('DSH_MCP_ACTION_PASS preflight=true independent_approver=true unverified_credential_denied=true self_denied=true revoked_denied=true cross_user_denied=true rejected=true real_http_receipt=true replay_effects=0\n')
+    } finally { await actionApprover.close(); await fixtureControl('enable-approver') }
+    await fixtureControl('stop-agent-worker')
+    const recoverable = data(await client.call('agent_delegate', { ...delegation, idempotency_key: 'mcp-professional-fresh-process' }))
+    assert(typeof recoverable.run_id === 'string')
+    await fixtureControl('restart-agent-worker')
+    try {
+      const recovered = await waitProfessional(recoverable.run_id)
+      assert.equal(String(recovered.status).toLowerCase(), 'succeeded', JSON.stringify(recovered))
+      assert.equal(recovered.agent_version, '1', 'new Worker replaced the frozen publication with current version 2')
+      assert.equal(recovered.session_id, delegation.session_id)
+      assert.equal(recovered.asset_manifest_id, 'mcp-agent-manifest-991010')
+      const ledger = data(await client.call('run_ledger', { run_id: recoverable.run_id }))
+      assert(JSON.stringify(ledger).includes('call_algorithm'), 'new Worker did not execute original bound tools')
+    } finally {
+      await fixtureControl('restore-agent-publication')
+    }
+    process.stdout.write('DSH_MCP_PROCESS_RECOVERY_PASS fresh_process=true no_old_cache=true current_version_drift=true frozen_version=1 original_run=true real_docker=true\n')
+    await fixtureControl('stop-agent-worker')
+    const revokedTask = data(await client.call('agent_delegate', { ...delegation, idempotency_key: 'mcp-professional-revoked-in-queue' }))
+    assert(typeof revokedTask.run_id === 'string')
+    await fixtureControl('revoke-agent-permission')
+    try {
+      await fixtureControl('restart-agent-worker')
+      const denied = await waitProfessional(revokedTask.run_id, true)
+      assert.equal(String(denied.status).toLowerCase(), 'pending_handoff', 'fresh Worker ignored current execution revocation')
+      const ledger = data(await client.call('run_ledger', { run_id: revokedTask.run_id }))
+      assert.deepEqual(ledger.ledger, [], 'revoked task entered business tool execution')
+      await client.call('run_control', { run_id: revokedTask.run_id, action: 'cancel', idempotency_key: 'revoked-professional-cancel' })
+      assert.equal(String((await waitProfessional(revokedTask.run_id)).status).toLowerCase(), 'cancelled')
+    } finally {
+      await fixtureControl('restore-agent-permission')
+      await fixtureControl('restore-agent-publication')
+    }
+    process.stdout.write('DSH_MCP_QUEUED_REVOCATION_PASS fresh_process=true permission_rechecked=true business_tools=0\n')
+    const scenarios = records(data(await client.call('scenario_bindings_list', { agent_id: professional.id, revision_id: professional.revision_id })).items)
+    assert.deepEqual(scenarios.map(item => item.key), ['mcp-procurement-scenario-991020'])
+    const scenarioInput = { agent_id: professional.id, revision_id: professional.revision_id, scenario_key: scenarios[0]!.key, scenario_version: scenarios[0]!.version, input_data: { values: [10, 20, 30] }, session_id: 'dsh-scenario-parent', idempotency_key: 'mcp-real-scenario-1' }
+    assert.equal((await client.call('scenario_run', { ...scenarioInput, scenario_key: 'unbound-scenario' })).isError, true, 'unbound scenario accepted')
+    assert.equal((await client.call('scenario_run', { ...scenarioInput, scenario_version: 'not-published' })).isError, true, 'unpublished scenario version accepted')
+    const submissions = await Promise.all([client.call('scenario_run', scenarioInput), client.call('scenario_run', scenarioInput)])
+    const scenario = data(submissions[0])
+    assert(typeof scenario.run_id === 'string')
+    assert.equal(data(submissions[1]).run_id, scenario.run_id, 'concurrent scenario retry created another Run')
+    assert.equal((await client.call('scenario_run', { ...scenarioInput, input_data: { values: [1] } })).isError, true, 'scenario idempotency accepted changed input')
+    assert.equal((await client.call('scenario_run', { ...scenarioInput, session_id: 'another-parent' })).isError, true, 'scenario idempotency accepted changed parent')
+    const foreignProfessional = open(4)
+    try {
+      assert.equal((await foreignProfessional.call('scenario_run_get', { run_id: scenario.run_id })).isError, true, 'another authorized user read the scenario Run')
+      assert.equal((await foreignProfessional.call('scenario_run_cancel', { run_id: scenario.run_id, idempotency_key: 'foreign-cancel' })).isError, true, 'another authorized user cancelled the scenario Run')
+    } finally {
+      await foreignProfessional.close()
+    }
+    await client.close()
+    client = open(0)
+    const waitScenario = async (runId: string): Promise<Record<string, unknown>> => {
+      for (let attempt = 0; attempt < 250; attempt++) {
+        const current = scenarioState(await client.call('scenario_run_get', { run_id: runId }))
+        if (['SUCCEEDED', 'FAILED', 'CANCELLED', 'TIMED_OUT'].includes(String(current.status))) return current
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      throw new Error('scenario did not reach a confirmed terminal state')
+    }
+    const finishedScenario = await waitScenario(scenario.run_id)
+    assert.equal(finishedScenario.status, 'SUCCEEDED', JSON.stringify(finishedScenario))
+    const scenarioNodes = records(finishedScenario.nodes)
+    assert.equal(scenarioNodes.length, 2)
+    for (const node of scenarioNodes) {
+      assert.equal(node.status, 'SUCCEEDED')
+      assert.deepEqual(node.output, { count: 3, sum: 60 })
+      const original = data(await client.call('execution_get', { executionID: node.execution_id })).run as Record<string, unknown>
+      assert.equal(original.tenant_id, '910001', 'scenario node lost its original tenant')
+      assert.equal(original.actor_id, '910001', 'scenario node lost its original user')
+    }
+    const scenarioRoot = data(await client.call('run_get', { run_id: scenario.run_id }))
+    assert.equal(scenarioRoot.session_id, scenarioInput.session_id)
+    assert.equal(scenarioRoot.asset_manifest_id, 'mcp-agent-manifest-991010')
+    const cancellableScenario = data(await client.call('scenario_run', { ...scenarioInput, input_data: { values: [1], delay: 5 }, idempotency_key: 'mcp-real-scenario-cancel' }))
+    assert(typeof cancellableScenario.run_id === 'string')
+    let runningNode: Record<string, unknown> | undefined
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const current = data(await client.call('scenario_run_get', { run_id: cancellableScenario.run_id }))
+      const candidate = records(current.nodes).find(node => node.status === 'RUNNING')
+      if (candidate !== undefined) {
+        const execution = data(await client.call('execution_get', { executionID: candidate.execution_id })).run as Record<string, unknown>
+        if (execution.status === 'RUNNING') { runningNode = candidate; break }
+      }
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    assert(runningNode, 'no actual scenario business execution started before cancellation')
+    assert.equal((await client.call('run_control', { run_id: cancellableScenario.run_id, action: 'cancel', idempotency_key: 'generic-scenario-cancel' })).isError, true, 'generic control prematurely terminated a scenario root')
+    await client.call('scenario_run_cancel', { run_id: cancellableScenario.run_id, idempotency_key: 'scenario-cancel-command' })
+    assert.equal((await waitScenario(cancellableScenario.run_id)).status, 'CANCELLED')
+    const cancelledResult = await client.call('execution_get', { executionID: runningNode.execution_id })
+    const cancelledEnvelope = cancelledResult.structuredContent as { outcome: string; data: { run: Record<string, unknown> } }
+    assert.equal(cancelledEnvelope.outcome, 'cancelled')
+    const cancelledExecution = cancelledEnvelope.data.run
+    assert.equal(cancelledExecution.status, 'CANCELLED', 'scenario cancellation did not reach its original business execution')
+    const cancelReplay = scenarioState(await client.call('scenario_run_cancel', { run_id: cancellableScenario.run_id, idempotency_key: 'scenario-cancel-command' }))
+    assert.equal(cancelReplay.status, 'CANCELLED', 'repeated cancel reopened a terminal scenario')
+    process.stdout.write('DSH_MCP_SCENARIO_PASS real_two_node_docker=true binding_and_version_denied=true concurrent_idempotency=true original_actor_tenant=true parent_session=true reconnect=true foreign_run_denied=true propagated_cancel=true\n')
     const position = data(await client.call('workbench_position', {}))
     assert.equal(position.position, 'procurement', 'the platform must derive the procurement role')
     const decisions = records(data(await client.call('workbench_decisions', {})).items)

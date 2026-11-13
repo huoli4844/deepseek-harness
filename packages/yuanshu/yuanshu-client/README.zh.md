@@ -40,6 +40,8 @@ const capabilities = await client.listCapabilities()
 
 `listCapabilities()` 会自动遍历元枢的分页信封（`list/total/page/page_size`），也兼容旧网关直接返回数组的响应。调用成功时返回解码后的能力列表；HTTP 错误和元枢错误响应会以 `YuanShuError` 拒绝，不会把权限失败伪装成空能力列表。方法和取消行为详见 [`src/index.ts`](src/index.ts)。
 
+配置企业 MCP 客户端后，`listCapabilities()` 和 `listScenarios()` 通过 MCP 仅发现已发布的专业 Agent 安全描述及不可变修订。专业目录沿递增的 `next_after_id` 游标读取，包括过滤后的空页，最多 64 页；目录不完整或无效时显式失败。`scenarios_list` 表示该专业目录；`scenario_bindings_list` 发现选定 Agent 绑定的工作流及版本。确定性工作流使用 `scenario_run`，专业子任务使用 `agent_delegate`。两者均保留平台 Run 句柄，重连后据此查询结果或请求取消。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
@@ -80,6 +82,6 @@ const capabilities = await client.listCapabilities()
 <details>
 <summary>维护者工作上下文 — 点击展开</summary>
 
-无。
+按需执行的[知识问答探针](tests/knowledge-live-probe.ts)使用可清理的平台测试账号和正常 OAuth 授权，核验新生成的模型答案、原文引用及持久化问答记录。它要求显式配置本地平台和模型；缓存答案与规则回退均不能通过此检查。
 
 </details>

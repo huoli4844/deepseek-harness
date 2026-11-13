@@ -40,6 +40,8 @@ const capabilities = await client.listCapabilities()
 
 `listCapabilities()` traverses YuanShu pagination envelopes (`list/total/page/page_size`) and accepts legacy gateways that return arrays directly. Successful calls return the decoded capability list; HTTP failures and YuanShu error envelopes reject with `YuanShuError` rather than returning an empty list for a permission failure. See [`src/index.ts`](src/index.ts) for method and cancellation details.
 
+With an enterprise MCP client configured, `listCapabilities()` and `listScenarios()` discover only published professional Agent descriptions and immutable revisions through MCP. Professional discovery follows advancing `next_after_id` cursors, including filtered empty pages, with a 64-page limit; incomplete or invalid catalogs fail explicitly. `scenarios_list` names this professional catalog; `scenario_bindings_list` discovers the versioned workflows bound to a selected Agent. Deterministic workflows use `scenario_run`, while `agent_delegate` starts a professional child task. Both retain a platform Run handle for reading outcomes and requesting cancellation after reconnect.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -79,6 +81,6 @@ The library does not construct model requests or change provider cache reuse.
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-None.
+The opt-in [knowledge probe](tests/knowledge-live-probe.ts) uses a disposable platform account and normal OAuth authorization to verify a fresh model answer, source citations, and the persisted Q&A turn. It requires an explicitly configured local platform and model; cached answers and rule fallbacks fail this check.
 
 </details>

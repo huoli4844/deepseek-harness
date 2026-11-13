@@ -592,6 +592,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
     { id: 'yuanshu-login-server', disabled: true },
     { id: 'ui-yuanshu-chat', disabled: true },
     { id: 'ui-yuanshu-account', disabled: true },
+    { id: 'connection', config: { freshBrowserSession: false } },
     // Without HMR the profile applies configuration changes at its next start.
     ...options.profile?.hmr === false ? [{ id: 'hmr', disabled: true }] : [],
     { id: 'session-log-deepseek', config: { enabled: false } },

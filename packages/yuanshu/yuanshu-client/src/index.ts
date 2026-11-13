@@ -39,6 +39,13 @@ export interface YuanShuTenantContext {
   readonly list: readonly YuanShuTenant[]
 }
 
+interface PublishedProfessionalAgent {
+  readonly id: number
+  readonly name: string
+  readonly description: string
+  readonly revision_id: number
+}
+
 /** A discovered YuanShu worker capability. */
 export interface YuanShuCapability {
   readonly kind: 'agent' | 'skill' | 'algorithm' | 'dag' | 'worker'
@@ -807,6 +814,11 @@ export class YuanShuClient {
    * @returns Capabilities whose endpoint requests succeeded and had usable identifiers.
    */
   async listCapabilities(): Promise<YuanShuCapability[]> {
+    if (this.enterprise !== undefined) {
+      const assets = await this.listClientCapabilities()
+      const agents = await this.professionalAgents()
+      return [...assets, ...agents.map(item => ({ kind: 'agent' as const, id: String(item.id), name: item.name, description: item.description, raw: item }))]
+    }
     const endpoints: Array<[YuanShuCapability['kind'], string]> = [
       ['agent', '/api/v1/agent/definitions'],
       ['skill', '/api/v1/skills'],
@@ -1197,12 +1209,34 @@ export class YuanShuClient {
     return this.request(withPageQuery('/api/v1/ontology-platform/releases', limit))
   }
 
-  /** 列场景（Agent 定义）。
+  /** 列出当前租户已发布的专业 Agent 安全描述及修订。
    * @param limit - 可选的页大小。
-   * @returns 元枢分页载荷或数组。
+   * @returns MCP 模式返回 items；显式旧 HTTP 模式保留原分页载荷。
    */
-  listScenarios(limit?: number): Promise<unknown> {
-    return this.request(withPageQuery('/api/v1/agent/definitions', limit))
+  async listScenarios(limit?: number): Promise<unknown> {
+    if (this.enterprise === undefined) return this.request(withPageQuery('/api/v1/agent/definitions', limit))
+    return { items: await this.professionalAgents(limit) }
+  }
+
+  private async professionalAgents(limit?: number): Promise<readonly PublishedProfessionalAgent[]> {
+    if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)) throw new YuanShuError('Professional Agent page size must be between 1 and 100', 400, 'MCP_CATALOG_INVALID')
+    const items: PublishedProfessionalAgent[] = []
+    let after = 0
+    for (let page = 0; page < 64; page++) {
+      const value = await this.request<unknown>(`/api/v1/agent/definitions?after_id=${String(after)}&limit=${String(limit ?? 100)}`)
+      if (value === null || typeof value !== 'object' || !('items' in value) || !Array.isArray(value.items) || !('next_after_id' in value) || typeof value.next_after_id !== 'number' || !Number.isSafeInteger(value.next_after_id)) throw new YuanShuError('Invalid professional Agent page', 502, 'MCP_CATALOG_INVALID')
+      const pageItems: readonly unknown[] = value.items
+      for (const item of pageItems) {
+        if (item === null || typeof item !== 'object' || !('id' in item) || typeof item.id !== 'number' || !Number.isSafeInteger(item.id) || item.id <= after || !('name' in item) || typeof item.name !== 'string' || !('description' in item) || typeof item.description !== 'string' || !('revision_id' in item) || typeof item.revision_id !== 'number' || !Number.isSafeInteger(item.revision_id) || item.revision_id <= 0) throw new YuanShuError('Invalid professional Agent description', 502, 'MCP_CATALOG_INVALID')
+        const id = item.id
+        if (items.some(previous => previous.id >= id)) throw new YuanShuError('Professional Agent identifiers must increase across pages', 502, 'MCP_CATALOG_INVALID')
+        items.push({ id: item.id, name: item.name, description: item.description, revision_id: item.revision_id })
+      }
+      if (value.next_after_id === 0) return items
+      if (value.next_after_id <= after) throw new YuanShuError('Professional Agent cursor did not advance', 502, 'MCP_CATALOG_INVALID')
+      after = value.next_after_id
+    }
+    throw new YuanShuError('Professional Agent catalog exceeds the page budget', 413, 'MCP_CATALOG_BUDGET')
   }
 
   // ── Worker Execution ─────────────────────────────────────────────────────
@@ -1439,7 +1473,7 @@ function isBusinessRecord(value: unknown): value is { schema_version: '1'; data:
 function enterpriseOperation(path: string, body: unknown, method: string): { name: string; args: Record<string, unknown> } {
   const url = new URL(path, 'http://localhost')
   const args: Record<string, unknown> = Object.fromEntries(url.searchParams)
-  for (const key of ['page', 'page_size', 'limit', 'after_seq', 'release_id', 'asset_id']) {
+  for (const key of ['page', 'page_size', 'limit', 'after_seq', 'after_id', 'release_id', 'asset_id']) {
     const value = args[key]
     if (typeof value === 'string') {
       const parsed = Number(value)

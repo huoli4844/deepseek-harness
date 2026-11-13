@@ -42,18 +42,31 @@ function address(path: string, generation: number, tool?: string, args?: Record<
  * Render structured rows, metrics, evidence and original Run records without
  * interpreting platform content as HTML or client authority.
  */
-function ResultValue({ value, depth = 0 }: { readonly value: unknown; readonly depth?: number }): React.JSX.Element {
-  if (depth >= 8) return <pre className={css.resultBody}>{JSON.stringify(value).slice(0, 16000)}</pre>
+function ResultValue({ value, depth = 0, t }:
+  { readonly value: unknown; readonly depth?: number } & PropsLocale<typeof NS>): React.JSX.Element {
+  if (depth >= 8) {
+    const text = JSON.stringify(value)
+    return <><pre className={css.resultBody}>{text.slice(0, 16000)}</pre>{text.length > 16000 && <CompleteResult value={value} t={t} />}</>
+  }
   if (Array.isArray(value) && value.length > 0 && value.every(item => record(item) !== undefined)) {
-    const columns = [...new Set(value.flatMap(item => Object.keys(item as Record<string, unknown>)))].slice(0, 12)
-    return <div className={workbenchCss.tableWrap}><table className={`${workbenchCss.table} ${css.enterpriseTable}`}><thead><tr>{columns.map(key => <th key={key}>{key}</th>)}</tr></thead><tbody>{value.slice(0, 100).map((row, i) => <tr key={i}>{columns.map((key) => {
+    const allColumns = [...new Set(value.flatMap(item => Object.keys(item as Record<string, unknown>)))]
+    const columns = allColumns.slice(0, 12)
+    return <><div className={workbenchCss.tableWrap}><table className={`${workbenchCss.table} ${css.enterpriseTable}`}><thead><tr>{columns.map(key => <th key={key}>{key}</th>)}</tr></thead><tbody>{value.slice(0, 100).map((row, i) => <tr key={i}>{columns.map((key) => {
       const cell = (row as Record<string, unknown>)[key]
       return <td key={key}>{typeof cell === 'string' ? cell : JSON.stringify(cell)}</td>
-    })}</tr>)}</tbody></table></div>
+    })}</tr>)}</tbody></table></div>{(value.length > 100 || allColumns.length > 12) && <CompleteResult value={value} t={t} />}</>
   }
   const object = record(value)
-  if (object !== undefined) return <dl>{Object.entries(object).slice(0, 100).map(([key, item]) => <div key={key}><dt>{key}</dt><dd>{Array.isArray(item) || record(item) !== undefined ? <ResultValue value={item} depth={depth + 1} /> : item == null ? '' : typeof item === 'string' ? item : JSON.stringify(item)}</dd></div>)}</dl>
+  if (object !== undefined) {
+    const entries = Object.entries(object)
+    return <><dl>{entries.slice(0, 100).map(([key, item]) => <div key={key}><dt>{key}</dt><dd>{Array.isArray(item) || record(item) !== undefined ? <ResultValue value={item} depth={depth + 1} t={t} /> : item == null ? '' : typeof item === 'string' ? item : JSON.stringify(item)}</dd></div>)}</dl>{entries.length > 100 && <CompleteResult value={value} t={t} />}</>
+  }
   return <pre className={css.resultBody}>{JSON.stringify(value, null, 2)}</pre>
+}
+
+function CompleteResult({ value, t }: { readonly value: unknown } & PropsLocale<typeof NS>): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false)
+  return <div><p>{t('resultPreview')}</p><button type="button" aria-expanded={expanded} onClick={() => { setExpanded(value => !value) }}>{t(expanded ? 'collapseResult' : 'completeResult')}</button>{expanded && <pre className={css.resultBody}>{JSON.stringify(value, null, 2)}</pre>}</div>
 }
 
 /** Platform application workbench using framework-owned cancellable reads. */
@@ -102,9 +115,10 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
     const result = record(dataOf(response))
     const business = record(result?.data) ?? result
     const agentID = typeof business?.run_id === 'string' ? business.run_id : undefined
+    const scenario = typeof business?.scenario_run_id === 'string'
     const id = agentID ?? extractExecutionId(dataOf(response))
     if (id !== undefined && owner !== undefined) {
-      const next: Handle = { owner, tool: agentID !== undefined ? 'run_get' : name.startsWith('dag_') ? 'dag_queue_get' : 'execution_get', args: agentID !== undefined ? { run_id: id } : name.startsWith('dag_') ? { execution_id: id } : { executionID: id } }
+      const next: Handle = { owner, tool: scenario ? 'scenario_run_get' : agentID !== undefined ? 'run_get' : name.startsWith('dag_') ? 'dag_queue_get' : 'execution_get', args: agentID !== undefined ? { run_id: id } : name.startsWith('dag_') ? { execution_id: id } : { executionID: id } }
       setHandle(next)
       try { localStorage.setItem(handleKey, JSON.stringify(next)) } catch { /* The original ledger remains authoritative. */ }
     }
@@ -144,8 +158,8 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
       {pending !== undefined && pending.owner === owner && <form onSubmit={(event) => { event.preventDefault(); void perform(async () => { const parsed = buildSchemaInput(pending.fields, form); if (!parsed.ok) throw new Error('Invalid form input'); await execute(pending.name, pending.args, { requestState: pending.state, inputResponses: { business_input: { action: 'accept', content: parsed.value } } }) }) }}>
         <p>{t('supplementalInput')}</p>{pending.fields.map(field => <label className={css.field} key={field.name}>{field.name}{field.enum !== undefined ? <select required value={form[field.name] ?? ''} disabled={busy} onChange={(event) => { setForm(previous => ({ ...previous, [field.name]: event.target.value })) }}><option value="">{t('fieldUnset')}</option>{field.enum.map(option => <option key={option}>{option}</option>)}</select> : <input required={field.required} value={form[field.name] ?? ''} disabled={busy} onChange={(event) => { setForm(previous => ({ ...previous, [field.name]: event.target.value })) }} />}</label>)}<button disabled={busy}>{t('submitInput')}</button><button type="button" disabled={busy} onClick={() => { setPending(undefined) }}>{t('dismissInput')}</button>
       </form>}
-      {output !== undefined && output.owner === owner && <ResultValue value={output.value} />}
-      {handle !== undefined && handle.owner === owner && <section><h3>{t('originalRun')}</h3><code>{JSON.stringify(handle.args)}</code><button disabled={busy} onClick={() => { void perform(() => execute(handle.tool === 'run_get' ? 'run_control' : handle.tool === 'dag_queue_get' ? 'dag_run_cancel' : 'execution_cancel', { ...handle.args, ...(handle.tool === 'run_get' ? { action: 'cancel' } : {}), idempotency_key: randomUUID() })) }}>{t('requestCancel')}</button>{original.status === 'failed' && <p role="alert">{t('enterpriseUnavailable')}</p>}{displayed?.kind === 'result' && <ResultValue value={dataOf(displayed.result)} />}</section>}
+      {output !== undefined && output.owner === owner && <ResultValue value={output.value} t={t} />}
+      {handle !== undefined && handle.owner === owner && <section><h3>{t('originalRun')}</h3><code>{JSON.stringify(handle.args)}</code><button disabled={busy} onClick={() => { void perform(() => execute(handle.tool === 'scenario_run_get' ? 'scenario_run_cancel' : handle.tool === 'run_get' ? 'run_control' : handle.tool === 'dag_queue_get' ? 'dag_run_cancel' : 'execution_cancel', { ...handle.args, ...(handle.tool === 'run_get' ? { action: 'cancel' } : {}), idempotency_key: randomUUID() })) }}>{t('requestCancel')}</button>{original.status === 'failed' && <p role="alert">{t('enterpriseUnavailable')}</p>}{displayed?.kind === 'result' && <ResultValue value={dataOf(displayed.result)} t={t} />}</section>}
     </div>
   </div>
 }
