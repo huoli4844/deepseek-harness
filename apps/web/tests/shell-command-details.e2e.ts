@@ -119,7 +119,16 @@ it.each([
             await page.keyboard.press('Tab')
             const focusTarget = background ? inputSection : card.getByRole('button', { name: 'Copy', exact: true })
             expect(await focusTarget.evaluate(element => document.activeElement === element)).toBe(true)
+            const endScroll = inputSection.evaluate(element => new Promise<void>((resolve) => {
+              const settle = (event: Event): void => {
+                if (event.target !== element || element.scrollTop + element.clientHeight < element.scrollHeight - 1) return
+                element.removeEventListener('scrollend', settle)
+                resolve()
+              }
+              element.addEventListener('scrollend', settle)
+            }))
             await page.keyboard.press('End')
+            await endScroll
             await expect.poll(() => inputSection.evaluate(element =>
               element.scrollTop + element.clientHeight >= element.scrollHeight - 1)).toBe(true)
             await page.keyboard.press('Home')
