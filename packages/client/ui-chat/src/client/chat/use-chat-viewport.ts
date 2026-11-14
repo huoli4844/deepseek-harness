@@ -329,14 +329,12 @@ export class ChatViewport {
           }
         }
         let above = 0
-        const below: HTMLElement[] = []
         for (const box of boxes) {
           const amount = box.height + box.marginTop
           const top = box.element.getBoundingClientRect().top - box.marginTop
           if (box.closing) {
             removed += amount
             above += Math.max(0, Math.min(amount, viewportTop - top))
-            if (top >= viewportTop) below.push(box.element)
             closing.push(box)
           } else {
             growth += amount
@@ -372,8 +370,11 @@ export class ChatViewport {
             if (box.element.getBoundingClientRect().top - shift - box.marginTop >= viewportTop) travelling.add(box.element)
           }
         }
-        // Scrolling forward past closing rows shows them shrinking; faded rows would leave their space empty.
-        if (tail && target > start) for (const element of below) travelling.add(element)
+        // Rows below the reading line can enter the viewport as earlier rows shrink, in either scroll direction.
+        for (const box of closing) {
+          const rect = box.element.getBoundingClientRect()
+          if (rect.top >= viewportTop || (!tail && rect.bottom > viewportTop)) travelling.add(box.element)
+        }
         return travelling
       },
       prepare: (progress, cancelled) => {

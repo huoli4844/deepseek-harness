@@ -280,7 +280,9 @@ const visibleFoldCases = [
   { name: 'small viewport', earlier: 200, steps: 900, body: 100, viewport: 300, top: 900, input: 30, target: 200, room: 170 },
 ] as const
 
-function mountVisibleFold(test: typeof visibleFoldCases[number], reduced: boolean, finalSiblingGrowth = 0) {
+function mountVisibleFold(
+  test: typeof visibleFoldCases[number], reduced: boolean, finalSiblingGrowth = 0, parts: readonly number[] = [test.steps],
+) {
   let inputHeight = 0
   let submission = 0
   let top: number = test.top
@@ -297,15 +299,22 @@ function mountVisibleFold(test: typeof visibleFoldCases[number], reduced: boolea
   const scroller = within(view.container).getByTestId('scrollport')
   const column = within(view.container).getByTestId('column')
   const spacer = scroller.querySelector<HTMLElement>('[data-chat-turn-spacer]')!
-  const row = document.createElement('div')
-  const glyph = document.createElement('span')
-  glyph.textContent = 'step text'
-  row.append(glyph)
-  column.append(row)
-  const rowHeight = () => row.hidden ? 0 : (row.style.transition !== '' && row.style.transition !== 'none') || row.style.height === ''
-    ? test.steps : Number.parseFloat(row.style.height)
+  const rows = parts.map((height) => {
+    const element = document.createElement('div')
+    const glyph = document.createElement('span')
+    glyph.textContent = 'step text'
+    element.append(glyph)
+    column.append(element)
+    return { element, height }
+  })
+  const row = rows[0]!.element
+  const partHeight = ({ element, height }: typeof rows[number]): number => element.hidden ? 0
+    : (element.style.transition !== '' && element.style.transition !== 'none') || element.style.height === ''
+      ? height : Number.parseFloat(element.style.height)
+  const rowHeight = () => partHeight(rows[0]!)
   const room = () => Number.parseFloat(spacer.style.height) || 0
-  const contentHeight = () => test.earlier + rowHeight() + test.body + inputHeight + (row.hidden ? finalSiblingGrowth : 0)
+  const contentHeight = () => test.earlier + rows.reduce((sum, part) => sum + partHeight(part), 0) + test.body + inputHeight
+    + (rows.every(part => part.element.hidden) ? finalSiblingGrowth : 0)
   const floor = () => Math.max(0, contentHeight() + room() - test.viewport)
   const scrollTo = vi.fn((options: ScrollToOptions) => {
     scroller.scrollTop = options.top ?? scroller.scrollTop
@@ -320,10 +329,15 @@ function mountVisibleFold(test: typeof visibleFoldCases[number], reduced: boolea
     scrollTo: { value: scrollTo },
     getBoundingClientRect: { value: () => ({ top: 0, bottom: test.viewport, height: test.viewport }) },
   })
-  Object.defineProperties(row, {
-    offsetHeight: { get: rowHeight },
-    getBoundingClientRect: { value: () => ({ top: test.earlier - top, bottom: test.earlier - top + rowHeight(), height: rowHeight() }) },
-  })
+  for (const [index, part] of rows.entries()) {
+    Object.defineProperties(part.element, {
+      offsetHeight: { get: () => partHeight(part) },
+      getBoundingClientRect: { value: () => {
+        const start = test.earlier + rows.slice(0, index).reduce((sum, previous) => sum + partHeight(previous), 0) - top
+        return { top: start, bottom: start + partHeight(part), height: partHeight(part) }
+      } },
+    })
+  }
   Object.defineProperties(column, {
     offsetHeight: { get: contentHeight },
     getBoundingClientRect: { value: () => ({ top: -top, bottom: contentHeight() - top, height: contentHeight() }) },
@@ -333,7 +347,7 @@ function mountVisibleFold(test: typeof visibleFoldCases[number], reduced: boolea
   top = test.top
   scrollTo.mockClear()
   return {
-    scroller, row, room, scrollTo,
+    scroller, row, rows: rows.map(part => part.element), room, scrollTo,
     reopenAll(verbose = false) {
       act(() => { motion?.cancelMotion(row) })
       row.hidden = false
@@ -360,18 +374,52 @@ function mountVisibleFold(test: typeof visibleFoldCases[number], reduced: boolea
       view.rerender(<ScrollHarness input={input} onMotion={onMotion} />)
     },
     bodyTop: () => test.earlier + rowHeight() - top,
+    receiveFold() {
+      act(() => { motion?.collapse(row, () => { row.hidden = true }) })
+    },
     submit() {
       inputHeight += test.input
       row.hidden = false
       submission++
       act(() => {
-        motion?.collapse(row, () => { row.hidden = true })
+        for (const part of rows) motion?.collapse(part.element, () => { part.element.hidden = true })
       })
       input = { ...input, submissionId: `visible-fold-input-${submission}` }
       view.rerender(<ScrollHarness input={input} onMotion={onMotion} />)
     },
   }
 }
+
+it.each(['received', 'local input'] as const)('keeps visible closing content opaque while %s folds the reader’s current row', async (origin) => {
+  const test = visibleFoldCases.find(test => test.name === (origin === 'received' ? 'T/B' : 'E/B'))!
+  const h = mountVisibleFold(test, false)
+  h.cancelReading()
+  if (origin === 'received') h.receiveFold()
+  else h.submit()
+  await act(async () => { await Promise.resolve() })
+  act(() => { vi.advanceTimersByTime(96) })
+  expect(h.row.hidden).toBe(false)
+  expect(Number.parseFloat(h.row.style.height)).toBeLessThan(test.steps)
+  expect(h.row.style.opacity).toBe('1')
+  expect(h.row.style.translate).toBe('')
+  act(() => { vi.advanceTimersByTime(400) })
+  expect(h.row.hidden).toBe(true)
+})
+
+it('keeps a closing row below the viewport opaque as earlier steps shrink past the reader', async () => {
+  const test = visibleFoldCases.find(test => test.name === 'T/T')!
+  const h = mountVisibleFold(test, false, 0, [1200, 800])
+  h.cancelReading()
+  expect(h.rows[1]!.getBoundingClientRect().top).toBeGreaterThanOrEqual(test.viewport)
+  h.submit()
+  await act(async () => { await Promise.resolve() })
+  act(() => { vi.advanceTimersByTime(96) })
+  expect(h.rows[1]!.getBoundingClientRect().top).toBeLessThan(test.viewport)
+  expect(h.rows[1]!.style.opacity).toBe('1')
+  expect(h.rows[1]!.style.translate).toBe('')
+  act(() => { vi.advanceTimersByTime(400) })
+  expect(h.rows.every(row => row.hidden)).toBe(true)
+})
 
 describe.each([false, true])('visible input-fold matrix (reduced=%s)', (reduced) => {
   it.each(['larger input', 'T/B'])('lands on final sibling spacing in the closing frame (%s)', async (name) => {
