@@ -451,8 +451,17 @@ async function writeReviewFixture(root: string): Promise<void> {
   await writeFile(join(root, 'contents.json'), JSON.stringify(contents))
 }
 
+let nextCommitTime = Date.UTC(2026, 0, 1) / 1000
+
 async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await run('git', args, { cwd, env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_TERMINAL_PROMPT: '0' } })
+  // Branch menus sort by commit time; fixture commits need distinct seconds.
+  const commitDate = args[0] === 'commit' ? new Date(nextCommitTime++ * 1000).toISOString() : undefined
+  const { stdout } = await run('git', args, { cwd, env: {
+    ...process.env,
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_TERMINAL_PROMPT: '0',
+    ...(commitDate === undefined ? {} : { GIT_AUTHOR_DATE: commitDate, GIT_COMMITTER_DATE: commitDate }),
+  } })
   return stdout.trim()
 }
 
