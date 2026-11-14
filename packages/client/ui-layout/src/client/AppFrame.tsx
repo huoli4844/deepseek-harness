@@ -243,7 +243,13 @@ export function AppFrame({
       if (event.target === frame && event.propertyName === 'grid-template-columns') settle()
     }
     frame.addEventListener('transitionend', onTransitionEnd)
-    const timer = setTimeout(settle, 600)
+    const style = getComputedStyle(frame)
+    const milliseconds = (value: string) => parseFloat(value) * (value.trim().endsWith('ms') ? 1 : 1000)
+    const durations = style.transitionDuration.split(',').map(milliseconds)
+    const delays = style.transitionDelay.split(',').map(milliseconds)
+    const duration = Math.max(...durations.map((value, index) => value + (delays[index % delays.length] || 0)))
+    // A themed duration must finish before the fallback removes its transition.
+    const timer = setTimeout(settle, duration > 0 ? duration : 600)
     return () => {
       frame.removeEventListener('transitionend', onTransitionEnd)
       clearTimeout(timer)

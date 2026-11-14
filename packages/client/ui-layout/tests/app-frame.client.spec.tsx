@@ -527,6 +527,20 @@ describe('AppFrame right panel presentation', () => {
     }
   })
 
+  it('keeps a configured long track transition armed until its declared duration ends', () => {
+    vi.useFakeTimers()
+    try {
+      const { frame, instance } = mountFrame()
+      frame.style.transitionDuration = '1s'
+      frame.style.transitionDelay = '0.1s'
+      act(() => { instance.actions.openRightbar(true, false) })
+      act(() => { vi.advanceTimersByTime(600) })
+      expect(frame.dataset.animating).toBe('true')
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(frame.dataset.animating).toBeUndefined()
+    } finally { vi.useRealTimers() }
+  })
+
   it('keeps fullscreen suppression independent from resetting the instant marker', () => {
     const { frame, instance } = mountFrame()
     act(() => { instance.actions.openRightbar(true, true) })
