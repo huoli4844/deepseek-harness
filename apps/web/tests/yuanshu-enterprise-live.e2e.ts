@@ -18,7 +18,9 @@ function launchBrowser(): Promise<Browser> {
 async function configureModelLater(page: Page): Promise<void> {
   const welcome = page.getByRole('dialog', { name: 'Preview Notice', exact: true })
   const setup = page.getByRole('dialog', { name: 'Get started', exact: true })
-  await welcome.or(setup).first().waitFor()
+  const workspace = page.getByText('YuanShu', { exact: true })
+  await welcome.or(setup).or(workspace).first().waitFor()
+  if (!(await welcome.isVisible()) && !(await setup.isVisible())) return
   if (await welcome.isVisible()) await welcome.getByRole('button', { name: 'Continue', exact: true }).click()
   await setup.getByRole('button', { name: 'Add API Key', exact: true }).click()
   await page.getByRole('dialog', { name: 'Add an API key to get started', exact: true })
@@ -61,7 +63,7 @@ async function call(page: Page, name: string, args: Record<string, unknown>): Pr
 }
 
 function data(result: Record<string, unknown>): Record<string, unknown> {
-  expect(result.isError).not.toBe(true)
+  expect(result.isError, JSON.stringify(result.structuredContent)).not.toBe(true)
   const content = result.structuredContent as { data: Record<string, unknown> }
   expect(content.data).toBeDefined()
   return content.data
@@ -193,7 +195,7 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     await scenePanel.getByRole('button', { name: 'Request cancellation', exact: true }).click()
     const cancellationResponse = await cancellation
     expect(cancellationResponse.request().postDataJSON()).toMatchObject({ name: 'scenario_run_cancel' })
-    expect(cancellationResponse.status()).toBe(200)
+    expect(cancellationResponse.status(), await cancellationResponse.text()).toBe(200)
     await owner.reload()
     await configureModelLater(owner)
     await owner.getByText('YuanShu', { exact: true }).click()

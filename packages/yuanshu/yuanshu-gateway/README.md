@@ -60,6 +60,8 @@ See the generated [configuration catalog](../../../docs/config-catalog.md#deepse
 
 The gateway keeps MCP grants scoped to the authenticated DSH user and selected tenant. MCP discovery, issuer/resource checks, refresh, and revoke are handled by the user-scoped client; a platform login token or instance-wide bearer token is not accepted as MCP authorization.
 
+Overlapping requests with the same login and tenant share one MCP client and discovery operation. Each protocol request reads the current grant; the final request releases the client, and plugin disposal closes active clients. Different users, tenants, and plugin instances never share a client.
+
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Route registration, token resolution, and response forwarding |

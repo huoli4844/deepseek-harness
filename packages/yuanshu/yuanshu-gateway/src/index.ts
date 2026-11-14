@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { credentialKey } from '@deepseek-ai/dsh-credentials'
+import { credentialKey, type CredentialKey } from '@deepseek-ai/dsh-credentials'
 import type { YuanShuMcpGrant } from '@deepseek-ai/dsh-yuanshu-client'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
@@ -202,6 +202,15 @@ export function apply(ctx: Context, config: Config): void {
   if (enterpriseMode === 'mcp' && config.token !== undefined) throw new GatewayRequestError('MCP user mode forbids instance-level bearer credentials')
   const token = enterpriseMode === 'legacy-http' ? resolveToken(config) : undefined
   const prefix = config.prefix ?? '/yuanshu-api'
+  const clients = new Map<CredentialKey, { client: YuanShuMcp; users: number; closing?: Promise<void> }>()
+  let disposed = false
+  const close = (entry: { client: YuanShuMcp; closing?: Promise<void> }): Promise<void> => entry.closing ??= entry.client.close()
+  ctx.effect(() => async () => {
+    disposed = true
+    const pending = [...clients.values()]
+    clients.clear()
+    await Promise.all(pending.map(close))
+  }, 'yuanshu-gateway: MCP clients')
   const route: WebRoute = { kind: 'prefix', path: prefix, handler: async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
     const pathname = url.pathname
@@ -244,10 +253,17 @@ export function apply(ctx: Context, config: Config): void {
         })
       },
     }
-    const mcp = new YuanShuMcp({
-      resource: mcpResource, issuer: mcpIssuer, clientId: mcpClientId, redirectUri: mcpRedirectUri,
-      timeoutMs: config.mcpTimeoutMs ?? 30_000, credentials,
-    })
+    if (disposed) { writeJSON(res, { error: 'Gateway is stopping' }, 503); return }
+    let entry = clients.get(key)
+    if (entry === undefined) {
+      entry = { users: 0, client: new YuanShuMcp({
+        resource: mcpResource, issuer: mcpIssuer, clientId: mcpClientId, redirectUri: mcpRedirectUri,
+        timeoutMs: config.mcpTimeoutMs ?? 30_000, credentials,
+      }) }
+      clients.set(key, entry)
+    }
+    entry.users++
+    const mcp = entry.client
     const requestClient = new YuanShuClient({
       ...enterpriseMode === 'mcp' ? { enterprise: mcp } : {},
       baseURL: config.baseURL,
@@ -634,7 +650,11 @@ export function apply(ctx: Context, config: Config): void {
       if (res.headersSent) { res.destroy(); return }
       writeJSON(res, errorBody(error), errorStatus(error))
     } finally {
-      await mcp.close()
+      entry.users--
+      if (entry.users === 0) {
+        if (clients.get(key) === entry) clients.delete(key)
+        await close(entry)
+      }
     }
   } }
   ctx.effect(() => ctx.webServer.register(route), 'yuanshu-gateway: route')

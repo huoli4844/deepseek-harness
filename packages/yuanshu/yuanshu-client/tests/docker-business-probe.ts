@@ -95,7 +95,11 @@ async function main(): Promise<void> {
       assert.equal(data(await client.call('action_execute', { execution_id: action.execution_id, idempotency_key: 'mcp-action-execute-2' })).status, 'succeeded')
       assert.equal(data(await client.call('action_request', actionArgs)).status, 'succeeded', 'completed Action was reopened')
       const rejected = data(await client.call('action_request', { ...actionArgs, idempotency_key: 'mcp-action-reject-1' }))
-      assert.equal(data(await actionApprover.call('action_approve', { execution_id: rejected.execution_id, idempotency_key: 'mcp-action-reject-decision', decision: 'rejected' })).status, 'rejected')
+      const rejection = await actionApprover.call('action_approve', { execution_id: rejected.execution_id, idempotency_key: 'mcp-action-reject-decision', decision: 'rejected' })
+      assert.equal(rejection.isError, true, 'rejected approval must report the business failure')
+      const rejectionEnvelope = rejection.structuredContent as { outcome: string; data: Record<string, unknown> }
+      assert.equal(rejectionEnvelope.outcome, 'rejected')
+      assert.equal(rejectionEnvelope.data.status, 'rejected')
       assert((await client.call('action_execute', { execution_id: rejected.execution_id, idempotency_key: 'mcp-action-rejected-execute' })).isError)
       process.stdout.write('DSH_MCP_ACTION_PASS preflight=true independent_approver=true unverified_credential_denied=true self_denied=true revoked_denied=true cross_user_denied=true rejected=true real_http_receipt=true replay_effects=0\n')
     } finally { await actionApprover.close(); await fixtureControl('enable-approver') }
@@ -125,7 +129,7 @@ async function main(): Promise<void> {
       assert.equal(String(denied.status).toLowerCase(), 'pending_handoff', 'fresh Worker ignored current execution revocation')
       const ledger = data(await client.call('run_ledger', { run_id: revokedTask.run_id }))
       assert.deepEqual(ledger.ledger, [], 'revoked task entered business tool execution')
-      await client.call('run_control', { run_id: revokedTask.run_id, action: 'cancel', idempotency_key: 'revoked-professional-cancel' })
+      data(await client.call('run_control', { run_id: revokedTask.run_id, action: 'cancel', idempotency_key: 'revoked-professional-cancel' }))
       assert.equal(String((await waitProfessional(revokedTask.run_id)).status).toLowerCase(), 'cancelled')
     } finally {
       await fixtureControl('restore-agent-permission')

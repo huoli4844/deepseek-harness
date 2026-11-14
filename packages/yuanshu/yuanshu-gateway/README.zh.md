@@ -60,6 +60,8 @@ kind: "package-reference"
 
 网关按已认证的 DSH 用户和所选租户隔离 MCP grant。用户作用域客户端负责 MCP 发现、issuer/resource 校验、刷新和撤销；平台登录 token 或实例级 Bearer token 不能作为 MCP 授权。
 
+同一登录和租户的重叠请求共享一个 MCP 客户端及发现操作。每次协议请求读取当前授权；最后一个请求结束时释放客户端，插件释放时关闭活跃客户端。不同用户、租户和插件实例之间不共享客户端。
+
 | 文件 | 作用 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 注册路由、解析 token 并转发响应 |
