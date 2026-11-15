@@ -49,7 +49,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节 — 点击展开</summary>
 
-原场景句柄通过 `scenario_run_get` 恢复；取消使用 `scenario_run_cancel`，由平台向既有工作流节点和执行队列传播。页面展示平台确认的状态，不保存第二份业务执行记录。
+视图保存返回的 `task_ref`，所有任务统一通过 `task_get` 和 `task_cancel` 查询及取消。旧显示定位符转换为该引用，不重放业务操作。平台跟随已有审批恢复记录，并在每次读取和取消时校验权限。能力选项优先显示平台提供的业务名称。
 
 插件通过 slot registry 注册 locale 字典并注入会话视图。视图向 Host 网关发送 SSE 请求，并显示完成后的答案和引用。
 

@@ -1,17 +1,18 @@
 // @vitest-environment jsdom
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { qaStorageIdentity } from '../src/client/storage.ts'
 import { EnterpriseWorkbench } from '../src/client/EnterpriseWorkbench.tsx'
 import { enterpriseResourceProvider, type EnterpriseResourceValue } from '../src/client/enterprise-resource.ts'
 import { zh, type YuanShuChatKey } from '../src/client/locales.ts'
 import type { ResourceProtocol } from '@deepseek-ai/dsh-client-resources/client'
 
 type Props = Parameters<typeof EnterpriseWorkbench>[0]
-const catalog: EnterpriseResourceValue = { kind: 'catalog', page: { application: { code: 'manufacturing', name: 'Quality fixture' }, sections: [] }, tools: [{ name: 'algorithm_1_execute', inputSchema: { properties: { revision_id: { type: 'integer', const: 7 } } } }, { name: 'dag_approval_decide', inputSchema: {} }] }
+const catalog: EnterpriseResourceValue = { kind: 'catalog', page: { application: { code: 'manufacturing', name: 'Quality fixture' }, sections: [] }, tools: [{ name: 'algorithm_1_execute', title: 'Quality evaluation', inputSchema: { properties: { revision_id: { type: 'integer', const: 7 } } } }, { name: 'dag_approval_decide', inputSchema: {} }] }
 function props(call: Props['call']): Props {
   return { authorize: async () => {}, revoke: async () => {}, call, t: key => zh[key as YuanShuChatKey],
     useResource: ((address: string) => {
-      const value = address.includes('/catalog') ? catalog : address.includes('/identity') ? { kind: 'identity' as const, tenants: [{ id: 1, code: 'fixture' }] } : { kind: 'result' as const, result: { structuredContent: { data: { run: { execution_id: 'original-1', status: 'SUCCEEDED' } } } } }
+      const value = address.includes('/catalog') ? catalog : address.includes('/identity') ? { kind: 'identity' as const, tenants: [{ id: 1, code: 'fixture' }] } : { kind: 'result' as const, result: { structuredContent: { data: { terminal: false, available_operations: ['task_get', 'task_cancel'], record: { execution_id: 'original-1', status: 'RUNNING' } } } } }
       // This fixture implements only the enterprise protocol consumed by the component.
       return { status: 'live', value, failure: undefined }
     }) as Props['useResource'] }
@@ -19,6 +20,34 @@ function props(call: Props['call']): Props {
 beforeEach(() => { localStorage.clear(); localStorage.setItem('yuanshu-token', `e30.${btoa(JSON.stringify({ user_id: 1 }))}.sig`); localStorage.setItem('yuanshu-active-tenant', '1') })
 afterEach(cleanup)
 describe('enterprise workbench', () => {
+  it('shows the platform business title while keeping the stable invocation name', () => {
+    render(<EnterpriseWorkbench {...props(async () => ({}))} />)
+    expect(screen.getByRole('option', { name: 'Quality evaluation' }).getAttribute('value')).toBe('algorithm_1_execute')
+  })
+  it('upgrades an old display locator to task_get without starting another task', () => {
+    localStorage.setItem('yuanshu-enterprise-original-run', JSON.stringify({ owner: qaStorageIdentity(), tool: 'execution_get', args: { executionID: 'old-execution' } }))
+    const call = vi.fn(async () => ({}))
+    const base = props(call)
+    const reads: string[] = []
+    const useResource: Props['useResource'] = <P extends ResourceProtocol,>(address: string) => { reads.push(address); return base.useResource<P>(address) }
+    render(<EnterpriseWorkbench {...base} useResource={useResource} />)
+    expect(call).not.toHaveBeenCalled()
+    const restored = reads.map(value => new URL(value)).find(value => value.searchParams.get('tool') === 'task_get')
+    expect(JSON.parse(restored?.searchParams.get('args') ?? '{}')).toEqual({ task_ref: { kind: 'execution', id: 'old-execution' } })
+  })
+  it.each([
+    { terminal: true, available_operations: ['task_get', 'task_cancel'] },
+    { terminal: false, available_operations: ['task_get'] },
+    { terminal: false },
+  ])('hides cancellation when the platform task does not allow it: %j', (task) => {
+    localStorage.setItem('yuanshu-enterprise-original-run', JSON.stringify({ owner: qaStorageIdentity(), tool: 'task_get', args: { task_ref: { kind: 'run', id: 'original-1' } } }))
+    const base = props(async () => ({}))
+    const useResource = ((address: string) => address.includes('/run')
+      ? { status: 'live', value: { kind: 'result', result: { structuredContent: { data: task } } }, failure: undefined }
+      : base.useResource<'yuanshu-enterprise'>(address)) as Props['useResource']
+    render(<EnterpriseWorkbench {...base} useResource={useResource} />)
+    expect(screen.queryByRole('button', { name: zh.requestCancel })).toBeNull()
+  })
   it('keeps identity and capability reads stable after a tool result and refreshes them explicitly', async () => {
     const call = vi.fn(async () => ({ structuredContent: { data: [] } }))
     const base = props(call)
@@ -74,7 +103,7 @@ describe('enterprise workbench', () => {
     expect(screen.getByText(/complete-evidence/u).textContent).toContain('中'.repeat(16001))
   })
   it('pins the discovered revision and restores only the original execution handle', async () => {
-    const call = vi.fn<Props['call']>(async () => ({ structuredContent: { data: { execution: { execution_id: 'original-1' } } } }))
+    const call = vi.fn<Props['call']>(async () => ({ structuredContent: { task_ref: { kind: 'execution', id: 'original-1' }, data: { execution: { execution_id: 'original-1' } } } }))
     const view = render(<EnterpriseWorkbench {...props(call)} />)
     fireEvent.change(screen.getByRole('combobox', { name: zh.selectCapability }), { target: { value: 'algorithm_1_execute' } })
     fireEvent.click(screen.getByRole('button', { name: zh.run }))
@@ -105,7 +134,7 @@ describe('enterprise workbench', () => {
   })
 
   it('restores the scenario handle and propagates cancellation through its original workflow', async () => {
-    const call = vi.fn<Props['call']>(async () => ({ structuredContent: { data: { run_id: 'scenario-original', scenario_run_id: 'business-original', status: 'QUEUED' } } }))
+    const call = vi.fn<Props['call']>(async () => ({ structuredContent: { task_ref: { kind: 'scenario', id: 'scenario-original' }, data: { run_id: 'scenario-original', scenario_run_id: 'business-original', status: 'QUEUED' } } }))
     const base = props(call)
     const reads: string[] = []
     const useResource: Props['useResource'] = <P extends ResourceProtocol,>(address: string) => { reads.push(address); return base.useResource<P>(address) }
@@ -113,12 +142,12 @@ describe('enterprise workbench', () => {
     fireEvent.change(screen.getByRole('combobox', { name: zh.selectCapability }), { target: { value: 'algorithm_1_execute' } })
     fireEvent.click(screen.getByRole('button', { name: zh.run }))
     await screen.findByRole('heading', { name: zh.originalRun })
-    expect(JSON.parse(localStorage.getItem('yuanshu-enterprise-original-run') ?? '{}')).toMatchObject({ tool: 'scenario_run_get', args: { run_id: 'scenario-original' } })
+    expect(JSON.parse(localStorage.getItem('yuanshu-enterprise-original-run') ?? '{}')).toMatchObject({ tool: 'task_get', args: { task_ref: { kind: 'scenario', id: 'scenario-original' } } })
     view.unmount()
     render(<EnterpriseWorkbench {...base} useResource={useResource} />)
-    expect(reads.some(address => address.includes('scenario_run_get'))).toBe(true)
+    expect(reads.some(address => address.includes('task_get'))).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: zh.requestCancel }))
-    await waitFor(() => { expect(call).toHaveBeenCalledWith('scenario_run_cancel', expect.objectContaining({ run_id: 'scenario-original' }), undefined) })
+    await waitFor(() => { expect(call).toHaveBeenCalledWith('task_cancel', expect.objectContaining({ task_ref: { kind: 'scenario', id: 'scenario-original' } }), undefined) })
     expect(call).toHaveBeenCalledTimes(2)
   })
   it('requires explicit supplemental approval input before continuing', async () => {

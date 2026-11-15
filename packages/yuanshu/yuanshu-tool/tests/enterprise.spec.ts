@@ -89,6 +89,7 @@ describe('Session enterprise tools', () => {
     const tools = vi.spyOn(YuanShuMcp.prototype, 'tools').mockResolvedValue([
       { name: 'read_project', description: 'Read governed project data', inputSchema: { type: 'object', properties: {} } },
       { name: 'run_algorithm', inputSchema: { type: 'object', properties: {} } },
+      { name: 'execution_get', _meta: { 'io.yuanshu/compatibility': { replacement: 'task_get' } }, inputSchema: { type: 'object', properties: {} } },
     ])
     vi.spyOn(YuanShuMcp.prototype, 'resources').mockResolvedValue([])
     vi.spyOn(YuanShuMcp.prototype, 'resourceTemplates').mockResolvedValue([])
@@ -106,6 +107,7 @@ describe('Session enterprise tools', () => {
       })
       const selection = await run(f.a, 'enterprise_catalog', { query: 'project', names: ['read_project'] })
       expect(selection.isError).toBe(false)
+      expect(JSON.stringify(selection.value)).not.toContain('execution_get')
       expect(f.ctx.tools.get('enterprise_read_project', f.a)).toBeDefined()
       expect(f.ctx.tools.get('enterprise_read_project', f.b)).toBeUndefined()
       const result = await run(f.a, 'enterprise_read_project', {})

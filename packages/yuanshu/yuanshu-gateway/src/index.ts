@@ -307,7 +307,7 @@ export function apply(ctx: Context, config: Config): void {
         if (tool?.annotations?.readOnlyHint !== true) throw new GatewayRequestError('Only declared read tools may be used as resources')
         writeJSON(res, await mcp.call(query.name, requireObject(JSON.parse(query.arguments)))); return
       }
-      if (relative === '/mcp/tools') { writeJSON(res, await mcp.tools()); return }
+      if (relative === '/mcp/tools') { writeJSON(res, (await mcp.tools()).filter(tool => tool._meta?.['io.yuanshu/compatibility'] === undefined)); return }
       if (relative === '/mcp/call') {
         const input = requireObject(await body(req))
         if (typeof input.name !== 'string') throw new GatewayRequestError('Tool name required')

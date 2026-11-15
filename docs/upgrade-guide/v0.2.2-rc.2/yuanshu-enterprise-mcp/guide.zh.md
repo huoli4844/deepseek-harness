@@ -11,6 +11,8 @@ description: "元枢企业能力现通过用户授权的 MCP 调用，不再使�
 
 元枢 profile 现在默认通过 MCP 调用企业能力，并要求当前 DSH 用户和租户拥有独立 OAuth grant。MCP 模式会拒绝实例级 Bearer token 和 token 文件回落；MCP 失败不会改走 HTTP 重放请求。
 
+任务控制现在使用返回的 `task_ref` 调用 `task_get`、`task_result`、`task_events`、`task_cancel` 和 `task_resume`；工作流和 Action 审批使用 `task_approvals` 和 `task_approve`。默认发现隐藏标记了兼容替代项的引擎专用工具。已授权的显式旧调用仍然可用。
+
 ## 迁移
 
 1. 从 `@deepseek-ai/dsh-yuanshu-gateway` 和 `@deepseek-ai/dsh-yuanshu-tool` 配置中移除 `token`。
@@ -19,3 +21,5 @@ description: "元枢企业能力现通过用户授权的 MCP 调用，不再使�
 4. 保持基础 bundle 的 `session-persistence-jsonl` provider 启用，使工作区、Session 控制器和本地恢复能够激活。仓库集成通过 `pnpm dsh web --patch apps/cli/config/profiles/yuanshu/cordis.patch.yml` 启动；该 patch 不是内置 profile 模板。 Web profile 在重启后保留有效 Host Cookie；仅在需要每次启动都让浏览器重新登录时，在其 `connection` 行设置 `freshBrowserSession: true`。MCP grant 仍独立验证。
 5. 确认网关返回 `enterpriseTransport: mcp`、用户可以发现其获授权工具，且第二位用户获得独立目录。
 6. 仅在获准的回退窗口中设置 `enterpriseTransport: legacy-http` 并提供用户级 token；旧路径修复后恢复 MCP 模式。
+
+7. 先升级提供统一任务适配的元枢后台，再升级本次 DSH 客户端。保存返回的 `task_ref` 并使用 `available_operations`；不要根据资产名称推断查询或取消工具。验证刷新后的真实终态和审批恢复。旧显示定位符在读取时转换，不重新提交业务。

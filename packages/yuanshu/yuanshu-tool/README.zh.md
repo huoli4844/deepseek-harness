@@ -58,6 +58,8 @@ kind: "package-reference"
 
 `enterprise_resource` 在向模型返回资源前，按 UTF-8 字节计算完整资源 JSON 的大小。`maxResourceResultBytes` 默认为 65,536 字节；资源超限时仅返回原 URI 和大小诊断，不返回资源正文。部分资源不会被当成完整结果。
 
+发现结果隐藏平台标记了替代工具的兼容项；迁移期间仍可显式选择已授权旧工具。业务执行返回 `task_ref`，选择的统一任务工具操作该原始记录。稳定调用名称和固定发布修订保持不变。
+
 | 文件 | 作用 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 配置、token 解析和工具注册 |

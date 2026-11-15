@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-14-yuanshu-original-task-contract.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-14-yuanshu-original-task-contract.md
+/agent-note-yuanshu-task-references-preserve-original-execution-facts:
+  en: aa1d95bfa6ece37a
+  zh: 63d528e08813118d
+/agent-note-yuanshu-task-references-preserve-original-execution-facts/problem:
+  en: 5cf4b48483cd4aeb
+  zh: ea73501919555219
+/agent-note-yuanshu-task-references-preserve-original-execution-facts/decision:
+  en: cbfb3a6879402fb1
+  zh: b203609145d1c849
+/agent-note-yuanshu-task-references-preserve-original-execution-facts/alternatives-considered:
+  en: ae6dda61dce33499
+  zh: 453de71dd3aacee3
+/agent-note-yuanshu-task-references-preserve-original-execution-facts/consequences:
+  en: 9fe73951bfc8e48c
+  zh: fc3a0c77ddb9a928
+/agent-note-yuanshu-task-references-preserve-original-execution-facts/testing:
+  en: b3e3315f11cea5bd
+  zh: 825a969cf2d22577

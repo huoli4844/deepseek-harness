@@ -144,6 +144,7 @@ async function main(): Promise<void> {
     const submissions = await Promise.all([client.call('scenario_run', scenarioInput), client.call('scenario_run', scenarioInput)])
     const scenario = data(submissions[0])
     assert(typeof scenario.run_id === 'string')
+    assert.deepEqual(scenario.task_ref, { kind: 'scenario', id: scenario.run_id })
     assert.equal(data(submissions[1]).run_id, scenario.run_id, 'concurrent scenario retry created another Run')
     assert.equal((await client.call('scenario_run', { ...scenarioInput, input_data: { values: [1] } })).isError, true, 'scenario idempotency accepted changed input')
     assert.equal((await client.call('scenario_run', { ...scenarioInput, session_id: 'another-parent' })).isError, true, 'scenario idempotency accepted changed parent')
@@ -166,6 +167,10 @@ async function main(): Promise<void> {
     }
     const finishedScenario = await waitScenario(scenario.run_id)
     assert.equal(finishedScenario.status, 'SUCCEEDED', JSON.stringify(finishedScenario))
+    const unifiedScenario = data(await client.call('task_get', { task_ref: { kind: 'scenario', id: scenario.run_id } }))
+    assert.equal(unifiedScenario.status, 'succeeded')
+    assert.equal(unifiedScenario.terminal, true)
+    assert.deepEqual(unifiedScenario.result, finishedScenario.output)
     const scenarioNodes = records(finishedScenario.nodes)
     assert.equal(scenarioNodes.length, 2)
     for (const node of scenarioNodes) {
@@ -192,15 +197,15 @@ async function main(): Promise<void> {
     }
     assert(runningNode, 'no actual scenario business execution started before cancellation')
     assert.equal((await client.call('run_control', { run_id: cancellableScenario.run_id, action: 'cancel', idempotency_key: 'generic-scenario-cancel' })).isError, true, 'generic control prematurely terminated a scenario root')
-    await client.call('scenario_run_cancel', { run_id: cancellableScenario.run_id, idempotency_key: 'scenario-cancel-command' })
+    await client.call('task_cancel', { task_ref: { kind: 'scenario', id: cancellableScenario.run_id }, idempotency_key: 'scenario-cancel-command' })
     assert.equal((await waitScenario(cancellableScenario.run_id)).status, 'CANCELLED')
     const cancelledResult = await client.call('execution_get', { executionID: runningNode.execution_id })
     const cancelledEnvelope = cancelledResult.structuredContent as { outcome: string; data: { run: Record<string, unknown> } }
     assert.equal(cancelledEnvelope.outcome, 'cancelled')
     const cancelledExecution = cancelledEnvelope.data.run
     assert.equal(cancelledExecution.status, 'CANCELLED', 'scenario cancellation did not reach its original business execution')
-    const cancelReplay = scenarioState(await client.call('scenario_run_cancel', { run_id: cancellableScenario.run_id, idempotency_key: 'scenario-cancel-command' }))
-    assert.equal(cancelReplay.status, 'CANCELLED', 'repeated cancel reopened a terminal scenario')
+    const cancelReplay = scenarioState(await client.call('task_cancel', { task_ref: { kind: 'scenario', id: cancellableScenario.run_id }, idempotency_key: 'scenario-cancel-command' }))
+    assert.equal(cancelReplay.status, 'cancelled', 'repeated cancel reopened a terminal scenario')
     process.stdout.write('DSH_MCP_SCENARIO_PASS real_two_node_docker=true binding_and_version_denied=true concurrent_idempotency=true original_actor_tenant=true parent_session=true reconnect=true foreign_run_denied=true propagated_cancel=true\n')
     const position = data(await client.call('workbench_position', {}))
     assert.equal(position.position, 'procurement', 'the platform must derive the procurement role')
@@ -235,6 +240,16 @@ async function main(): Promise<void> {
     }
     assert.equal(run.status, 'SUCCEEDED', JSON.stringify(run))
     assert.deepEqual(run.output_snapshot, { count: 3, sum: 60 })
+    const taskRef = { kind: 'execution', id: execution.execution_id }
+    const unifiedExecution = data(await client.call('task_result', { task_ref: taskRef }))
+    assert.equal(unifiedExecution.status, 'succeeded')
+    assert.equal(unifiedExecution.terminal, true)
+    assert.deepEqual(unifiedExecution.result, run.output_snapshot)
+    const anotherActor = open(4)
+    try {
+      assert.equal((await anotherActor.call('task_get', { task_ref: taskRef })).isError, true, 'unified task read leaked another actor execution')
+      assert.equal((await anotherActor.call('task_cancel', { task_ref: taskRef, idempotency_key: 'foreign-unified-cancel' })).isError, true)
+    } finally { await anotherActor.close() }
     assert.equal(run.asset_revision_id, revision)
     const procurementQuery = { consumer_id: 'mcp-procurement-991006', consumer_type: 'knowledge_app', release_id: 991006, object_type: 'ProcurementLine', fields: ['line_id', 'project_code', 'deviation_mm', 'status'], sort: 'line_id', limit: 20 }
     const procurement = data(await client.call('ontology_objects_query', procurementQuery))
@@ -350,16 +365,18 @@ async function main(): Promise<void> {
     }
     assert(pending, 'workflow never reached approval')
     const id = String(pending.id)
-    const unauthorized = await client.call('dag_approval_decide', { id, decision: 'approved', auto_resume: true, idempotency_key: 'mcp-wrong-approver' })
+    const unifiedApprovals = data(await client.call('task_approvals', { task_ref: { kind: 'workflow', id: workflowID } }))
+    assert.deepEqual(records(unifiedApprovals.items)[0]?.approval_ref, { kind: 'workflow', id })
+    const unauthorized = await client.call('task_approve', { approval_ref: { kind: 'workflow', id }, decision: 'approved', auto_resume: true, idempotency_key: 'mcp-wrong-approver' })
     assert(unauthorized.isError, 'non-designated manager approved the task')
     const approver = open(1)
     try {
-      const decision = await approver.call('dag_approval_decide', { id, decision: 'approved', auto_resume: true, idempotency_key: 'mcp-approval-1' })
+      const decision = await approver.call('task_approve', { approval_ref: { kind: 'workflow', id }, decision: 'approved', auto_resume: true, idempotency_key: 'mcp-approval-1' })
       assert(!decision.isError, JSON.stringify(decision))
       const resumed = data(decision)
       assert(!('resume_error' in resumed), JSON.stringify(resumed))
       assert(JSON.stringify(resumed).includes('succeeded'), JSON.stringify(resumed))
-      assert((await approver.call('dag_approval_decide', { id, decision: 'approved', idempotency_key: 'mcp-approval-1' })).isError)
+      assert((await approver.call('task_approve', { approval_ref: { kind: 'workflow', id }, decision: 'approved', idempotency_key: 'mcp-approval-1' })).isError)
     } finally { await approver.close() }
     process.stdout.write(`DSH_MCP_WORKFLOW_PASS original_run=${workflowID} knowledge_evidence=true approval=true reconnect=true\n`)
     const allEvents = records(data(await client.call('dag_run_events', { execution_id: workflowID, after_seq: 0, limit: 1000 })).events)
@@ -384,6 +401,13 @@ async function main(): Promise<void> {
     const recoveredQuality = data(await client.call('execution_get', { executionID: qualityExecution.execution_id })).run as typeof run
     assert.deepEqual(recoveredQuality.output_snapshot, qualityRun.output_snapshot)
     assert.deepEqual(await client.resource('yuanshu://knowledge/991002'), document)
+    const unifiedWorkflow = data(await client.call('task_get', { task_ref: { kind: 'workflow', id: workflowID } }))
+    assert.equal(unifiedWorkflow.status, 'succeeded', JSON.stringify(unifiedWorkflow))
+    assert.equal(unifiedWorkflow.terminal, true)
+    assert.deepEqual(unifiedWorkflow.task_ref, { kind: 'workflow', id: workflowID })
+    const unifiedEvents = data(await client.call('task_events', { task_ref: { kind: 'workflow', id: workflowID }, after_seq: 0, limit: 100 }))
+    assert(records(unifiedEvents.events).length > 0)
+    process.stdout.write('DSH_MCP_UNIFIED_TASK_PASS original_handles=true docker_result=true scenario_cancel=true reconnect=true foreign_actor_denied=true approval_resume=true events=true\n')
     const recoveredWorkflow = data(await client.call('dag_queue_get', { execution_id: workflowID }))
     assert(JSON.stringify(recoveredWorkflow).includes('succeeded'), JSON.stringify(recoveredWorkflow))
     assert(JSON.stringify(recoveredWorkflow).includes(qualityExecution.execution_id), 'the original workflow must preserve the evaluation association')

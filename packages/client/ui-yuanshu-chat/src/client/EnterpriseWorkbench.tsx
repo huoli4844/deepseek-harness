@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-client-resources/client'
 import type { NS } from './locales.ts'
 import type { EnterpriseResourceValue } from './enterprise-resource.ts'
 import { qaStorageIdentity, readActiveTenant, writeActiveTenant } from './storage.ts'
-import { schemaFields, buildFieldValues, buildSchemaInput, extractExecutionId } from './workbench.ts'
+import { schemaFields, buildFieldValues, buildSchemaInput } from './workbench.ts'
 import css from './ChatPanel.module.css'
 import workbenchCss from './WorkbenchPanel.module.css'
 
@@ -21,7 +21,14 @@ const handleKey = 'yuanshu-enterprise-original-run'
 function savedHandle(): Handle | undefined {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(handleKey) ?? 'null')
-    if (value !== null && typeof value === 'object' && 'owner' in value && typeof value.owner === 'string' && value.owner === qaStorageIdentity() && 'tool' in value && typeof value.tool === 'string' && 'args' in value && value.args !== null && typeof value.args === 'object' && !Array.isArray(value.args)) return { owner: value.owner, tool: value.tool, args: value.args as Record<string, unknown> }
+    if (value !== null && typeof value === 'object' && 'owner' in value && typeof value.owner === 'string' && value.owner === qaStorageIdentity() && 'tool' in value && typeof value.tool === 'string' && 'args' in value && value.args !== null && typeof value.args === 'object' && !Array.isArray(value.args)) {
+      const args = value.args as Record<string, unknown>
+      if (value.tool === 'task_get' && record(args.task_ref) !== undefined) return { owner: value.owner, tool: 'task_get', args }
+      // Upgrade display-only locators saved by earlier clients without replaying work.
+      const legacyLocators: Record<string, readonly [string, string]> = { run_get: ['run', 'run_id'], scenario_run_get: ['scenario', 'run_id'], dag_queue_get: ['workflow', 'execution_id'], execution_get: ['execution', 'executionID'] }
+      const legacy = legacyLocators[value.tool]
+      if (legacy !== undefined && typeof args[legacy[1]] === 'string') return { owner: value.owner, tool: 'task_get', args: { task_ref: { kind: legacy[0], id: args[legacy[1]] } } }
+    }
   } catch { /* Unavailable storage disables display restoration only. */ }
   return undefined
 }
@@ -114,11 +121,9 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
     setPending(undefined); setOutput({ owner, value: dataOf(response) })
     const result = record(dataOf(response))
     const business = record(result?.data) ?? result
-    const agentID = typeof business?.run_id === 'string' ? business.run_id : undefined
-    const scenario = typeof business?.scenario_run_id === 'string'
-    const id = agentID ?? extractExecutionId(dataOf(response))
-    if (id !== undefined && owner !== undefined) {
-      const next: Handle = { owner, tool: scenario ? 'scenario_run_get' : agentID !== undefined ? 'run_get' : name.startsWith('dag_') ? 'dag_queue_get' : 'execution_get', args: agentID !== undefined ? { run_id: id } : name.startsWith('dag_') ? { execution_id: id } : { executionID: id } }
+    const taskRef = record(result?.task_ref) ?? record(business?.task_ref)
+    if (taskRef !== undefined && typeof taskRef.kind === 'string' && typeof taskRef.id === 'string' && taskRef.id !== '' && owner !== undefined) {
+      const next: Handle = { owner, tool: 'task_get', args: { task_ref: taskRef } }
       setHandle(next)
       try { localStorage.setItem(handleKey, JSON.stringify(next)) } catch { /* The original ledger remains authoritative. */ }
     }
@@ -133,6 +138,9 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
     await execute(selected, { ...record(args), ...(typeof revision === 'number' ? { revision_id: revision } : {}), idempotency_key: record(args)?.idempotency_key ?? randomUUID() })
   })
   const displayed: EnterpriseResourceValue | undefined = original.value
+  const taskEnvelope = displayed?.kind === 'result' ? record(dataOf(displayed.result)) : undefined
+  const task = record(taskEnvelope?.data) ?? taskEnvelope
+  const canCancel = original.status === 'live' && task?.terminal !== true && Array.isArray(task?.available_operations) && task.available_operations.includes('task_cancel')
   return <div className={css.container}>
     <div className={css.toolbar}>
       <select aria-label={t('activeTenant')} value={readActiveTenant() ?? ''} disabled={busy} onChange={(event) => { writeActiveTenant(event.target.value); setOutput(undefined); setPending(undefined); setHandle(undefined); refresh() }}>
@@ -150,7 +158,7 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
         <div className={css.toolbar}>{value.page.sections.map(section => <button className={css.linkButton} key={section.id}
           disabled={busy} onClick={() => { setSelected(section.tool); void perform(() => execute(section.tool, {})) }}>
           {section.title}</button>)}</div>
-        <label>{t('selectCapability')}<select className={css.capabilitySelect} value={selected} disabled={busy} onChange={(event) => { setSelected(event.target.value); setInput('{}'); setPending(undefined) }}><option value="">{t('selectCapability')}</option>{value.tools.map(tool => <option key={tool.name} value={tool.name}>{tool.name}</option>)}</select></label>
+        <label>{t('selectCapability')}<select className={css.capabilitySelect} value={selected} disabled={busy} onChange={(event) => { setSelected(event.target.value); setInput('{}'); setPending(undefined) }}><option value="">{t('selectCapability')}</option>{value.tools.map(tool => <option key={tool.name} value={tool.name}>{tool.title ?? tool.name}</option>)}</select></label>
         {value.tools.find(tool => tool.name === selected) !== undefined && <details><summary>{t('inputSchema')}</summary><pre className={css.resultBody}>{JSON.stringify(value.tools.find(tool => tool.name === selected)?.inputSchema, null, 2)}</pre></details>}
         <textarea aria-label={t('jsonInputHint')} className={css.jsonInput} rows={5} value={input} disabled={busy} onChange={(event) => { setInput(event.target.value) }} />
         <button className={css.primaryButton} disabled={busy || selected === ''} onClick={() => { void run() }}>{busy ? t('running') : t('run')}</button>
@@ -159,7 +167,7 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
         <p>{t('supplementalInput')}</p>{pending.fields.map(field => <label className={css.field} key={field.name}>{field.name}{field.enum !== undefined ? <select required value={form[field.name] ?? ''} disabled={busy} onChange={(event) => { setForm(previous => ({ ...previous, [field.name]: event.target.value })) }}><option value="">{t('fieldUnset')}</option>{field.enum.map(option => <option key={option}>{option}</option>)}</select> : <input required={field.required} value={form[field.name] ?? ''} disabled={busy} onChange={(event) => { setForm(previous => ({ ...previous, [field.name]: event.target.value })) }} />}</label>)}<button disabled={busy}>{t('submitInput')}</button><button type="button" disabled={busy} onClick={() => { setPending(undefined) }}>{t('dismissInput')}</button>
       </form>}
       {output !== undefined && output.owner === owner && <ResultValue value={output.value} t={t} />}
-      {handle !== undefined && handle.owner === owner && <section><h3>{t('originalRun')}</h3><code>{JSON.stringify(handle.args)}</code><button disabled={busy} onClick={() => { void perform(() => execute(handle.tool === 'scenario_run_get' ? 'scenario_run_cancel' : handle.tool === 'run_get' ? 'run_control' : handle.tool === 'dag_queue_get' ? 'dag_run_cancel' : 'execution_cancel', { ...handle.args, ...(handle.tool === 'run_get' ? { action: 'cancel' } : {}), idempotency_key: randomUUID() })) }}>{t('requestCancel')}</button>{original.status === 'failed' && <p role="alert">{t('enterpriseUnavailable')}</p>}{displayed?.kind === 'result' && <ResultValue value={dataOf(displayed.result)} t={t} />}</section>}
+      {handle !== undefined && handle.owner === owner && <section><h3>{t('originalRun')}</h3><code>{JSON.stringify(handle.args)}</code>{canCancel && <button disabled={busy} onClick={() => { void perform(() => execute('task_cancel', { ...handle.args, idempotency_key: randomUUID() })) }}>{t('requestCancel')}</button>}{original.status === 'failed' && <p role="alert">{t('enterpriseUnavailable')}</p>}{displayed?.kind === 'result' && <ResultValue value={dataOf(displayed.result)} t={t} />}</section>}
     </div>
   </div>
 }

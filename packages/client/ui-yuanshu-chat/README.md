@@ -49,7 +49,7 @@ Large tables show a preview of up to 100 rows and 12 columns. Oversized objects 
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-Original scenario handles restore through `scenario_run_get`; cancellation uses `scenario_run_cancel` so the platform can propagate it to the existing workflow nodes and execution queue. The view displays confirmed platform states and keeps no second business execution record.
+The view preserves the returned `task_ref` and uses `task_get` and `task_cancel` for every task kind. Earlier display locators upgrade to this reference without replaying the operation. The platform follows existing approval continuations and checks permissions on each read or cancellation. Capability options display the platform business title when available.
 
 The plugin registers its locale dictionary and injects a conversation view through the slot registry. The view sends SSE requests to the Host gateway and renders the completed answer and citations.
 

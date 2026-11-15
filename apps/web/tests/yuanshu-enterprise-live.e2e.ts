@@ -18,13 +18,20 @@ function launchBrowser(): Promise<Browser> {
 async function configureModelLater(page: Page): Promise<void> {
   const welcome = page.getByRole('dialog', { name: 'Preview Notice', exact: true })
   const setup = page.getByRole('dialog', { name: 'Get started', exact: true })
-  const workspace = page.getByText('YuanShu', { exact: true })
-  await welcome.or(setup).or(workspace).first().waitFor()
-  if (!(await welcome.isVisible()) && !(await setup.isVisible())) return
-  if (await welcome.isVisible()) await welcome.getByRole('button', { name: 'Continue', exact: true }).click()
-  await setup.getByRole('button', { name: 'Add API Key', exact: true }).click()
-  await page.getByRole('dialog', { name: 'Add an API key to get started', exact: true })
-    .getByRole('button', { name: 'Configure later', exact: true }).click()
+  // Provider readiness can settle after the workbench mounts. Handle the real
+  // optional dialogs whenever they block an action, including after reload.
+  await page.removeLocatorHandler(welcome)
+  await page.removeLocatorHandler(setup)
+  await page.addLocatorHandler(welcome, async (dialog) => {
+    await dialog.getByRole('button', { name: 'Continue', exact: true }).click()
+  })
+  await page.addLocatorHandler(setup, async (dialog) => {
+    await dialog.getByRole('button', { name: 'Add API Key', exact: true }).click()
+    const editor = page.getByRole('dialog', { name: 'Add an API key to get started', exact: true })
+    await editor.getByRole('button', { name: 'Configure later', exact: true }).click()
+    await editor.waitFor({ state: 'hidden' })
+  })
+  await page.getByText('YuanShu', { exact: true }).waitFor()
 }
 
 async function login(browser: Browser, username: string, tenantCode: string, tenant: string): Promise<Page> {
@@ -48,6 +55,9 @@ async function login(browser: Browser, username: string, tenantCode: string, ten
 
 async function screenshot(page: Page, name: string): Promise<void> {
   if (evidence === undefined) return
+  // Check actionability so optional onboarding handlers finish before the
+  // capture. A trial click preserves the displayed task and read generation.
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click({ trial: true })
   await mkdir(evidence, { recursive: true })
   await page.screenshot({ path: join(evidence, name), fullPage: true })
 }
@@ -125,10 +135,10 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     const evaluated = data(await call(owner, 'algorithm_991001_execute', { input_data: input, idempotency_key: `mcp-browser-evaluation-${randomUUID()}` })).execution as { execution_id: string }
     let evaluation: unknown
     await expect.poll(async () => {
-      const run = data(await call(owner, 'execution_get', { executionID: evaluated.execution_id })).run as { status: string; output_snapshot: unknown }
-      evaluation = run.output_snapshot
+      const run = data(await call(owner, 'task_get', { task_ref: { kind: 'execution', id: evaluated.execution_id } }))
+      evaluation = run.result
       return run.status
-    }, { timeout: 30_000 }).toBe('SUCCEEDED')
+    }, { timeout: 30_000 }).toBe('succeeded')
     expect(evaluation).toEqual({ count: 3, sum: 0.55, tolerance_mm: 0.2, failed_count: 1, inspection_required: true })
     await screenshot(owner, 'procurement-quality-evaluation.png')
     const accepted = data(await call(owner, 'dag_991003_execute', { input: { input, procurement_context: { project_code: 'MCP-PROC-001', evidence_uri: 'yuanshu://knowledge/991002', evidence_id: 'mcp-quality-q001-section3-991002', evaluation_execution_id: evaluated.execution_id, evaluation } }, idempotency_key: `mcp-browser-${randomUUID()}`, conversation_id: 'mcp-browser-session' }))
@@ -136,7 +146,7 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     expect(typeof executionID).toBe('string')
     let task: Record<string, unknown> | undefined
     await expect.poll(async () => {
-      const rows = data(await call(owner, 'dag_approvals', { execution_id: executionID }))
+      const rows = data(await call(owner, 'task_approvals', { task_ref: { kind: 'workflow', id: executionID } })).items
       if (Array.isArray(rows) && rows.length > 0) {
         const candidate: unknown = rows[0]
         expect(candidate).not.toBeNull()
@@ -146,7 +156,7 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
       return task?.status
     }, { timeout: 30_000 }).toBe('pending')
     const id = String(task?.id)
-    const denied = await call(owner, 'dag_approval_decide', { id, decision: 'approved', auto_resume: true, idempotency_key: `mcp-browser-denied-${randomUUID()}` })
+    const denied = await call(owner, 'task_approve', { approval_ref: { kind: 'workflow', id }, decision: 'approved', auto_resume: true, idempotency_key: `mcp-browser-denied-${randomUUID()}` })
     expect(denied.isError).toBe(true)
     await owner.context().setOffline(true)
     try { await expect(owner.reload()).rejects.toThrow() }
@@ -157,7 +167,7 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     const restored = owner.locator('section').filter({ has: owner.getByRole('heading', { name: 'Original platform Run', exact: true }) })
     await expect.poll(() => restored.innerText()).toContain(String(executionID))
     const approver = await login(browser, 'mcp-pg-fixture-1', 'mcp-pg-fixture-0', '910001')
-    const supplemental = await call(approver, 'dag_approval_decide', { id, auto_resume: true, idempotency_key: `mcp-browser-approval-${randomUUID()}` })
+    const supplemental = await call(approver, 'task_approve', { approval_ref: { kind: 'workflow', id }, auto_resume: true, idempotency_key: `mcp-browser-approval-${randomUUID()}` })
     expect(supplemental.resultType).toBe('input_required')
     await approver.getByRole('combobox', { name: 'decision', exact: true }).selectOption('approved')
     const response = approver.waitForResponse(response => new URL(response.url()).pathname === '/yuanshu-api/mcp/call')
@@ -179,11 +189,11 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     const professional = professionals.find(item => item.id === 991010)
     expect(professional).toBeDefined()
     const delegated = data(await call(owner, 'agent_delegate', { agent_id: professional!.id, revision_id: professional!.revision_id, task: 'Evaluate procurement samples', session_id: 'browser-professional-parent', idempotency_key: `mcp-browser-professional-${randomUUID()}` }))
-    await expect.poll(async () => data(await call(owner, 'run_get', { run_id: delegated.run_id })).status, { timeout: 30_000 }).toBe('succeeded')
+    await expect.poll(async () => data(await call(owner, 'task_get', { task_ref: { kind: 'run', id: delegated.run_id } })).status, { timeout: 30_000 }).toBe('succeeded')
     const scene = data(await call(owner, 'scenario_run', { agent_id: professional!.id, revision_id: professional!.revision_id, scenario_key: 'mcp-procurement-scenario-991020', scenario_version: '1.0.0', input_data: { values: [10, 20, 30], delay: 10 }, session_id: 'browser-scenario-parent', idempotency_key: `mcp-browser-scenario-${randomUUID()}` }))
     await expect.poll(async () => {
-      const current = data(await call(owner, 'scenario_run_get', { run_id: scene.run_id }))
-      const nodes = current.nodes as Array<{ status: string }>
+      const current = data(await call(owner, 'task_get', { task_ref: { kind: 'scenario', id: scene.run_id } }))
+      const nodes = (current.record as { nodes: unknown }).nodes as Array<{ status: string }>
       return nodes.some(node => node.status === 'RUNNING')
     }, { timeout: 15_000 }).toBe(true)
     await owner.reload()
@@ -194,12 +204,21 @@ it.skipIf(!enabled)('approves a Docker-backed DAG as another user and restores t
     const cancellation = owner.waitForResponse(response => new URL(response.url()).pathname === '/yuanshu-api/mcp/call')
     await scenePanel.getByRole('button', { name: 'Request cancellation', exact: true }).click()
     const cancellationResponse = await cancellation
-    expect(cancellationResponse.request().postDataJSON()).toMatchObject({ name: 'scenario_run_cancel' })
+    expect(cancellationResponse.request().postDataJSON()).toMatchObject({ name: 'task_cancel', arguments: { task_ref: { kind: 'scenario', id: scene.run_id } } })
     expect(cancellationResponse.status(), await cancellationResponse.text()).toBe(200)
+    await expect.poll(async () => {
+      const response = await call(owner, 'task_get', { task_ref: { kind: 'scenario', id: scene.run_id } })
+      // A cancellation request and child cancellation events do not establish
+      // the original task's terminal outcome. Check the platform snapshot.
+      const snapshot = (response.structuredContent as { data: Record<string, unknown> }).data
+      expect(snapshot.task_ref).toEqual({ kind: 'scenario', id: scene.run_id })
+      return { status: snapshot.status, terminal: snapshot.terminal }
+    }, { timeout: 30_000 }).toEqual({ status: 'cancelled', terminal: true })
     await owner.reload()
     await configureModelLater(owner)
     await owner.getByText('YuanShu', { exact: true }).click()
-    await expect.poll(() => scenePanel.innerText(), { timeout: 15_000 }).toContain('CANCELLED')
+    await expect.poll(() => scenePanel.innerText(), { timeout: 15_000 }).toMatch(/cancelled/i)
+    expect(await scenePanel.getByRole('button', { name: 'Request cancellation', exact: true }).count()).toBe(0)
     await screenshot(owner, 'scenario-cancel-restored.png')
     console.log('DSH_MCP_BROWSER_PROFESSIONAL_SCENARIO_PASS professional_docker=true scenario_restore=true dedicated_cancel=true terminal_after_reload=true')
     await approver.getByRole('button', { name: 'Revoke enterprise access', exact: true }).click()

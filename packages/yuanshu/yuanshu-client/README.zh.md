@@ -42,6 +42,8 @@ const capabilities = await client.listCapabilities()
 
 配置企业 MCP 客户端后，`listCapabilities()` 和 `listScenarios()` 通过 MCP 仅发现已发布的专业 Agent 安全描述及不可变修订。专业目录沿递增的 `next_after_id` 游标读取，包括过滤后的空页，最多 64 页；目录不完整或无效时显式失败。`scenarios_list` 表示该专业目录；`scenario_bindings_list` 发现选定 Agent 绑定的工作流及版本。确定性工作流使用 `scenario_run`，专业子任务使用 `agent_delegate`。两者均保留平台 Run 句柄，重连后据此查询结果或请求取消。
 
+执行结果包含平台提供的 `task_ref`；调用方原样传给 `task_get`、`task_result`、`task_events`、`task_cancel` 或 `task_resume`，并按 `available_operations` 选择可用操作。工作流和 Action 审批使用 `task_approvals` 和 `task_approve`。这些工具适配平台已有记录；不支持的操作明确拒绝，结果未知时不触发另一次执行。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 

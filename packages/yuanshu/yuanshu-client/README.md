@@ -42,6 +42,8 @@ const capabilities = await client.listCapabilities()
 
 With an enterprise MCP client configured, `listCapabilities()` and `listScenarios()` discover only published professional Agent descriptions and immutable revisions through MCP. Professional discovery follows advancing `next_after_id` cursors, including filtered empty pages, with a 64-page limit; incomplete or invalid catalogs fail explicitly. `scenarios_list` names this professional catalog; `scenario_bindings_list` discovers the versioned workflows bound to a selected Agent. Deterministic workflows use `scenario_run`, while `agent_delegate` starts a professional child task. Both retain a platform Run handle for reading outcomes and requesting cancellation after reconnect.
 
+Execution results include the platform-owned `task_ref`; callers pass it unchanged to `task_get`, `task_result`, `task_events`, `task_cancel`, or `task_resume` as advertised by `available_operations`. Workflow and Action approvals use `task_approvals` and `task_approve`. These tools adapt the existing platform records; unsupported operations reject explicitly and unknown outcomes never trigger another execution.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

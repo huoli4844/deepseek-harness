@@ -5,6 +5,7 @@ import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 /** A discovered tool descriptor; schemas are supplied by the authenticated platform. */
 export interface EnterpriseTool {
   readonly name: string
+  readonly title?: string
   readonly description?: string
   readonly inputSchema: Readonly<Record<string, unknown>>
 }
@@ -63,7 +64,7 @@ export function enterpriseResourceProvider(read: (path: string, signal: AbortSig
         const [page, tools] = await Promise.all([read('/mcp/workbench', signal), read('/mcp/tools', signal)])
         if (page === null || typeof page !== 'object' || !('application' in page) || page.application === null || typeof page.application !== 'object' || !('code' in page.application) || typeof page.application.code !== 'string' || !('name' in page.application) || typeof page.application.name !== 'string' || !('sections' in page) || !Array.isArray(page.sections) || !Array.isArray(tools)) throw new Error('Invalid platform workbench descriptor')
         const sections = page.sections.flatMap((raw: unknown): EnterpriseSection[] => raw !== null && typeof raw === 'object' && 'id' in raw && typeof raw.id === 'string' && 'title' in raw && typeof raw.title === 'string' && 'tool' in raw && typeof raw.tool === 'string' ? [{ id: raw.id, title: raw.title, tool: raw.tool }] : [])
-        value = { kind: 'catalog', page: { application: { code: page.application.code, name: page.application.name }, sections }, tools: tools.flatMap((raw: unknown): EnterpriseTool[] => raw !== null && typeof raw === 'object' && 'name' in raw && typeof raw.name === 'string' && 'inputSchema' in raw && raw.inputSchema !== null && typeof raw.inputSchema === 'object' && !Array.isArray(raw.inputSchema) ? [{ name: raw.name, inputSchema: raw.inputSchema as Record<string, unknown>, ...'description' in raw && typeof raw.description === 'string' ? { description: raw.description } : {} }] : []) }
+        value = { kind: 'catalog', page: { application: { code: page.application.code, name: page.application.name }, sections }, tools: tools.flatMap((raw: unknown): EnterpriseTool[] => raw !== null && typeof raw === 'object' && 'name' in raw && typeof raw.name === 'string' && 'inputSchema' in raw && raw.inputSchema !== null && typeof raw.inputSchema === 'object' && !Array.isArray(raw.inputSchema) ? [{ name: raw.name, ...'title' in raw && typeof raw.title === 'string' ? { title: raw.title } : {}, inputSchema: raw.inputSchema as Record<string, unknown>, ...'description' in raw && typeof raw.description === 'string' ? { description: raw.description } : {} }] : []) }
       } else {
         const tool = url.searchParams.get('tool'), args = url.searchParams.get('args')
         if (tool === null || args === null) throw new Error('Invalid original Run resource')
