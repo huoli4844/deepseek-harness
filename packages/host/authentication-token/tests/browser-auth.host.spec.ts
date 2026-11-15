@@ -162,12 +162,12 @@ describe('API credentials', () => {
 
 describe('sign-in path configuration', () => {
   it('accepts a local sign-in path', () => {
-    expect(Config({ loginPath: '/login' }).loginPath).toBe('/login')
+    expect(Config({ cookieMaxAgeDays: 30, loginPath: '/login' }).loginPath).toBe('/login')
   })
 
   it.each(['https://other.example/login', '//other.example/login', 'login', '/\\other.example', '/login\r\n']) (
     'rejects an unsafe sign-in path %j', (loginPath) => {
-      expect(() => Config({ loginPath })).toThrow()
+      expect(() => Config({ cookieMaxAgeDays: 30, loginPath })).toThrow()
     },
   )
 })

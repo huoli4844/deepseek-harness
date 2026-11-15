@@ -76,7 +76,7 @@ describe('web-app runtime glue', () => {
     ctx.on('webserver/entry-url', (baseUrl, entries) => {
       entries.push({ label: 'dsh web', url: `${baseUrl}/?token=fixture`, open: true })
     })
-    apply(ctx, new Config({ openPath: '/', surfaceContext: false }))
+    apply(ctx, new Config({ openPath: '/', openBrowser: true, printUrl: true, surfaceContext: false }))
     expect(log).toHaveBeenCalledWith('dsh web: http://127.0.0.1:4567/?token=fixture')
     expect(open).toHaveBeenCalledWith('http://127.0.0.1:4567', expect.any(AbortSignal))
     await open.mock.results[0]!.value
@@ -84,7 +84,7 @@ describe('web-app runtime glue', () => {
 
   it('rejects a browser handoff path that leaves the advertised origin', () => {
     const ctx = context()
-    expect(() => { apply(ctx, new Config({ openPath: '//evil.test/login' })) })
+    expect(() => { apply(ctx, new Config({ openPath: '//evil.test/login', openBrowser: false, printUrl: false, surfaceContext: false })) })
       .toThrow('openPath must be one same-origin absolute path')
   })
 
