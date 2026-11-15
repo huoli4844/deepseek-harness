@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-yuanshu-client",
   "description": "YuanShu platform client — provider-neutral HTTP client for YuanShu APIs",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.3",
   "publishConfig": {
     "access": "public"
   },

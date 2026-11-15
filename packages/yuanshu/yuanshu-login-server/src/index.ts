@@ -24,7 +24,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
-import type {} from '@deepseek-ai/dsh-host-webserver'
+import type { WebEntryUrl } from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-web-app'
 
@@ -158,14 +158,17 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: LOGIN_PATH,
+    auth: 'anonymous',
     handler: (req, res) => { serveRequest(req, res, distRoot, yuanshuApiUrl) },
   }), 'yuanshu-login-server: login page')
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: YUANSHU_TOKEN_PATH,
+    auth: 'anonymous',
     handler: async (req, res) => {
-      const rejection = ctx.connection.requestRejection({ headers: req.headers })
+      const admission = ctx.connection.admit({ headers: req.headers })
+      const rejection = 'rejection' in admission ? admission.rejection : undefined
       // 403 means the Host/Origin fence rejected the request outright; only an
       // authentication miss (401) may fall back to a YuanShu token proof.
       if (rejection !== undefined && rejection !== 401) {
@@ -181,14 +184,23 @@ export function apply(ctx: Context, config: Config): void {
           return
         }
       }
+      const entries: WebEntryUrl[] = []
+      ctx.emit(ctx.webServer, 'webserver/entry-url', ctx.webApp.getAdvertisedUrl(), entries)
+      const entry = entries.find(entry => entry.open)
+      if (entry === undefined) {
+        res.writeHead(503, { 'cache-control': 'no-store' })
+        res.end()
+        return
+      }
       res.writeHead(200, { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' })
-      res.end(JSON.stringify({ url: ctx.connection.authenticatedUrl(ctx.webApp.getAdvertisedUrl()) }))
+      res.end(JSON.stringify({ url: entry.url }))
     },
   }), 'yuanshu-login-server: browser authentication handoff')
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/favicon.svg',
+    auth: 'anonymous',
     handler: (_req, res) => {
       try {
         const content = readFileSync(join(distRoot, 'favicon.svg'))
@@ -204,6 +216,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: '/login-assets',
+    auth: 'anonymous',
     handler: (req, res) => {
       const pathname = new URL(req.url ?? '/', 'http://localhost').pathname
       const relativePath = pathname.slice('/login-assets/'.length)

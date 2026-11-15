@@ -53,7 +53,7 @@ See the generated [configuration catalog](../../../docs/config-catalog.md#deepse
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The plugin owns four web-server registrations for the login page, its assets, the favicon, and the authenticated browser handoff. The handoff accepts either an existing valid Harness browser session or a YuanShu bearer token that the backend confirms through `GET /api/v1/user/tenants`; requests with neither get a 401. On success it adds the process token to the advertised app URL. Cordis effects release each route when the plugin unloads.
+The plugin owns four web-server registrations for the login page, its assets, the favicon, and the authenticated browser handoff. The handoff accepts either an existing valid Harness browser session or a YuanShu bearer token that the backend confirms through `GET /api/v1/user/tenants`; requests with neither get a 401. On success it obtains the authenticated app URL through the token provider's `webserver/entry-url` contribution; no available entry returns 503. Login assets and the handoff declare anonymous Host admission, retain the Host/Origin policy, and validate platform credentials inside the handoff. Cordis effects release each route when the plugin unloads.
 
 | File | Role |
 |---|---|

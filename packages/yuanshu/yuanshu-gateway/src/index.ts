@@ -211,7 +211,7 @@ export function apply(ctx: Context, config: Config): void {
     clients.clear()
     await Promise.all(pending.map(close))
   }, 'yuanshu-gateway: MCP clients')
-  const route: WebRoute = { kind: 'prefix', path: prefix, handler: async (req, res) => {
+  const route: WebRoute = { kind: 'prefix', path: prefix, auth: 'anonymous', handler: async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
     const pathname = url.pathname
     // Remove prefix and leading slash

@@ -22,10 +22,7 @@ function setup(rejection: 401 | 403 | undefined): {
     headers: Record<string, string> | undefined
     body: string | undefined
   }
-  connection: {
-    authenticatedUrl: ReturnType<typeof vi.fn>
-    requestRejection: ReturnType<typeof vi.fn>
-  }
+  entryUrl: ReturnType<typeof vi.fn>
 } {
   const routes: WebRoute[] = []
   const disposers: Array<ReturnType<typeof vi.fn>> = []
@@ -39,9 +36,12 @@ function setup(rejection: 401 | 403 | undefined): {
       return dispose
     },
   } as never)
+  const entryUrl = vi.fn((url: string) => `${url}?token=launch-token`)
+  active.on('webserver/entry-url', (baseUrl, entries) => {
+    entries.push({ label: 'dsh web', url: entryUrl(baseUrl), open: true })
+  })
   const connection = {
-    authenticatedUrl: vi.fn((url: string) => `${url}?token=launch-token`),
-    requestRejection: vi.fn(() => rejection),
+    admit: vi.fn(() => rejection === undefined ? { peer: {} } : { rejection }),
   }
   active.provide('connection', connection as never)
   active.provide('webApp', { getAdvertisedUrl: () => 'https://example.test/workbench/' } as never)
@@ -65,7 +65,7 @@ function setup(rejection: 401 | 403 | undefined): {
       return this
     },
   } as never as ServerResponse
-  return { route, response, responseState, disposers, connection }
+  return { route, response, responseState, disposers, entryUrl }
 }
 
 function request(headers: Record<string, string>): IncomingMessage {
@@ -84,17 +84,17 @@ it('publishes the external identity marker so the account launcher yields its sl
 })
 
 it('rejects a request with neither a Harness session nor a YuanShu token', async () => {
-  const { route, response, responseState, connection } = setup(401)
+  const { route, response, responseState, entryUrl } = setup(401)
   await route.handler(request({ host: 'example.test' }), response)
 
   expect(responseState.status).toBe(401)
   expect(responseState.headers?.['cache-control']).toBe('no-store')
   expect(responseState.body).toBeUndefined()
-  expect(connection.authenticatedUrl).not.toHaveBeenCalled()
+  expect(entryUrl).not.toHaveBeenCalled()
 })
 
 it('rejects a YuanShu token the backend does not accept', async () => {
-  const { route, response, responseState, connection } = setup(401)
+  const { route, response, responseState, entryUrl } = setup(401)
   const fetchMock = vi.fn(async () => new Response(null, { status: 401 }))
   vi.stubGlobal('fetch', fetchMock)
   await route.handler(request({ host: 'example.test', authorization: 'Bearer expired' }), response)
@@ -104,30 +104,30 @@ it('rejects a YuanShu token the backend does not accept', async () => {
   }))
   expect(responseState.status).toBe(401)
   expect(responseState.headers?.['cache-control']).toBe('no-store')
-  expect(connection.authenticatedUrl).not.toHaveBeenCalled()
+  expect(entryUrl).not.toHaveBeenCalled()
 })
 
 it('returns the authenticated URL once the YuanShu backend accepts the token', async () => {
-  const { route, response, responseState, connection } = setup(401)
+  const { route, response, responseState, entryUrl } = setup(401)
   vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200 })))
   await route.handler(request({ host: 'example.test', authorization: 'Bearer valid' }), response)
 
   expect(responseState.status).toBe(200)
   expect(responseState.headers?.['cache-control']).toBe('no-store')
   expect(responseState.headers?.['content-type']).toBe('application/json; charset=utf-8')
-  expect(connection.authenticatedUrl).toHaveBeenCalledWith('https://example.test/workbench/')
+  expect(entryUrl).toHaveBeenCalledWith('https://example.test/workbench/')
   expect(JSON.parse(responseState.body as string)).toEqual({
     url: 'https://example.test/workbench/?token=launch-token',
   })
 })
 
 it('rejects the handoff when the YuanShu backend is unreachable', async () => {
-  const { route, response, responseState, connection } = setup(401)
+  const { route, response, responseState, entryUrl } = setup(401)
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('connect ECONNREFUSED') }))
   await route.handler(request({ host: 'example.test', authorization: 'Bearer valid' }), response)
 
   expect(responseState.status).toBe(401)
-  expect(connection.authenticatedUrl).not.toHaveBeenCalled()
+  expect(entryUrl).not.toHaveBeenCalled()
 })
 
 it('does not fall back to a token when the host fence rejects the request', async () => {
@@ -142,13 +142,13 @@ it('does not fall back to a token when the host fence rejects the request', asyn
 })
 
 it('returns an authenticated URL for the advertised app root to an authenticated session', async () => {
-  const { route, response, responseState, connection } = setup(undefined)
+  const { route, response, responseState, entryUrl } = setup(undefined)
   await route.handler(request({ host: 'example.test' }), response)
 
   expect(responseState.status).toBe(200)
   expect(responseState.headers?.['cache-control']).toBe('no-store')
   expect(responseState.headers?.['content-type']).toBe('application/json; charset=utf-8')
-  expect(connection.authenticatedUrl).toHaveBeenCalledWith('https://example.test/workbench/')
+  expect(entryUrl).toHaveBeenCalledWith('https://example.test/workbench/')
   expect(JSON.parse(responseState.body as string)).toEqual({
     url: 'https://example.test/workbench/?token=launch-token',
   })

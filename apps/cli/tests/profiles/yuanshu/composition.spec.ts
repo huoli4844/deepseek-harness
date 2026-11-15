@@ -42,7 +42,7 @@ it.each([
 
 it('retains browser authentication across restart for original Run recovery', () => {
   const output = config('apps/cli/config/profiles/yuanshu/cordis.patch.yml')
-  const connection = output.split(/(?=^- id: )/mu).find(row => row.startsWith('- id: connection\n'))
-  expect(connection).toContain('freshBrowserSession: false')
-  expect(connection).toContain('loginPath: /login')
+  const authentication = output.split(/(?=^- id: )/mu).find(row => row.startsWith('- id: authentication-token\n'))
+  expect(authentication).toContain('freshBrowserSession: false')
+  expect(authentication).toContain('loginPath: /login')
 })

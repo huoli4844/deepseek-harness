@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-yuanshu-gateway",
   "description": "Same-origin Harness gateway for YuanShu Platform capabilities and Worker SSE",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.3",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
