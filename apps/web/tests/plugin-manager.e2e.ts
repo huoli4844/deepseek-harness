@@ -298,7 +298,7 @@ describe('web e2e: plugin manager', () => {
       await expect.poll(() => bar.evaluate(element => element.hasAttribute('data-compact'))).toBe(false)
       // ResizeObserver updates the responsive header after the viewport change;
       // measure scroll travel only after that layout has reached the wide form.
-      await expect.poll(() => bar.evaluate(element => {
+      await expect.poll(() => bar.evaluate((element) => {
         const tablist = element.querySelector('[role="tablist"]')!
         const toolbar = element.querySelector('[data-plugin-toolbar]')!
         return toolbar.getBoundingClientRect().top < tablist.getBoundingClientRect().bottom
