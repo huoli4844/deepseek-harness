@@ -536,11 +536,16 @@ export function apply(ctx: Context, config: Config): void {
         const query = parseQuery(url.toString())
         const limit = query.page_size ? parseInt(query.page_size, 10) : undefined
         const pageSize = limit === undefined || Number.isNaN(limit) ? undefined : limit
+        const spaceId = query.space_id === undefined ? undefined : Number(query.space_id)
+        if ((relative === '/ontology/collections' && spaceId === undefined)
+          || (spaceId !== undefined && (!Number.isSafeInteger(spaceId) || spaceId < 1))) {
+          throw new GatewayRequestError('A positive space_id is required')
+        }
         const value = relative === '/ontology/spaces'
           ? await requestClient.listOntologySpaces(pageSize)
           : relative === '/ontology/collections'
-            ? await requestClient.listOntologyCollections(pageSize)
-            : await requestClient.listOntologyReleases(pageSize)
+            ? await requestClient.listOntologyCollections(spaceId!, pageSize)
+            : await requestClient.listOntologyReleases(pageSize, spaceId)
         writeJSON(res, value)
         return
       }

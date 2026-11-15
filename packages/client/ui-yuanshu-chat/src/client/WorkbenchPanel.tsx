@@ -62,8 +62,8 @@ export interface YuanShuWorkbenchInjected {
   readonly listTenants: () => Promise<unknown>
   readonly listOntologyOverview: () => Promise<unknown>
   readonly listOntologySpaces: () => Promise<unknown>
-  readonly listOntologyCollections: () => Promise<unknown>
-  readonly listOntologyReleases: () => Promise<unknown>
+  readonly listOntologyCollections: (spaceId: number) => Promise<unknown>
+  readonly listOntologyReleases: (spaceId?: number) => Promise<unknown>
   readonly listScenarios: () => Promise<unknown>
   readonly listKnowledgeCollections: () => Promise<unknown>
 }
@@ -78,6 +78,7 @@ interface SectionState {
   readonly error?: YuanShuChatKey
   readonly overview?: readonly { label: string; value: string }[]
   readonly groups?: readonly CatalogGroup[]
+  readonly spaces?: readonly CatalogRow[]
 }
 
 /** 岗位工作台首页状态。profile 与 home 独立失败，缺一个仍能渲染另一个。 */
@@ -356,6 +357,10 @@ export function WorkbenchPanel({
   const [tenants, setTenants] = useState<readonly CatalogRow[]>([])
   const [tenant, setTenant] = useState<string | undefined>(() => readActiveTenant())
   const [identityReady, setIdentityReady] = useState(false)
+  const [ontologySpace, setOntologySpace] = useState<number>()
+  const [ontologyCatalog, setOntologyCatalog] = useState<SectionState>({ loading: false })
+  const ontologyRequestRef = useRef(0)
+  const sectionGenerationRef = useRef(0)
   const [sections, setSections] = useState<Partial<Record<WorkbenchSection, SectionState>>>({})
   // 首帧即视为加载中，避免在 identity 返回前先闪一次“加载失败”。
   const [home, setHome] = useState<HomeState>({ loading: true })
@@ -545,24 +550,22 @@ export function WorkbenchPanel({
     if (target === 'home' || target === 'overview' || target === 'qa') return
     if (loadedRef.current.has(target) || loadingRef.current.has(target)) return
     loadingRef.current.add(target)
+    const generation = sectionGenerationRef.current
     setSections(prev => ({ ...prev, [target]: { loading: true } }))
 
     try {
       let groups: readonly CatalogGroup[]
       let overview: readonly { label: string; value: string }[] | undefined
+      let spaceRows: readonly CatalogRow[] | undefined
       if (target === 'ontology') {
-        const [overviewValue, spaces, collections, releases] = await Promise.all([
+        const [overviewValue, spaces] = await Promise.all([
           listOntologyOverview(),
           listOntologySpaces(),
-          listOntologyCollections(),
-          listOntologyReleases(),
         ])
         overview = toOverviewEntries(overviewValue)
-        groups = [
-          { titleKey: 'ontologySpaces', rows: toCatalogRows(spaces) },
-          { titleKey: 'ontologyCollections', rows: toCatalogRows(collections) },
-          { titleKey: 'ontologyReleases', rows: toCatalogRows(releases) },
-        ]
+        spaceRows = toCatalogRows(spaces).filter(row => Number.isSafeInteger(Number(row.id)) && Number(row.id) > 0)
+        groups = []
+        if (generation === sectionGenerationRef.current) setOntologySpace(spaceRows[0] === undefined ? undefined : Number(spaceRows[0].id))
       } else if (target === 'scenario') {
         groups = [{ titleKey: 'scenarioList', rows: toCatalogRows(await listScenarios()) }]
       } else if (target === 'knowledge') {
@@ -571,6 +574,7 @@ export function WorkbenchPanel({
         groups = []
       }
 
+      if (generation !== sectionGenerationRef.current) return
       loadedRef.current.add(target)
       setSections(prev => ({
         ...prev,
@@ -578,9 +582,11 @@ export function WorkbenchPanel({
           loading: false,
           ...(overview === undefined ? {} : { overview }),
           groups,
+          ...(spaceRows === undefined ? {} : { spaces: spaceRows }),
         },
       }))
     } catch (err) {
+      if (generation !== sectionGenerationRef.current) return
       const key = failureKey(err)
       setSections(prev => ({
         ...prev,
@@ -590,9 +596,25 @@ export function WorkbenchPanel({
         },
       }))
     } finally {
-      loadingRef.current.delete(target)
+      if (generation === sectionGenerationRef.current) loadingRef.current.delete(target)
     }
-  }, [listOntologyOverview, listOntologySpaces, listOntologyCollections, listOntologyReleases, listScenarios, listKnowledgeCollections])
+  }, [listOntologyOverview, listOntologySpaces, listScenarios, listKnowledgeCollections])
+
+  useEffect(() => {
+    if (ontologySpace === undefined) return
+    const request = ++ontologyRequestRef.current
+    setOntologyCatalog({ loading: true })
+    void Promise.all([listOntologyCollections(ontologySpace), listOntologyReleases(ontologySpace)]).then(([collections, releases]) => {
+      if (request !== ontologyRequestRef.current) return
+      setOntologyCatalog({ loading: false, groups: [
+        { titleKey: 'ontologyCollections', rows: toCatalogRows(collections) },
+        { titleKey: 'ontologyReleases', rows: toCatalogRows(releases) },
+      ] })
+    }).catch((err: unknown) => {
+      if (request === ontologyRequestRef.current) setOntologyCatalog({ loading: false, error: failureKey(err) })
+    })
+    return () => { ontologyRequestRef.current++ }
+  }, [ontologySpace, listOntologyCollections, listOntologyReleases])
 
   useEffect(() => {
     if (!identityReady) return
@@ -629,6 +651,10 @@ export function WorkbenchPanel({
   const changeTenant = useCallback((next: string) => {
     const value = next.length === 0 ? undefined : next
     writeActiveTenant(value)
+    sectionGenerationRef.current++
+    ontologyRequestRef.current++
+    setOntologySpace(undefined)
+    setOntologyCatalog({ loading: false })
     setTenant(value)
     clearQaSession()
     loadedRef.current.clear()
@@ -730,7 +756,23 @@ export function WorkbenchPanel({
           </div>
         </div>
       )}
-      {renderCatalogGroups(sectionState?.groups ?? [])}
+      {sectionState?.spaces !== undefined && (
+        sectionState.spaces.length === 0
+          ? <div className={css.empty}>{t('ontologyNoSpaces')}</div>
+          : <div className={css.group}>
+              <label className={css.groupTitle} htmlFor="ontology-space">{t('ontologySpaces')}</label>
+              <select id="ontology-space" className={css.tenantSelect} value={ontologySpace ?? ''} onChange={event => {
+                ontologyRequestRef.current++
+                setOntologyCatalog({ loading: true })
+                setOntologySpace(Number(event.target.value))
+              }}>
+                {sectionState.spaces.map(space => <option key={space.id} value={space.id}>{space.name}</option>)}
+              </select>
+            </div>
+      )}
+      {ontologyCatalog.loading && <div className={css.empty}>{t('capabilityLoading')}</div>}
+      {ontologyCatalog.error !== undefined && <div role="alert" className={css.empty}>{t(ontologyCatalog.error)}</div>}
+      {renderCatalogGroups(ontologyCatalog.groups ?? [])}
     </>
   )
 

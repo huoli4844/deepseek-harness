@@ -1193,20 +1193,25 @@ export class YuanShuClient {
     return this.request(withPageQuery('/api/v1/ontology-platform/spaces', limit))
   }
 
-  /** 列本体集合。
+  /** 列指定本体空间的集合；无效空间 ID 在发出请求前拒绝。
+   * @param spaceId - ontology_spaces 返回的正整数空间 ID。
    * @param limit - 可选的页大小。
    * @returns 元枢分页载荷或数组。
    */
-  listOntologyCollections(limit?: number): Promise<unknown> {
-    return this.request(withPageQuery('/api/v1/ontology-platform/collections', limit))
+  async listOntologyCollections(spaceId: number, limit?: number): Promise<unknown> {
+    if (!Number.isSafeInteger(spaceId) || spaceId < 1) throw new YuanShuError('A positive ontology space ID is required', 400)
+    return this.request(`${withPageQuery('/api/v1/ontology-platform/collections', limit)}&space_id=${String(spaceId)}`)
   }
 
-  /** 列本体发布版本。
+  /** 列本体发布版本；指定空间时只读取该空间的版本，无效空间 ID 在请求前拒绝。
    * @param limit - 可选的页大小。
+   * @param spaceId - 可选的正整数空间 ID。
    * @returns 元枢分页载荷或数组。
    */
-  listOntologyReleases(limit?: number): Promise<unknown> {
-    return this.request(withPageQuery('/api/v1/ontology-platform/releases', limit))
+  async listOntologyReleases(limit?: number, spaceId?: number): Promise<unknown> {
+    if (spaceId !== undefined && (!Number.isSafeInteger(spaceId) || spaceId < 1)) throw new YuanShuError('A positive ontology space ID is required', 400)
+    const path = withPageQuery('/api/v1/ontology-platform/releases', limit)
+    return this.request(spaceId === undefined ? path : `${path}&space_id=${String(spaceId)}`)
   }
 
   /** 列出当前租户已发布的专业 Agent 安全描述及修订。

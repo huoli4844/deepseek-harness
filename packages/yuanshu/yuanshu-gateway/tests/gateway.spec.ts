@@ -63,3 +63,22 @@ it.each(['/qa/ask/stream', '/execute-stream'])('aborts the YuanShu SSE request a
   await upstreamAborted.promise
   expect(fetchMock).toHaveBeenCalledOnce()
 })
+
+it.each(['', '?space_id=0', '?space_id=-1', '?space_id=1.5', '?space_id=7junk'])('rejects a collection request without a valid space: %s', async (query) => {
+  const upstream = vi.fn()
+  vi.stubGlobal('fetch', upstream)
+  const active = new Context()
+  context = active
+  await active.plugin(WebServer, { host: '127.0.0.1', port: 0 })
+  apply(active, { baseURL: 'http://localhost:8081', enterpriseTransport: 'legacy-http' })
+  const response = await new Promise<{ status: number }>((resolve, reject) => {
+    const request = httpRequest(`${active.webServer.getOrigin()}/yuanshu-api/ontology/collections${query}`, res => {
+      res.resume()
+      res.on('end', () => { resolve({ status: res.statusCode ?? 0 }) })
+    })
+    request.on('error', reject)
+    request.end()
+  })
+  expect(response.status).toBe(400)
+  expect(upstream).not.toHaveBeenCalled()
+})

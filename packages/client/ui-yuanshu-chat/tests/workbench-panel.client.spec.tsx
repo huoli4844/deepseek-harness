@@ -324,7 +324,7 @@ const baseInjected: YuanShuWorkbenchInjected = {
   getCurrentUser: async () => ({ id: 1, username: 'admin', nickname: '超级管理员' }),
   listTenants: async () => [{ id: 1, name: '默认租户' }, { id: 3, name: '少仕科技' }],
   listOntologyOverview: async () => ({ spaces: 2, healthy: true }),
-  listOntologySpaces: async () => [{ id: 'sp-1', name: '矿业本体' }],
+  listOntologySpaces: async () => [{ id: 7, name: '矿业本体' }],
   listOntologyCollections: async () => [],
   listOntologyReleases: async () => [],
   listScenarios: async () => ({ list: [{ id: 'sc-1', name: '日报场景', description: '每日报表' }] }),
@@ -529,6 +529,35 @@ describe('yuanshu workbench', () => {
     expect(await screen.findByText('矿业本体')).toBeTruthy()
     expect(screen.getByText('spaces')).toBeTruthy()
     expect(screen.getByText('2')).toBeTruthy()
+  })
+
+  it('selects a space before reading collections and ignores stale responses', async () => {
+    const first = Promise.withResolvers<unknown>()
+    const listCollections = vi.fn((id: number) => id === 7 ? first.promise : Promise.resolve([{ id: 2, name: '采购集合' }]))
+    const listReleases = vi.fn(async () => [])
+    render(<WorkbenchPanel {...props({
+      listOntologySpaces: async () => [{ id: 7, name: '矿业本体' }, { id: 8, name: '采购本体' }],
+      listOntologyCollections: listCollections,
+      listOntologyReleases: listReleases,
+    })} />)
+    fireEvent.click(screen.getByRole('button', { name: /本体/u }))
+    const selector = await screen.findByRole('combobox', { name: '本体空间' })
+    await waitFor(() => { expect(listCollections).toHaveBeenCalledWith(7) })
+    fireEvent.change(selector, { target: { value: '8' } })
+    expect(await screen.findByText('采购集合')).toBeTruthy()
+    expect(listReleases).toHaveBeenCalledWith(8)
+    first.resolve([{ id: 1, name: '过期集合' }])
+    await waitFor(() => { expect(screen.queryByText('过期集合')).toBeNull() })
+  })
+
+  it('does not request collections or releases without an available space', async () => {
+    const collections = vi.fn(async () => [])
+    const releases = vi.fn(async () => [])
+    render(<WorkbenchPanel {...props({ listOntologySpaces: async () => [], listOntologyCollections: collections, listOntologyReleases: releases })} />)
+    fireEvent.click(screen.getByRole('button', { name: /本体/u }))
+    expect(await screen.findByText('暂无可用本体空间')).toBeTruthy()
+    expect(collections).not.toHaveBeenCalled()
+    expect(releases).not.toHaveBeenCalled()
   })
 
   it('turns a forbidden ontology catalog into an explicit permission state', async () => {

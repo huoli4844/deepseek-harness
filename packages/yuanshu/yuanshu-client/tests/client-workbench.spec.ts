@@ -150,17 +150,24 @@ describe('YuanShuClient client workbench', () => {
 
     await client.getOntologyOverview()
     await client.listOntologySpaces(50)
-    await client.listOntologyCollections()
-    await client.listOntologyReleases(10)
+    await client.listOntologyCollections(7)
+    await client.listOntologyReleases(10, 7)
     await client.listScenarios(5)
 
     expect(calls.map(call => call.url)).toEqual([
       'https://yuan-shu.example/api/v1/ontology-platform/overview',
       'https://yuan-shu.example/api/v1/ontology-platform/spaces?page=1&page_size=50',
-      'https://yuan-shu.example/api/v1/ontology-platform/collections?page=1',
-      'https://yuan-shu.example/api/v1/ontology-platform/releases?page=1&page_size=10',
+      'https://yuan-shu.example/api/v1/ontology-platform/collections?page=1&space_id=7',
+      'https://yuan-shu.example/api/v1/ontology-platform/releases?page=1&page_size=10&space_id=7',
       'https://yuan-shu.example/api/v1/agent/definitions?page=1&page_size=5',
     ])
+  })
+
+  it.each([0, -1, 1.5, NaN, Infinity])('rejects an invalid ontology space %s before sending a request', async (spaceId) => {
+    const { client, calls } = createClient(() => jsonResponse({ code: 0, data: [] }))
+    await expect(client.listOntologyCollections(spaceId)).rejects.toMatchObject({ status: 400 })
+    await expect(client.listOntologyReleases(10, spaceId)).rejects.toMatchObject({ status: 400 })
+    expect(calls).toHaveLength(0)
   })
 
   it('reads the role workbench profile and its home projection', async () => {
