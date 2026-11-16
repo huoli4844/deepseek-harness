@@ -2,6 +2,7 @@
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { roleFixtures } from './fixtures.ts'
+import type { WorkStatus } from './scenario-data.ts'
 
 /** Demonstrated positions; the selector changes focus, never authorization. */
 export type RoleId =
@@ -56,7 +57,15 @@ export interface DemoEvent {
   readonly day: number
   readonly title: string
 }
-/** Framework-retained prototype data, discarded on page refresh or plugin reload. */
+/** Follow-up record created while coordinating one local work item. */
+export interface DemoFollowUp {
+  readonly id: number
+  readonly workItemId: string
+  readonly role: RoleId
+  readonly text: string
+  readonly done: boolean
+}
+/** Browser-local prototype data; it is not a YuanShu business record. */
 export interface WorkbenchState {
   role: RoleId
   view: ViewId
@@ -65,6 +74,9 @@ export interface WorkbenchState {
   read: number[]
   day: number
   events: DemoEvent[]
+  workStatuses: Record<string, WorkStatus | undefined>
+  verifications: Record<string, string | undefined>
+  followUps: DemoFollowUp[]
 }
 
 function editableDraft(state: WorkbenchState, key: string, initial: string): WorkDraft {
@@ -150,14 +162,33 @@ const workbenchActions = {
   addEvent: (state: WorkbenchState, title: string) => {
     state.events.push({ id: state.events.length + 1, day: state.day, title })
   },
+  setWorkStatus: (state: WorkbenchState, id: string, status: WorkStatus) => {
+    state.workStatuses[id] = status
+  },
+  saveVerification: (state: WorkbenchState, id: string, text: string) => {
+    state.verifications[id] = text
+  },
+  addFollowUp: (state: WorkbenchState, workItemId: string, role: RoleId, text: string) => {
+    state.followUps.push({
+      id: state.followUps.length + 1,
+      workItemId,
+      role,
+      text,
+      done: false,
+    })
+  },
+  completeFollowUp: (state: WorkbenchState, id: number) => {
+    state.followUps = state.followUps.map(item => item.id === id ? { ...item, done: true } : item)
+  },
 }
 
 /**
- * Declare one plugin-scoped demo store without browser or Host persistence.
+ * Declare one plugin-scoped demo store persisted in browser localStorage.
  * @returns the store handle registered with the workbench main entry.
  */
 export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof workbenchActions> {
   return defineStore({
+    persist: 'yuanshu-workbench.v2',
     init: (): WorkbenchState => ({
       role: 'procurement',
       view: 'assistant',
@@ -166,6 +197,9 @@ export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof
       read: [],
       day: 16,
       events: [],
+      workStatuses: {},
+      verifications: {},
+      followUps: [],
     }),
     actions: workbenchActions,
   })

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional bundle opens a role-aware assistant inbox inside DSH. It surfaces position focus, assigned work, and schedule items with direct actions; the position dashboard retains role-specific charts for follow-up. All 18 verified positions and the additional company management view show four KPI-led work scenarios and three daily work entries, each linked to a position method. Company management links summarized risks to responsible positions. All records and KPI mappings are demonstrations held in browser memory; the bundle does not connect to YuanShu MCP, call a model, or persist data through the Host.
+This optional bundle opens a role-aware assistant inbox inside DSH. It surfaces position focus, assigned work, and schedule items with direct actions; the position dashboard retains role-specific charts for follow-up. All 18 verified positions and the additional company management view show four KPI-led work scenarios and three daily work entries, each linked to a position method. Company management links summarized risks to responsible positions. Records and KPI mappings are demonstrations persisted in this browser profile; the bundle does not connect to YuanShu MCP, call a model, or persist data through the Host.
 
 ## Table of Contents
 
@@ -35,7 +35,7 @@ DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh plugin --profile web add "link
 DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web/tests/pin-browse-picker.overlay.yml --port 4317 --no-open
 ```
 
-Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. The isolated profile has its own model configuration and history. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Reopening the workbench retains its demo drafts until page refresh or plugin reload.
+Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. The isolated profile has its own model configuration and history. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
 ### What you can try
 
@@ -63,7 +63,7 @@ The manifest declares both `dsh.bundle.patch` and `dsh.client`. The patch insert
 | [Patch](dsh/cordis.patch.yml) | Opt-in activation row |
 | [Browser entry](src/client/index.ts) | Lifecycle-owned registrations |
 | [Workbench](src/client/Workbench.tsx) | Position and common views |
-| [Store](src/client/model.ts) | Local drafts and saved snapshots |
+| [Store](src/client/model.ts) | Browser-local workbench state and saved snapshots |
 
 </details>
 
@@ -93,7 +93,7 @@ Workbench navigation and draft edits do not change model requests or their cache
 - Chart values, materials and scheduled dates are synthetic. They are not validated KPI formulas or live operational results.
 - Handoffs and notifications are local simulations; no messages are sent and no platform tasks or approvals are created.
 - The 16 suggested methods require business approval before use as formal procedures. Self-checks record user assertions; incomplete work can be handed off with visible gaps and is never automatically approved.
-- Refreshing the page or reloading the plugin discards demo records. YuanShu MCP integration and durable business state are outside this prototype.
+- Demo records persist only in this browser profile and are not synchronized across devices or stored as YuanShu business records. YuanShu MCP integration and durable business state are outside this prototype.
 
 <a id="dev-note"></a>
 ### Dev Note

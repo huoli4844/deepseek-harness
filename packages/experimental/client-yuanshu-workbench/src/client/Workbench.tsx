@@ -27,7 +27,7 @@ import css from './Workbench.module.css'
 import { DashboardCharts } from './DashboardCharts.tsx'
 import { dashboardCharts } from './dashboard-data.ts'
 import { methodFor, roleMethods, type MethodStage } from './methodology-data.ts'
-import { dailyWorkForRole, positionScenarios } from './scenario-data.ts'
+import { dailyWorkForRole, positionScenarios, workItemsForRole, workItemForScenario, type WorkStatus } from './scenario-data.ts'
 
 interface WorkbenchInjected {
   readonly onReturn: () => void
@@ -77,6 +77,8 @@ export function Workbench(props: WorkbenchProps) {
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
   const [feedback, setFeedback] = useState('')
+  const [followUpRole, setFollowUpRole] = useState<RoleId>('quality')
+  const [followUpText, setFollowUpText] = useState('')
   const contentRef = useRef<HTMLDivElement>(null)
   const key = `${role}:${state.task}`
   const draft = state.drafts[key]
@@ -93,7 +95,20 @@ export function Workbench(props: WorkbenchProps) {
   const versions = draft?.versions ?? [{ number: 1, text: initial, execution }]
   const methodReady = execution.checked.length === 4 && execution.evidence.trim() !== '' && execution.analysis.trim() !== '' && text.trim() !== ''
   const currentTitle = t(taskTitles[state.task])
+  const workItems = workItemsForRole(role)
+  const workStatus = (id: string, fallback: WorkStatus) => state.workStatuses[id] ?? fallback
+  const openWorkItems = workItems.filter(item => workStatus(item.id, item.status) !== 'done')
+  const incomingWorkItems = openWorkItems.slice(1)
+  const priorityCount = workItems.filter(item => item.priority === 'high' && workStatus(item.id, item.status) !== 'done').length
+  const confirmationCount = workItems.filter(item => workStatus(item.id, item.status) === 'waiting').length
+  const reviewCount = workItems.filter(item => workStatus(item.id, item.status) === 'review').length
+  const currentWorkItem = workItems.find(item => item.task === state.task)
+  const currentWorkStatus = currentWorkItem === undefined ? undefined : workStatus(currentWorkItem.id, currentWorkItem.status)
   const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
+  const statusLabel = (status: WorkStatus) => t(({
+    attention: 'status.attention', inProgress: 'status.inProgress', waiting: 'status.waiting',
+    review: 'status.review', done: 'status.done',
+  } as const)[status])
   const title = view === 'work' ? currentTitle : t(navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
   const selectView = (next: typeof view) => {
     actions.navigate(next)
@@ -125,40 +140,33 @@ export function Workbench(props: WorkbenchProps) {
   }
   const taskRows = (compact = false) => (
     <div className={css.taskRows}>
-      {fixture.tasks
-        .filter(id => t(taskTitles[id]).toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-        .map((id, i) => (
+      {workItems
+        .filter(item => t(taskTitles[item.task]).toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+        .map(item => (
           <button
-            key={id}
+            key={item.id}
             className={css.taskRow}
             onClick={() => {
-              openTask(id)
+              if (workStatus(item.id, item.status) === 'attention') actions.setWorkStatus(item.id, 'inProgress')
+              openTask(item.task)
             }}
           >
             <span className={css.taskIcon}>
               <IconChecklistOutlineRegular size={18} />
             </span>
             <span className={css.grow}>
-              <strong>{t(taskTitles[id])}</strong>
-              <small>{t(`${role}.focus`)}</small>
-              <small>{t('guide.applied')} · {t(methodFor(role, id).method.title)}</small>
+              <strong>{t(taskTitles[item.task])}</strong>
+              <small>{t(`${role}.metric${item.sourceMetricIndex + 1}` as WorkbenchKey)} · {t('assistant.sourceReason')}</small>
+              <small>{t('assistant.nextAction')}: {t('assistant.nextReview')}</small>
             </span>
             {!compact && (
-              <span className={css.due}>{t(i === 0 ? 'task.today' : i === 1 ? 'task.tomorrow' : 'task.friday')}</span>
+              <span className={css.due}>{t(item.dueKey)}</span>
             )}
-            <Tag>
-              {t(
-                state.drafts[`${role}:${id}`]?.submitted
-                  ? 'work.submitted'
-                  : i === 0
-                    ? 'status.review'
-                    : 'status.pending',
-              )}
-            </Tag>
+            <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
             <IconChevronRightOutlineRegular size={14} />
           </button>
         ))}
-      {fixture.tasks.every(id => !t(taskTitles[id]).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && (
+      {workItems.every(item => !t(taskTitles[item.task]).toLocaleLowerCase().includes(query.toLocaleLowerCase())) && (
         <p className={css.empty}>{t('noMatches')}</p>
       )}
     </div>
@@ -265,6 +273,21 @@ export function Workbench(props: WorkbenchProps) {
           {t('new')}
         </Button>
       </div>
+      <section className={`${css.assistantBrief} ${css.assistantPriority}`} aria-label={t('assistant.dailyBrief')}>
+        <div>
+          <p className={css.eyebrow}>{t('assistant.dailyBrief')}</p>
+          <strong>{t('assistant.briefBody', {
+            priority: priorityCount,
+            confirmations: confirmationCount,
+            reviews: reviewCount,
+          })}</strong>
+        </div>
+        <div className={css.assistantCadence}>
+          <span><b>09:00</b>{t('assistant.cadenceMorning')}</span>
+          <span><b>13:00</b>{t('assistant.cadenceMidday')}</span>
+          <span><b>17:00</b>{t('assistant.cadenceClose')}</span>
+        </div>
+      </section>
       <div className={css.assistantLayout}>
         <section className={css.assistantPriority} aria-labelledby="assistant-priority-title">
           <div className={css.sectionHeading}>
@@ -272,17 +295,35 @@ export function Workbench(props: WorkbenchProps) {
             <Tag>{t('demoSample')}</Tag>
           </div>
           <p className={css.eyebrow}>{t('assistant.roleFocus')}</p>
-          <h2 className={css.assistantTaskTitle}>{t(taskTitles[fixture.tasks[0]])}</h2>
-          <p className={css.assistantReason}>{t(`${role}.focus`)}</p>
+          <p className={css.intro}>{t(`${role}.focus`)}</p>
+          {workItems.filter(item => workStatus(item.id, item.status) !== 'done').slice(0, 1).map(item => (
+            <div key={item.id}>
+              <h2 className={css.assistantTaskTitle}>{t(taskTitles[item.task])}</h2>
+              <p className={css.assistantReason}>{t('assistant.whyNow')}: {t('assistant.sourceReason')}</p>
+              <p className={css.assistantReason}>{t('assistant.nextAction')}: {t('assistant.nextReview')}</p>
+              <div className={css.assistantItemMeta}>
+                <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
+                <span>{t('assistant.due')}: {t(item.dueKey)}</span>
+                <span>{t('assistant.owner')}: {t(`role.${item.owner}`)}</span>
+              </div>
+            </div>
+          ))}
+          {workItems.every(item => workStatus(item.id, item.status) === 'done') && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
           <div className={css.assistantSource}>
-            <small>{t('assistant.source')}</small>
-            <strong>{t(`${role}.metric2`)} · {fixture.metrics[1]}</strong>
+            <small>{t('assistant.dataPath')}</small>
+            <strong>{t('assistant.dataTrace')} · {t('assistant.dataFreshness')}</strong>
           </div>
           <div className={css.assistantActions}>
             <Button
               variant="primary"
               icon={<IconChevronRightOutlineRegular size={16} />}
-              onClick={() => { openTask(fixture.tasks[0]) }}
+              onClick={() => {
+                const item = workItems.find(candidate => workStatus(candidate.id, candidate.status) !== 'done')
+                if (item !== undefined) {
+                  actions.setWorkStatus(item.id, 'inProgress')
+                  openTask(item.task)
+                }
+              }}
             >
               {t('assistant.continue')}
             </Button>
@@ -294,18 +335,20 @@ export function Workbench(props: WorkbenchProps) {
         <section className={css.assistantInbox} aria-labelledby="assistant-inbox-title">
           <div className={css.sectionHeading}>
             <h2 id="assistant-inbox-title">{t('assistant.incoming')}</h2>
-            <Tag>{t('count', { count: 2 })}</Tag>
+            <Tag>{t('count', { count: incomingWorkItems.length + 1 })}</Tag>
           </div>
           <p className={css.intro}>{t('assistant.incomingHint')}</p>
-          <button className={css.assistantSignal} onClick={() => { openTask(fixture.tasks[1]) }}>
-            <span className={css.assistantSignalMarker} aria-hidden="true" />
-            <span className={css.grow}>
-              <strong>{t(taskTitles[fixture.tasks[1]])}</strong>
-              <small>{t('assistant.taskSource')}</small>
-            </span>
-            <Tag>{t('status.pending')}</Tag>
-            <IconChevronRightOutlineRegular size={14} />
-          </button>
+          {incomingWorkItems.map(item => (
+            <button className={css.assistantSignal} key={item.id} onClick={() => { openTask(item.task) }}>
+              <span className={css.assistantSignalMarker} aria-hidden="true" />
+              <span className={css.grow}>
+                <strong>{t(taskTitles[item.task])}</strong>
+                <small>{t(`${role}.metric${item.sourceMetricIndex + 1}` as WorkbenchKey)} · {t('assistant.nextReview')}</small>
+              </span>
+              <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
+              <IconChevronRightOutlineRegular size={14} />
+            </button>
+          ))}
           <button className={css.assistantSignal} onClick={() => { selectView('calendar') }}>
             <span className={css.assistantSignalMarker} aria-hidden="true" />
             <span className={css.grow}>
@@ -329,8 +372,9 @@ export function Workbench(props: WorkbenchProps) {
           <Tag>{t('count', { count: 4 })}</Tag>
         </div>
         <div className={css.scenarioGrid}>
-          {positionScenarios[role].map(({ kpiIndex, task }) => {
+          {positionScenarios[role].map(({ kpiIndex, task, workItemId }) => {
             const assignment = methodFor(role, task)
+            const item = workItemForScenario(role, kpiIndex)
             return (
               <article className={css.scenarioItem} key={kpiIndex}>
                 <div className={css.scenarioKpi}>
@@ -348,9 +392,16 @@ export function Workbench(props: WorkbenchProps) {
                   <small>{t('assistant.method')}</small>
                   <strong>{t(assignment.method.title)}</strong>
                 </div>
+                <div className={css.scenarioActions}>
+                  <Tag>{statusLabel(workStatus(workItemId, item.status))}</Tag>
+                  <small>{t('assistant.nextAction')}: {t('assistant.nextReview')}</small>
+                </div>
                 <Button
                   variant="outline"
-                  onClick={() => { openScenario(kpiIndex, task) }}
+                  onClick={() => {
+                    actions.setWorkStatus(workItemId, 'inProgress')
+                    openScenario(kpiIndex, task)
+                  }}
                 >
                   {t('assistant.leadScenario')}
                 </Button>
@@ -375,7 +426,11 @@ export function Workbench(props: WorkbenchProps) {
                 <strong>{t(taskTitles[assignment.task])}</strong>
                 <small>{t('assistant.dailyMethod', { method: t(assignment.method.title) })}</small>
               </div>
-              <Button onClick={() => { openScenario(index, assignment.task) }}>{t('assistant.openDaily')}</Button>
+              <Button onClick={() => {
+                const item = workItems.find(candidate => candidate.task === assignment.task)
+                if (item !== undefined) actions.setWorkStatus(item.id, 'inProgress')
+                openScenario(item?.metricIndex ?? 0, assignment.task)
+              }}>{t('assistant.openDaily')}</Button>
             </div>
           ))}
         </div>
@@ -419,7 +474,11 @@ export function Workbench(props: WorkbenchProps) {
             className={css.metric}
             key={i}
             onClick={() => {
-              selectView('tasks')
+              const scene = positionScenarios[role][i]
+              if (scene !== undefined) {
+                actions.setWorkStatus(scene.workItemId, 'inProgress')
+                openScenario(scene.kpiIndex, scene.task)
+              }
             }}
           >
             <span>{t(`${role}.metric${i + 1}` as WorkbenchKey)}</span>
@@ -491,6 +550,7 @@ export function Workbench(props: WorkbenchProps) {
                   size="sm"
                   onClick={() => {
                     selectPosition(domain.role)
+                    openTask(roleFixtures[domain.role].tasks[0])
                   }}
                 >
                   {t('management.open')}
@@ -731,6 +791,50 @@ export function Workbench(props: WorkbenchProps) {
             </article>
           ))}
         </div>
+        <section className={css.followUpSection}>
+          <h2>{t('assistant.teamQueue')}</h2>
+          <div className={css.followUpForm}>
+            <label>
+              {t('assistant.owner')}
+              <select value={followUpRole} onChange={(event) => { setFollowUpRole(event.target.value as RoleId) }}>
+                {roleIds.filter(id => id !== role).map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
+              </select>
+            </label>
+            <label>
+              {t('assistant.followUp')}
+              <Input
+                value={followUpText}
+                placeholder={t('assistant.followUpPlaceholder')}
+                onChange={(event) => { setFollowUpText(event.target.value) }}
+              />
+            </label>
+            <Button variant="primary" disabled={!followUpText.trim()} onClick={() => {
+              const item = workItems.find(candidate => candidate.task === state.task) ?? workItems[0]
+              if (item !== undefined) {
+                actions.addFollowUp(item.id, followUpRole, followUpText.trim())
+                actions.setWorkStatus(item.id, 'waiting')
+                setFollowUpText('')
+                setFeedback(t('assistant.followUpAdded'))
+              }
+            }}>{t('assistant.sendFollowUp')}</Button>
+          </div>
+          <div className={css.followUpRows}>
+            {state.followUps.map(item => (
+              <div className={css.followUpRow} key={item.id}>
+                <div className={css.grow}>
+                  <strong>{item.text}</strong>
+                  <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
+                </div>
+                <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
+                {!item.done && <Button onClick={() => {
+                  actions.completeFollowUp(item.id)
+                  actions.setWorkStatus(item.workItemId, 'inProgress')
+                }}>{t('assistant.followUpDone')}</Button>}
+              </div>
+            ))}
+            {state.followUps.length === 0 && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
+          </div>
+        </section>
         <p className={css.intro}>{t('team.note')}</p>
       </section>
     </>
@@ -815,6 +919,7 @@ export function Workbench(props: WorkbenchProps) {
             <Tag>{t('assistant.aiLead')}</Tag>
           </div>
           <p>{t('assistant.leadPlan', { method: t(method.title), work: currentTitle })}</p>
+          <p>{t('assistant.assistantAction')}: {t('assistant.actionPrepare')}</p>
           <p className={css.intro}>{t('assistant.humanReview')}</p>
         </section>
       )}
@@ -882,6 +987,36 @@ export function Workbench(props: WorkbenchProps) {
             <>
               <h2>{t('stage.review')}</h2>
               <p className={css.intro}>{t(draft?.submitted ? 'work.submitted' : 'work.reviewNote')}</p>
+              <section className={css.verification} aria-label={t('assistant.verification')}>
+                <div className={css.sectionHeading}>
+                  <div><h2>{t('assistant.verification')}</h2><p className={css.intro}>{t('assistant.verificationHint')}</p></div>
+                  {currentWorkStatus !== undefined && <Tag>{statusLabel(currentWorkStatus)}</Tag>}
+                </div>
+                <label className={css.field}>
+                  {t('assistant.resultStatus')}
+                  <textarea
+                    placeholder={t('assistant.verificationPlaceholder')}
+                    value={state.verifications[currentWorkItem?.id ?? ''] ?? ''}
+                    onChange={(event) => {
+                      if (currentWorkItem !== undefined) actions.saveVerification(currentWorkItem.id, event.target.value)
+                    }}
+                  />
+                </label>
+                {currentWorkStatus === 'review' && <p className={css.intro}>{t('assistant.awaitingReview')}</p>}
+                {currentWorkStatus === 'done' && <p className={css.intro}>{t('assistant.completedAt')}</p>}
+                {currentWorkItem !== undefined && currentWorkStatus !== 'done' && (
+                  <Button
+                    variant="primary"
+                    disabled={!(state.verifications[currentWorkItem.id] ?? '').trim()}
+                    onClick={() => {
+                      actions.setWorkStatus(currentWorkItem.id, 'done')
+                      setFeedback(t('assistant.completedAt'))
+                    }}
+                  >
+                    {t('assistant.complete')}
+                  </Button>
+                )}
+              </section>
               {methodChecks()}
               <label className={css.field}>
                 {t('work.comment')}
@@ -1187,6 +1322,7 @@ export function Workbench(props: WorkbenchProps) {
           footer={dialog === 'submit' ? (
             <Button variant="primary" onClick={() => {
               actions.submitDraft(key, initial)
+              if (currentWorkItem !== undefined) actions.setWorkStatus(currentWorkItem.id, 'review')
               setDialog(null)
               setStage(3)
               setFeedback(t('work.submitted'))

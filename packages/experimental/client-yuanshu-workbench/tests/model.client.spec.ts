@@ -1,7 +1,7 @@
-/** Draft snapshots and shared collaboration state stay local to one plugin instance. */
+/** Draft snapshots and shared collaboration state remain browser-local demonstration data. */
 import { describe, expect, it } from 'vitest'
 import { createWorkbenchStore } from '../src/client/model.ts'
-import { dailyWorkForRole, positionScenarios } from '../src/client/scenario-data.ts'
+import { dailyWorkForRole, positionScenarios, workItemForScenario, workItemsForRole } from '../src/client/scenario-data.ts'
 import { roleIds, roleFixtures } from '../src/client/fixtures.ts'
 import { roleMethods } from '../src/client/methodology-data.ts'
 
@@ -13,9 +13,15 @@ describe('workbench demonstration state', () => {
       for (const scene of positionScenarios[role]) {
         const assignment = roleMethods[role][scene.taskIndex]
         expect(scene.task).toBe(assignment.task)
+        expect(workItemForScenario(role, scene.kpiIndex)).toMatchObject({
+          id: `${role}:${scene.task}`,
+          task: scene.task,
+          owner: role,
+        })
         expect(roleFixtures[role].metrics[scene.kpiIndex]).toBeDefined()
         expect(assignment.method.steps).toHaveLength(4)
       }
+      expect(workItemsForRole(role)).toHaveLength(3)
     }
   })
 
@@ -101,6 +107,22 @@ describe('workbench demonstration state', () => {
     first.actions.markAllRead()
     expect(first.getSnapshot()).toMatchObject({ role: 'quality', task: 3, view: 'calendar', read: [0, 1, 2] })
     expect(second.getSnapshot()).toMatchObject({ role: 'procurement', view: 'assistant', read: [] })
+  })
+
+  it('tracks work status, result verification and position confirmations per work item', () => {
+    const store = createWorkbenchStore().create()
+    const id = 'procurement:0'
+    store.actions.setWorkStatus(id, 'inProgress')
+    store.actions.addFollowUp(id, 'quality', 'Confirm the acceptance criteria')
+    store.actions.setWorkStatus(id, 'waiting')
+    store.actions.saveVerification(id, 'Reinspection passed; report QA-17')
+    store.actions.setWorkStatus(id, 'done')
+    store.actions.completeFollowUp(1)
+    expect(store.getSnapshot()).toMatchObject({
+      workStatuses: { [id]: 'done' },
+      verifications: { [id]: 'Reinspection passed; report QA-17' },
+      followUps: [{ workItemId: id, role: 'quality', text: 'Confirm the acceptance criteria', done: true }],
+    })
   })
 })
 

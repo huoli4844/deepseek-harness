@@ -8,6 +8,7 @@ import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { roleMethods } from '../src/client/methodology-data.ts'
+import { createWorkbenchStore } from '../src/client/model.ts'
 import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
 import { positionScenarios } from '../src/client/scenario-data.ts'
 import { zh } from '../src/client/locales.ts'
@@ -18,6 +19,7 @@ afterEach(async () => {
   cleanup()
   for (const runtime of runtimes) await runtime.dispose()
   runtimes.clear()
+  localStorage.clear()
 })
 
 async function bench() {
@@ -77,7 +79,7 @@ it('presents all 18 positions and company management with shared navigation and 
     fireEvent.click(within(dialog).getByRole('button', { name: '我的任务' }))
     const tasks = within(dialog)
       .getAllByRole('button')
-      .filter(button => button.textContent?.includes('待审阅') || button.textContent?.includes('待处理'))
+      .filter(button => button.className.includes('taskRow'))
       .map(button => button.textContent)
     expect(tasks).toHaveLength(3)
     views.push({ position: option.textContent, dashboard, tasks })
@@ -87,11 +89,12 @@ it('presents all 18 positions and company management with shared navigation and 
 
 it('surfaces position signals first and opens their associated work', async () => {
   await bench()
-  expect(screen.getByText('关联数据')).toBeDefined()
-  expect(screen.getByText('待确认交期 · 3')).toBeDefined()
+  expect(screen.getByText(/KPI → 来源记录 → 工作事项/)).toBeDefined()
+  expect(screen.getByText(/现在关注的原因/)).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '继续处理' }))
   expect(screen.getByRole('heading', { name: 'PCBA 来料异常处置', level: 1 })).toBeDefined()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
+  fireEvent.click(screen.getByRole('button', { name: '我的助理' }))
   expect(screen.getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
   expect(screen.getByText('将根因假设与已确认事实分开，补足整改验证证据。')).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '查看岗位数据' }))
@@ -181,7 +184,7 @@ it('retains method records across navigation and includes them in saved version 
   expect(within(comparison).getByText('材料核对记录: 核对本季度到货台账 v2，缺少两项响应记录。')).toBeDefined()
   fireEvent.click(within(comparison).getByRole('button', { name: '关闭' }))
   fireEvent.click(screen.getByRole('button', { name: '我的任务' }))
-  fireEvent.click(screen.getByRole('button', { name: /供应商季度评价.*待处理/ }))
+  fireEvent.click(screen.getByRole('button', { name: /供应商季度评价/ }))
   expect(screen.getByRole('textbox', { name: '材料核对记录' })).toHaveProperty('value', '核对本季度到货台账 v2，缺少两项响应记录。')
   expect(screen.getByRole('checkbox', { name: '已完成本阶段自查' })).toHaveProperty('checked', true)
   fireEvent.click(screen.getByRole('button', { name: '提交协同审阅' }))
@@ -189,6 +192,53 @@ it('retains method records across navigation and includes them in saved version 
   expect(within(submission).getByText('仍有未完成的自查或记录，可带着缺口提交协同审阅。')).toBeDefined()
   fireEvent.click(within(submission).getByRole('button', { name: '确认模拟交接' }))
   expect(screen.getByRole('button', { name: '已模拟交接' })).toBeDefined()
+})
+
+it('requires a recorded result before completing a reviewed work item', async () => {
+  await bench()
+  const scenes = screen.getByRole('region', { name: '从岗位 KPI 进入典型场景' })
+  fireEvent.click(within(scenes).getAllByRole('button', { name: '让助理带我处理' })[0]!)
+  fireEvent.click(screen.getByRole('button', { name: '提交协同审阅' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: '提交协同审阅' })).getByRole('button', { name: '确认模拟交接' }))
+  expect(screen.getByRole('region', { name: '助理主导此场景' })).toBeDefined()
+  expect(screen.getByRole('textbox', { name: '结果状态' })).toBeDefined()
+  const complete = screen.getByRole('button', { name: '标记结果已核实' })
+  expect(complete).toHaveProperty('disabled', true)
+  fireEvent.change(screen.getByRole('textbox', { name: '结果状态' }), {
+    target: { value: '复检通过，记录 QA-17 已归档。' },
+  })
+  expect(complete).toHaveProperty('disabled', false)
+  fireEvent.click(complete)
+  expect(screen.getAllByText('结果已记录在本地原型中。').length).toBeGreaterThan(0)
+  fireEvent.click(screen.getByRole('button', { name: '我的助理' }))
+  expect(screen.getByText('有 0 项重点工作、1 项跨岗位确认和 1 项待审成果可以继续推进。')).toBeDefined()
+})
+
+it('records a cross-position confirmation and returns the work to progress', async () => {
+  await bench()
+  fireEvent.click(screen.getAllByRole('button', { name: '团队协作' })[0]!)
+  fireEvent.change(screen.getByRole('textbox', { name: '请求岗位确认' }), {
+    target: { value: '请确认缺陷批次的接收条件' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: '添加本地跟进项' }))
+  expect(screen.getByText('请确认缺陷批次的接收条件')).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '已记录岗位确认' }))
+  expect(screen.getByText('已记录岗位确认')).toBeDefined()
+})
+
+it('restores position work status and result evidence from browser storage', () => {
+  const workItemId = positionScenarios.quality[0]!.workItemId
+  const store = createWorkbenchStore().create()
+  store.actions.changeRole('quality')
+  store.actions.setWorkStatus(workItemId, 'review')
+  store.actions.saveVerification(workItemId, '复检通过，记录 QA-17 已归档。')
+
+  const restored = createWorkbenchStore().create()
+  expect(restored.getSnapshot()).toMatchObject({
+    role: 'quality',
+    workStatuses: { [workItemId]: 'review' },
+    verifications: { [workItemId]: '复检通过，记录 QA-17 已归档。' },
+  })
 })
 
 it('drills from company risks to the responsible view and returns through DSH layout', async () => {
@@ -200,7 +250,7 @@ it('drills from company risks to the responsible view and returns through DSH la
   if (sales === null) throw new Error('the company view did not render its operating risk')
   fireEvent.click(within(sales).getByRole('button', { name: '查看责任岗位' }))
   expect(screen.getByRole('combobox', { name: '当前岗位视角' })).toHaveProperty('value', 'sales')
-  expect(screen.getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
+  expect(screen.getByRole('heading', { name: '重点客户项目推进' })).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '返回 DSH 原始界面' }))
   expect(selectPanel).toHaveBeenLastCalledWith(null)
 })
