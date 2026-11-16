@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`employee workbench > opens the platform-projected 管理层 work without a tool selector 1`] = `"元枢工作台选择租户测试企业刷新测试企业 · 测试员工管理层哪些经营异常需要处理？本人可见数据管理层工作台业务事项任务 23待决策事项3待我决策暂时没有需要你决定的事今日与本周审阅经营异常本周到期查看详情异常与风险暂无需要关注的异常尚未开放的业务场景未开放场景尚未开放开发调试"`;
+
+exports[`employee workbench > opens the platform-projected 财务 work without a tool selector 1`] = `"元枢工作台选择租户测试企业刷新测试企业 · 测试员工财务哪些付款需要处理？本人可见数据财务工作台业务事项任务 23待审核付款3待我决策暂时没有需要你决定的事今日与本周核对供应商付款本周到期查看详情异常与风险暂无需要关注的异常尚未开放的业务场景未开放场景尚未开放开发调试"`;
+
+exports[`employee workbench > opens the platform-projected 采购 work without a tool selector 1`] = `"元枢工作台选择租户测试企业刷新测试企业 · 测试员工采购哪些订单会延期？本人可见数据采购工作台业务事项任务 23延期订单3待我决策暂时没有需要你决定的事今日与本周跟催采购订单本周到期查看详情异常与风险暂无需要关注的异常尚未开放的业务场景未开放场景尚未开放开发调试"`;
+
+exports[`employee workbench > opens the platform-projected 项目经理 work without a tool selector 1`] = `"元枢工作台选择租户测试企业刷新测试企业 · 测试员工项目经理哪些事项影响交付？本人可见数据项目经理工作台业务事项任务 23逾期任务3待我决策暂时没有需要你决定的事今日与本周检查交付里程碑本周到期查看详情异常与风险暂无需要关注的异常尚未开放的业务场景未开放场景尚未开放开发调试"`;

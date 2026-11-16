@@ -163,6 +163,13 @@ describe('enterprise workbench', () => {
   })
 })
 describe('enterprise resource reads', () => {
+  it('reports a failed platform business result instead of displaying an empty queue', async () => {
+    const provider = enterpriseResourceProvider(async () => ({ isError: true, content: [{ type: 'text', text: 'Business dependency unavailable' }] }))
+    const frames = []
+    for await (const frame of provider.open('dsh-resource://yuanshu-enterprise/business?tool=workbench_briefing&args=%7B%7D', { signal: new AbortController().signal })) frames.push(frame)
+    expect(frames).toHaveLength(1)
+    expect(frames[0]?.ok).toBe(false)
+  })
   it('accepts the platform tenant context envelope', async () => {
     const provider = enterpriseResourceProvider(async () => ({
       current: { id: 1, code: 'fixture', name: 'Fixture', current: true },

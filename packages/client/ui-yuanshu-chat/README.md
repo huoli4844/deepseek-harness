@@ -39,9 +39,13 @@ Choose this view for browser-based knowledge Q&A. The model-facing [`yuanshu_qa`
 
 The view has no plugin configuration. It expects the Host to serve the login page and same-origin gateway routes.
 
-Select a tenant and explicitly authorize enterprise access. Tool results refresh the original Run without reloading identity or the capability catalog. Refresh, tenant selection, authorization and revocation reload the catalog. Reload restores only the authenticated owner's original Run handle and queries the platform again; it never resubmits the business operation.
+The main entry automatically reads the authenticated user's role, briefing, decisions, home and business navigation through discovered MCP read tools. Role titles, KPI labels, priorities and visible business domains come from the platform; the client has no role-name branches. Business items open paginated records and platform-labeled details. Unavailable business scenes stay explicitly unavailable. A failed business read is an error rather than an empty queue. Initial access requires user consent; saved grants are reused on reload.
+
+Developer tools open the separate capability test view. Tool results refresh the original Run without reloading identity or the capability catalog. Refresh, tenant selection, authorization and revocation reload the catalog. Reload restores only the authenticated owner's original Run handle and queries the platform again; it never resubmits the business operation.
 
 Large tables show a preview of up to 100 rows and 12 columns. Oversized objects and deeply nested values also show a preview notice and an explicit control to expand the complete returned JSON. The preview never changes the platform result or implies that a server-paginated response contains the whole dataset.
+
+The retained `WorkbenchPanel` reads collections and releases for the selected ontology space. Refresh reads both lists again even when the space is unchanged and ignores earlier requests that finish late. DSH reads a published release with `ontology_context` before it queries objects; the existing YuanShu consumer binding and data policy still authorize row access. `ontology_evidence` returns runtime and governance audit samples, while `knowledge_search` returns document citations.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation

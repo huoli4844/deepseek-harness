@@ -11,7 +11,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { ChatPanel } from './ChatPanel.tsx'
-import { EnterpriseWorkbench, type EnterpriseWorkbenchInjected } from './EnterpriseWorkbench.tsx'
+import type { EnterpriseWorkbenchInjected } from './EnterpriseWorkbench.tsx'
+import { RoleWorkbench } from './RoleWorkbench.tsx'
 import { enterpriseResourceProvider } from './enterprise-resource.ts'
 import type {} from '@deepseek-ai/dsh-client-resources/client'
 import { YuanShuIcon } from './YuanShuIcon.tsx'
@@ -206,7 +207,7 @@ export function apply(ctx: ClientContext): void {
     inject: (): YuanShuChatInjected => capabilityActions,
   }, ChatPanel))
 
-  // 主视图：左侧列出元枢后台可提供给 DSH 的能力分组。
+  // The employee entry consumes the platform's current role and work projections.
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
     key: 'yuanshu',
@@ -216,7 +217,7 @@ export function apply(ctx: ClientContext): void {
       revoke: () => gatewayRequest('/mcp/revoke', { method: 'POST' }),
       call: (name, args, continuation) => gatewayRequest('/mcp/call', { method: 'POST', body: { name, arguments: args, ...continuation } }),
     }),
-  }, EnterpriseWorkbench))
+  }, RoleWorkbench))
 
   // 侧栏入口：点击后由布局切到同 key 的 main 面板。
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

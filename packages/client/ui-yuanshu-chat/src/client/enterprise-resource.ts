@@ -32,6 +32,10 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     /** Enterprise read failed; the user may authorize or refresh explicitly. */
     'yuanshu/read-failed': Record<string, never>
+    /** The platform requires the signed-in user to grant MCP access explicitly. */
+    'yuanshu/authorization-required': Record<string, never>
+    /** The signed-in user cannot access this tenant's enterprise catalog. */
+    'yuanshu/permission-denied': Record<string, never>
   }
 }
 
@@ -68,12 +72,18 @@ export function enterpriseResourceProvider(read: (path: string, signal: AbortSig
       } else {
         const tool = url.searchParams.get('tool'), args = url.searchParams.get('args')
         if (tool === null || args === null) throw new Error('Invalid original Run resource')
-        value = { kind: 'result', result: await read(`/mcp/read?name=${encodeURIComponent(tool)}&arguments=${encodeURIComponent(args)}`, signal) }
+        const result = await read(`/mcp/read?name=${encodeURIComponent(tool)}&arguments=${encodeURIComponent(args)}`, signal)
+        if (result !== null && typeof result === 'object' && 'isError' in result && result.isError === true) throw new Error('Platform business read failed')
+        value = { kind: 'result', result }
       }
       signal.throwIfAborted()
       yield { ok: true, value }
-    } catch {
-      if (!signal.aborted) yield { ok: false, error: new RemoteError('yuanshu/read-failed', 'Enterprise content unavailable; check login, tenant and delegated authorization.', {}) }
+    } catch (error) {
+      if (signal.aborted) return
+      const status = error !== null && typeof error === 'object' && 'status' in error && typeof error.status === 'number' ? error.status : undefined
+      if (status === 401) yield { ok: false, error: new RemoteError('yuanshu/authorization-required', 'Authorize enterprise capabilities for the selected tenant.', {}) }
+      else if (status === 403) yield { ok: false, error: new RemoteError('yuanshu/permission-denied', 'The signed-in user cannot access this tenant.', {}) }
+      else yield { ok: false, error: new RemoteError('yuanshu/read-failed', 'Enterprise content unavailable; check login, tenant and delegated authorization.', {}) }
     }
   } }
 }

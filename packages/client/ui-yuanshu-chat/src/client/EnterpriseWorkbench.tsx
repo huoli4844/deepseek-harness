@@ -98,6 +98,9 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
   const identity = useResource<'yuanshu-enterprise'>(address('identity', generation))
   const catalog = useResource<'yuanshu-enterprise'>(address('catalog', generation))
   const original = useResource<'yuanshu-enterprise'>(handle !== undefined && handle.owner === owner ? address('run', runGeneration, handle.tool, handle.args) : '')
+  const catalogError = catalog.failure?.code === 'yuanshu/authorization-required'
+    ? 'enterpriseAuthorizationRequired'
+    : catalog.failure?.code === 'yuanshu/permission-denied' ? 'enterprisePermissionDenied' : 'enterpriseUnavailable'
   const value = catalog.value?.kind === 'catalog' ? catalog.value : undefined
   const tenants = identity.value?.kind === 'identity' ? identity.value.tenants : []
   const refresh = () => { setGeneration(value => value + 1); setRunGeneration(value => value + 1) }
@@ -151,7 +154,7 @@ export function EnterpriseWorkbench({ authorize, revoke, call, useResource, t }:
       <button className={css.linkButton} disabled={busy} onClick={refresh}>{t('refresh')}</button>
     </div>
     <div className={`${css.workspace} ${css.enterpriseWorkspace}`}>
-      {(error || catalog.status === 'failed') && <div role="alert" className={css.error}>{t('enterpriseUnavailable')}</div>}
+      {(error || catalog.status === 'failed') && <div role="alert" className={css.error}>{error ? t('enterpriseUnavailable') : t(catalogError)}</div>}
       {catalog.status === 'loading' && <div role="status">{t('capabilityLoading')}</div>}
       {value !== undefined && <>
         <h2>{value.page.application.name}</h2>

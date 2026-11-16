@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type {
   YuanShuDecisionQueue,
   YuanShuPositionCatalog,
@@ -553,11 +553,61 @@ describe('yuanshu workbench', () => {
   it('does not request collections or releases without an available space', async () => {
     const collections = vi.fn(async () => [])
     const releases = vi.fn(async () => [])
-    render(<WorkbenchPanel {...props({ listOntologySpaces: async () => [], listOntologyCollections: collections, listOntologyReleases: releases })} />)
+    render(<WorkbenchPanel {...props({
+      listOntologySpaces: async () => [],
+      listOntologyCollections: collections,
+      listOntologyReleases: releases,
+    })} />)
     fireEvent.click(screen.getByRole('button', { name: /本体/u }))
     expect(await screen.findByText('暂无可用本体空间')).toBeTruthy()
     expect(collections).not.toHaveBeenCalled()
     expect(releases).not.toHaveBeenCalled()
+  })
+
+  it('reloads collections and releases when the selected space stays the same', async () => {
+    const collections = vi.fn()
+      .mockResolvedValueOnce([{ id: 1, name: '原本体集合' }])
+      .mockResolvedValue([{ id: 2, name: '更新本体集合' }])
+    const releases = vi.fn()
+      .mockResolvedValueOnce([{ id: 3, name: '原发布版本' }])
+      .mockResolvedValue([{ id: 4, name: '更新发布版本' }])
+    render(<WorkbenchPanel {...props({
+      listOntologySpaces: async () => [{ id: 7, name: '矿业本体' }],
+      listOntologyCollections: collections,
+      listOntologyReleases: releases,
+    })} />)
+    fireEvent.click(screen.getByRole('button', { name: /本体/u }))
+    expect(await screen.findByText('原本体集合')).toBeTruthy()
+    expect(screen.getByText('原发布版本')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '刷新' }))
+    expect(await screen.findByText('更新本体集合')).toBeTruthy()
+    expect(screen.getByText('更新发布版本')).toBeTruthy()
+    expect(collections).toHaveBeenCalledTimes(2)
+    expect(releases).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('原本体集合')).toBeNull()
+    expect(screen.queryByText('原发布版本')).toBeNull()
+  })
+
+  it('ignores an earlier response after refreshing the same ontology space', async () => {
+    const first = Promise.withResolvers<unknown>()
+    const collections = vi.fn()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue([{ id: 2, name: '刷新后的集合' }])
+    render(<WorkbenchPanel {...props({
+      listOntologySpaces: async () => [{ id: 7, name: '矿业本体' }],
+      listOntologyCollections: collections,
+    })} />)
+    fireEvent.click(screen.getByRole('button', { name: /本体/u }))
+    await waitFor(() => { expect(collections).toHaveBeenCalledTimes(1) })
+    fireEvent.click(screen.getByRole('button', { name: '刷新' }))
+    expect(await screen.findByText('刷新后的集合')).toBeTruthy()
+    await act(async () => {
+      first.resolve([{ id: 1, name: '旧请求的集合' }])
+      await first.promise
+    })
+    expect(collections).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('刷新后的集合')).toBeTruthy()
+    expect(screen.queryByText('旧请求的集合')).toBeNull()
   })
 
   it('turns a forbidden ontology catalog into an explicit permission state', async () => {

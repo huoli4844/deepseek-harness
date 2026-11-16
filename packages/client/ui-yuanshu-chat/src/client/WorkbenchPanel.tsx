@@ -358,6 +358,7 @@ export function WorkbenchPanel({
   const [tenant, setTenant] = useState<string | undefined>(() => readActiveTenant())
   const [identityReady, setIdentityReady] = useState(false)
   const [ontologySpace, setOntologySpace] = useState<number>()
+  const [ontologyRefresh, setOntologyRefresh] = useState(0)
   const [ontologyCatalog, setOntologyCatalog] = useState<SectionState>({ loading: false })
   const ontologyRequestRef = useRef(0)
   const sectionGenerationRef = useRef(0)
@@ -565,7 +566,12 @@ export function WorkbenchPanel({
         overview = toOverviewEntries(overviewValue)
         spaceRows = toCatalogRows(spaces).filter(row => Number.isSafeInteger(Number(row.id)) && Number(row.id) > 0)
         groups = []
-        if (generation === sectionGenerationRef.current) setOntologySpace(spaceRows[0] === undefined ? undefined : Number(spaceRows[0].id))
+        if (generation === sectionGenerationRef.current) {
+          ontologyRequestRef.current++
+          setOntologyCatalog({ loading: false, groups: [] })
+          setOntologySpace(spaceRows[0] === undefined ? undefined : Number(spaceRows[0].id))
+          setOntologyRefresh(value => value + 1)
+        }
       } else if (target === 'scenario') {
         groups = [{ titleKey: 'scenarioList', rows: toCatalogRows(await listScenarios()) }]
       } else if (target === 'knowledge') {
@@ -614,7 +620,7 @@ export function WorkbenchPanel({
       if (request === ontologyRequestRef.current) setOntologyCatalog({ loading: false, error: failureKey(err) })
     })
     return () => { ontologyRequestRef.current++ }
-  }, [ontologySpace, listOntologyCollections, listOntologyReleases])
+  }, [ontologySpace, ontologyRefresh, listOntologyCollections, listOntologyReleases])
 
   useEffect(() => {
     if (!identityReady) return
@@ -760,15 +766,15 @@ export function WorkbenchPanel({
         sectionState.spaces.length === 0
           ? <div className={css.empty}>{t('ontologyNoSpaces')}</div>
           : <div className={css.group}>
-              <label className={css.groupTitle} htmlFor="ontology-space">{t('ontologySpaces')}</label>
-              <select id="ontology-space" className={css.tenantSelect} value={ontologySpace ?? ''} onChange={event => {
-                ontologyRequestRef.current++
-                setOntologyCatalog({ loading: true })
-                setOntologySpace(Number(event.target.value))
-              }}>
-                {sectionState.spaces.map(space => <option key={space.id} value={space.id}>{space.name}</option>)}
-              </select>
-            </div>
+            <label className={css.groupTitle} htmlFor="ontology-space">{t('ontologySpaces')}</label>
+            <select id="ontology-space" className={css.tenantSelect} value={ontologySpace ?? ''} onChange={(event) => {
+              ontologyRequestRef.current++
+              setOntologyCatalog({ loading: true })
+              setOntologySpace(Number(event.target.value))
+            }}>
+              {sectionState.spaces.map(space => <option key={space.id} value={space.id}>{space.name}</option>)}
+            </select>
+          </div>
       )}
       {ontologyCatalog.loading && <div className={css.empty}>{t('capabilityLoading')}</div>}
       {ontologyCatalog.error !== undefined && <div role="alert" className={css.empty}>{t(ontologyCatalog.error)}</div>}
