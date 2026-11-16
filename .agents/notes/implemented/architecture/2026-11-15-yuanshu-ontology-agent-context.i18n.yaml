@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-15-yuanshu-ontology-agent-context.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-11-15-yuanshu-ontology-agent-context.md
+/agent-note-yuanshu-ontology-context-for-dsh:
+  en: a429bf564da46cb8
+  zh: 472a0b627c6954e2
+/agent-note-yuanshu-ontology-context-for-dsh/problem:
+  en: fee842ec5452b644
+  zh: c3e9dcaa09a3ffb1
+/agent-note-yuanshu-ontology-context-for-dsh/decision:
+  en: c9defa9661a68be6
+  zh: 1ca114a989fca0fc
+/agent-note-yuanshu-ontology-context-for-dsh/alternatives-considered:
+  en: f54fbf421652cf54
+  zh: 2e02c8853fc8080c
+/agent-note-yuanshu-ontology-context-for-dsh/consequences:
+  en: ba843ed956da9483
+  zh: c9d683411e53d262
+/agent-note-yuanshu-ontology-context-for-dsh/verification:
+  en: 1d757cbe14c67575
+  zh: cf64af04bace40c6

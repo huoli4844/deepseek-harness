@@ -44,6 +44,8 @@ const capabilities = await client.listCapabilities()
 
 执行结果包含平台提供的 `task_ref`；调用方原样传给 `task_get`、`task_result`、`task_events`、`task_cancel` 或 `task_resume`，并按 `available_operations` 选择可用操作。工作流和 Action 审批使用 `task_approvals` 和 `task_approve`。这些工具适配平台已有记录；不支持的操作明确拒绝，结果未知时不触发另一次执行。
 
+读取集合前必须先选择本体空间：调用 `listOntologySpaces()`，再调用 `listOntologyCollections(spaceId, limit?)`。`listOntologyReleases(limit?, spaceId?)` 可按相同空间筛选发布版本。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
@@ -51,6 +53,10 @@ const capabilities = await client.listCapabilities()
 <summary>实现细节 — 点击展开</summary>
 
 `YuanShuMcp` 基于官方 MCP 客户端实现 OAuth resource 发现、PKCE issuer 校验、按用户隔离 grant、刷新和撤销。`YuanShuClient` 处理剩余 HTTP 请求，不提供 MCP 凭据。
+
+OAuth 授权同意请求同时通过 `X-Active-Tenant` 和授权表单传递明确选中的租户，平台据此验证租户成员资格后授予访问权限。控制台令牌和租户标头仅用于该同意请求；后续 MCP 请求使用限定用户和租户的 OAuth grant。
+
+同一客户端内并发的 `tools()` 读取仅共享正在进行的目录请求；完成或失败即清除，不延长服务端缓存有效期，也不授予后续业务执行权限。
 
 | 文件 | 作用 |
 |---|---|

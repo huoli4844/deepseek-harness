@@ -29,7 +29,7 @@ import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-web-app'
 
 export const name = 'yuanshu-login-server'
-export const inject = ['webServer', 'connection', 'webApp']
+export const inject = ['webServer', 'connection', 'connection.authentication', 'webApp']
 
 /** Login asset directory and YuanShu authentication endpoint. */
 export interface Config {

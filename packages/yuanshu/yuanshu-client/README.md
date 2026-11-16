@@ -44,6 +44,8 @@ With an enterprise MCP client configured, `listCapabilities()` and `listScenario
 
 Execution results include the platform-owned `task_ref`; callers pass it unchanged to `task_get`, `task_result`, `task_events`, `task_cancel`, or `task_resume` as advertised by `available_operations`. Workflow and Action approvals use `task_approvals` and `task_approve`. These tools adapt the existing platform records; unsupported operations reject explicitly and unknown outcomes never trigger another execution.
 
+Workbench collection reads require a selected ontology space: call `listOntologySpaces()`, then `listOntologyCollections(spaceId, limit?)`. `listOntologyReleases(limit?, spaceId?)` can filter releases to the same space.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
@@ -51,6 +53,10 @@ Execution results include the platform-owned `task_ref`; callers pass it unchang
 <summary>Implementation internals — click to expand</summary>
 
 `YuanShuMcp` wraps the official MCP client with OAuth resource discovery, PKCE issuer checks, per-user grants, refresh, and revocation. `YuanShuClient` centralizes the remaining HTTP request behavior and never supplies MCP credentials.
+
+OAuth consent sends the explicitly selected tenant in both `X-Active-Tenant` and the authorization form so the platform can validate tenant membership before granting access. The console token and tenant header are confined to that consent request; subsequent MCP requests use the user and tenant scoped OAuth grant.
+
+Concurrent `tools()` readers share only the in-flight catalog request within this client. Completion or failure clears that shared request; this layer does not extend server cache lifetimes or authorize a later execution.
 
 | File | Role |
 |---|---|

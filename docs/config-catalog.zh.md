@@ -5236,7 +5236,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-yuanshu-login-server`
 
-- `inject`: `webServer` · `connection` · `webApp`
+- `inject`: `webServer` · `connection` · `connection.authentication` · `webApp`
 - `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:35`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
 
 ```ts config-catalog

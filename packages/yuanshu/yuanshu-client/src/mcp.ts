@@ -64,6 +64,7 @@ export class YuanShuMcp implements AuthProvider {
   private readonly client: Client
   private connection: Promise<void> | undefined
   private refreshing: Promise<void> | undefined
+  private toolsRead: Promise<Tool[]> | undefined
   private lastToken: string | undefined
   private metadata: Record<string, unknown> | undefined
   private readonly catalogListeners = new Set<(error: Error | null) => void>()
@@ -167,7 +168,7 @@ export class YuanShuMcp implements AuthProvider {
     const form = new URLSearchParams({ response_type: 'code', client_id: this.options.clientId, redirect_uri: this.options.redirectUri,
       resource: this.options.resource, tenant, scope, state, code_challenge: challenge, code_challenge_method: 'S256', consent: 'approve' })
     const result = await this.json(String(metadata.authorization_endpoint), {
-      method: 'POST', headers: { Authorization: `Bearer ${consoleToken}`, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body: form,
+      method: 'POST', headers: { Authorization: `Bearer ${consoleToken}`, 'X-Active-Tenant': tenant, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body: form,
     })
     if (typeof result.redirect_uri !== 'string') throw new YuanShuMcpError('MCP authorization response missing redirect')
     const redirect = new URL(result.redirect_uri)
@@ -211,10 +212,15 @@ export class YuanShuMcp implements AuthProvider {
   }
 
   /**
-   * Discover all pages under the current grant; server TTL and scope govern SDK caching.
+   * Discover all pages under the current grant; concurrent readers share the pending read.
+   * Completed reads are not retained here; server TTL and scope govern SDK caching.
    * @returns All authorized tools within the configured page budget.
    */
-  async tools(): Promise<Tool[]> {
+  tools(): Promise<Tool[]> {
+    return this.toolsRead ??= this.readTools().finally(() => { this.toolsRead = undefined })
+  }
+
+  private async readTools(): Promise<Tool[]> {
     await this.connect()
     return (await this.client.listTools()).tools
   }

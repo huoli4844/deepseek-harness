@@ -56,6 +56,8 @@ See the generated [configuration catalog](../../../docs/config-catalog.md#deepse
 
 The plugin registers a session-scoped enterprise catalog tool. Each call is bound to the active user's grant and tenant; MCP failures are returned without replaying a business request through the legacy HTTP path.
 
+For ontology work, the catalog instructions lead the Agent from an authorized space and published release to `ontology_context`, then to the supported query tools. The context describes published semantics; the existing consumer binding still decides which rows the query may return. Runtime audit evidence and knowledge document citations use separate platform tools.
+
 `enterprise_resource` measures the complete resource JSON in UTF-8 bytes before returning it to the model. `maxResourceResultBytes` defaults to 65,536 bytes; oversized resources return a diagnostic with the original URI and size, without resource content. No partial resource is presented as complete.
 
 Discovery hides tools carrying the platform compatibility replacement marker; callers can still explicitly select an authorized old name during migration. Business execution returns `task_ref`, and the selected task tools operate on that original record. Stable invocation names and pinned revisions remain unchanged.

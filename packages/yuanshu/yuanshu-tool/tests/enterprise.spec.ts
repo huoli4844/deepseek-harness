@@ -127,6 +127,31 @@ describe('Session enterprise tools', () => {
     } finally { await f.ctx.fiber.dispose(); vi.restoreAllMocks() }
     expect(close).toHaveBeenCalled()
   })
+  it('logs ontology discovery guidance only when the authorized catalog contains ontology tools', async () => {
+    const f = await fixture([
+      toolCallResponse('discover', 'enterprise_catalog', { query: '本体' }),
+      textResponse('Read the published ontology before querying.'),
+    ])
+    vi.spyOn(YuanShuMcp.prototype, 'close').mockResolvedValue()
+    vi.spyOn(YuanShuMcp.prototype, 'tools').mockResolvedValue([{ name: 'ontology_context', description: '本体定义', inputSchema: { type: 'object', properties: { release_id: { type: 'integer' } }, required: ['release_id'] } }])
+    vi.spyOn(YuanShuMcp.prototype, 'resources').mockResolvedValue([])
+    vi.spyOn(YuanShuMcp.prototype, 'resourceTemplates').mockResolvedValue([])
+    vi.spyOn(YuanShuMcp.prototype, 'onCatalogChanged').mockReturnValue(() => {})
+    const recorded: unknown[] = []
+    f.ctx.on('session/event', (session, event) => {
+      if (session.id === f.a.id && event.type === 'tool/result') recorded.push(event.data.message.content)
+    })
+    try {
+      await seedBinding(f.ctx, f.a.id)
+      f.a.followup(createUserMessage({ content: [{ type: 'text', text: '查询采购本体' }], source: { kind: 'user' } }))
+      await f.a.whenIdle()
+      expect(recorded).toHaveLength(1)
+      expect(JSON.stringify(recorded)).toContain('Read ontology_context')
+      expect(JSON.stringify(recorded)).toContain('authorized consumer binding')
+      expect(JSON.stringify(recorded)).not.toContain('fixture-secret')
+      expect(recorded).toMatchSnapshot()
+    } finally { await f.ctx.fiber.dispose(); vi.restoreAllMocks() }
+  })
   it('records model-selected enterprise schemas and original Run results in the Session transcript', async () => {
     const f = await fixture([
       toolCallResponse('select', 'enterprise_catalog', { names: ['read_project'] }),

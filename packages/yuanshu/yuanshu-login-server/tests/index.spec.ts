@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Context } from '@deepseek-ai/cordis'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { afterEach, expect, it, vi } from 'vitest'
-import { apply, Config } from '../src/index.ts'
+import { apply, Config, inject } from '../src/index.ts'
 
 let context: Context | undefined
 
@@ -71,6 +71,10 @@ function setup(rejection: 401 | 403 | undefined): {
 function request(headers: Record<string, string>): IncomingMessage {
   return { headers } as IncomingMessage
 }
+
+it('declares the nested authentication service used by Connection admission', () => {
+  expect(inject).toContain('connection.authentication')
+})
 
 it('publishes the external identity marker so the account launcher yields its slot', async () => {
   setup(undefined)

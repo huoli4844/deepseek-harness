@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.3/yuanshu-ontology-space/guide.md
+/:
+  en: 8e703f4e87f1c648
+  zh: 0167d9428127f7e3
+/select-an-ontology-space-before-reading-collections:
+  en: 8de82ae4ff7d3825
+  zh: 71295d17a9f02e53
+/select-an-ontology-space-before-reading-collections/change:
+  en: 942c9bc78ebc9a1c
+  zh: b57f7de105f2cdb9
+/select-an-ontology-space-before-reading-collections/migration:
+  en: 6dfcd895f0e695dd
+  zh: 4942d8509a72bd28

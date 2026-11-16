@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { YuanShuClient } from '../src/index.ts'
+import { YuanShuMcp } from '../src/mcp.ts'
 
 interface RecordedCall {
   readonly url: string
@@ -168,6 +169,18 @@ describe('YuanShuClient client workbench', () => {
     await expect(client.listOntologyCollections(spaceId)).rejects.toMatchObject({ status: 400 })
     await expect(client.listOntologyReleases(10, spaceId)).rejects.toMatchObject({ status: 400 })
     expect(calls).toHaveLength(0)
+  })
+
+  it('sends ontology space IDs as JSON integers through the MCP adapter', async () => {
+    const enterprise = new YuanShuMcp({ resource: 'http://localhost:8081/api/v1/client/mcp', issuer: 'http://localhost:8081', clientId: 'test', redirectUri: 'http://localhost:3000/callback', timeoutMs: 1000, credentials: { read: async () => undefined, write: async () => {} } })
+    const call = vi.spyOn(enterprise, 'call').mockResolvedValue({ resultType: 'complete', content: [], structuredContent: { schema_version: '1', outcome: 'returned', data: [] } })
+    try {
+      const client = new YuanShuClient({ baseURL: 'http://localhost:8081', enterprise })
+      await client.listOntologyCollections(7, 10)
+      await client.listOntologyReleases(10, 7)
+      expect(call).toHaveBeenNthCalledWith(1, 'ontology_collections', { page: 1, page_size: 10, space_id: 7 }, undefined)
+      expect(call).toHaveBeenNthCalledWith(2, 'ontology_releases', { page: 1, page_size: 10, space_id: 7 }, undefined)
+    } finally { call.mockRestore(); await enterprise.close() }
   })
 
   it('reads the role workbench profile and its home projection', async () => {

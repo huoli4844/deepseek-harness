@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { credentialKey, type CredentialKey } from '@deepseek-ai/dsh-credentials'
-import type { YuanShuMcpGrant } from '@deepseek-ai/dsh-yuanshu-client'
+import { YuanShuMcpError, type YuanShuMcpGrant } from '@deepseek-ai/dsh-yuanshu-client'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -541,11 +541,12 @@ export function apply(ctx: Context, config: Config): void {
           || (spaceId !== undefined && (!Number.isSafeInteger(spaceId) || spaceId < 1))) {
           throw new GatewayRequestError('A positive space_id is required')
         }
-        const value = relative === '/ontology/spaces'
-          ? await requestClient.listOntologySpaces(pageSize)
-          : relative === '/ontology/collections'
-            ? await requestClient.listOntologyCollections(spaceId!, pageSize)
-            : await requestClient.listOntologyReleases(pageSize, spaceId)
+        let value: unknown
+        if (relative === '/ontology/spaces') value = await requestClient.listOntologySpaces(pageSize)
+        else if (relative === '/ontology/collections') {
+          if (spaceId === undefined) throw new GatewayRequestError('A positive space_id is required')
+          value = await requestClient.listOntologyCollections(spaceId, pageSize)
+        } else value = await requestClient.listOntologyReleases(pageSize, spaceId)
         writeJSON(res, value)
         return
       }
@@ -652,6 +653,9 @@ export function apply(ctx: Context, config: Config): void {
       res.writeHead(404, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'not found' }))
     } catch (error) {
+      if (!(error instanceof YuanShuMcpError && error.code === 'YUANSHU_MCP_AUTH_INVALID' && error.message === 'MCP user authorization required')) {
+        ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
+      }
       if (res.headersSent) { res.destroy(); return }
       writeJSON(res, errorBody(error), errorStatus(error))
     } finally {

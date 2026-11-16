@@ -1200,7 +1200,9 @@ export class YuanShuClient {
    */
   async listOntologyCollections(spaceId: number, limit?: number): Promise<unknown> {
     if (!Number.isSafeInteger(spaceId) || spaceId < 1) throw new YuanShuError('A positive ontology space ID is required', 400)
-    return this.request(`${withPageQuery('/api/v1/ontology-platform/collections', limit)}&space_id=${String(spaceId)}`)
+    const query = new URLSearchParams(withPageQuery('/api/v1/ontology-platform/collections', limit).split('?')[1])
+    query.set('space_id', String(spaceId))
+    return this.request(`/api/v1/ontology-platform/collections?${query.toString()}`)
   }
 
   /** 列本体发布版本；指定空间时只读取该空间的版本，无效空间 ID 在请求前拒绝。
@@ -1211,7 +1213,10 @@ export class YuanShuClient {
   async listOntologyReleases(limit?: number, spaceId?: number): Promise<unknown> {
     if (spaceId !== undefined && (!Number.isSafeInteger(spaceId) || spaceId < 1)) throw new YuanShuError('A positive ontology space ID is required', 400)
     const path = withPageQuery('/api/v1/ontology-platform/releases', limit)
-    return this.request(spaceId === undefined ? path : `${path}&space_id=${String(spaceId)}`)
+    if (spaceId === undefined) return this.request(path)
+    const query = new URLSearchParams(path.split('?')[1])
+    query.set('space_id', String(spaceId))
+    return this.request(`/api/v1/ontology-platform/releases?${query.toString()}`)
   }
 
   /** 列出当前租户已发布的专业 Agent 安全描述及修订。
@@ -1478,7 +1483,7 @@ function isBusinessRecord(value: unknown): value is { schema_version: '1'; data:
 function enterpriseOperation(path: string, body: unknown, method: string): { name: string; args: Record<string, unknown> } {
   const url = new URL(path, 'http://localhost')
   const args: Record<string, unknown> = Object.fromEntries(url.searchParams)
-  for (const key of ['page', 'page_size', 'limit', 'after_seq', 'after_id', 'release_id', 'asset_id']) {
+  for (const key of ['page', 'page_size', 'limit', 'after_seq', 'after_id', 'release_id', 'space_id', 'asset_id']) {
     const value = args[key]
     if (typeof value === 'string') {
       const parsed = Number(value)
