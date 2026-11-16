@@ -611,6 +611,226 @@
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
 }
+.agentLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.8fr);
+  align-items: start;
+  gap: 28px;
+}
+.agentMain,
+.agentAside {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.agentSection {
+  min-width: 0;
+  padding-block: 8px 20px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.agentQueue {
+  display: grid;
+  gap: 0;
+  border-top: 0.5px solid var(--work-line);
+}
+.agentQueue h2 {
+  margin-bottom: 8px !important;
+}
+.agentQueueRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding-block: 16px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.agentQueueRow > div {
+  min-width: 0;
+}
+.agentQueueRow strong {
+  display: block;
+}
+.agentQueueRow p {
+  margin-top: 5px !important;
+  color: var(--dsw-alias-label-secondary);
+}
+.agentQueueRow small {
+  margin-top: 6px;
+}
+.agentProgressTrack {
+  height: 3px;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-2);
+}
+.agentProgressTrack span {
+  display: block;
+  height: 100%;
+  background: var(--work-accent);
+  transition: width 160ms ease-out;
+}
+.agentSteps,
+.agentEvents {
+  display: grid;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.agentStep {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.agentStepNumber {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  aspect-ratio: 1;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  color: var(--work-muted);
+  font-variant-numeric: tabular-nums;
+}
+.agentStep[data-state='done'] .agentStepNumber {
+  border-color: var(--dsw-alias-state-success-primary);
+  color: var(--dsw-alias-state-success-primary);
+}
+.agentStep[data-state='active'] .agentStepNumber {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+}
+.agentStepHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.agentStepHeading small {
+  font-size: 10px;
+}
+.agentStep p {
+  margin-top: 4px !important;
+  color: var(--dsw-alias-label-secondary);
+}
+.agentMethod {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--dsw-alias-state-info-primary);
+}
+.agentMethod strong {
+  font-size: 12px;
+}
+.agentMethod p {
+  color: var(--dsw-alias-label-secondary);
+}
+.agentEvents {
+  margin-top: 0;
+}
+.agentEvent {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.agentEvent > span {
+  color: var(--work-muted);
+  font-variant-numeric: tabular-nums;
+}
+.agentEvent p {
+  margin-top: 4px !important;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+.agentEvent > small {
+  white-space: nowrap;
+}
+.agentDelegates {
+  display: grid;
+  gap: 0;
+  margin-top: 18px;
+}
+.agentDelegates h3 {
+  margin-bottom: 6px !important;
+  font-size: 12px;
+}
+.agentDelegates > p {
+  color: var(--work-muted);
+}
+.agentDelegate {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding-block: 9px;
+  border-top: 0.5px solid var(--work-line);
+}
+.agentDelegate span {
+  color: var(--dsw-alias-label-secondary);
+}
+.agentDelegate small {
+  white-space: nowrap;
+}
+.agentEvidence {
+  display: grid;
+  gap: 14px;
+  margin: 14px 0 0;
+}
+.agentEvidence > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.agentEvidence dt {
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.agentEvidence dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.agentSimulationNote,
+.agentApprovalNote {
+  margin-top: 14px !important;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--dsw-alias-state-warn-primary);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+.agentSection .field {
+  margin-block: 14px;
+}
+.agentSection .field textarea {
+  min-height: 132px;
+  line-height: 1.6;
+}
+.agentActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.agentOutcome {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--work-line);
+}
+.agentOutcome p {
+  color: var(--dsw-alias-label-secondary);
+}
+.agentSection > .empty {
+  padding-block: 18px;
+}
 .assistantFooter {
   display: flex;
   align-items: center;
@@ -1014,6 +1234,246 @@
   display: flex;
   margin-top: 16px;
 }
+.groupToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.groupToolbar .intro {
+  max-width: 760px;
+  margin: 0;
+}
+.groupLayout {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.32fr) minmax(0, 1fr);
+  gap: 20px;
+  min-height: 580px;
+}
+.groupList,
+.groupConversation {
+  min-width: 0;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-base);
+}
+.groupList {
+  padding: 16px;
+}
+.groupList .sectionHeading {
+  margin-bottom: 12px;
+}
+.groupListItem {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 12px;
+  margin-top: 4px;
+  text-align: start;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-inline-start: 2px solid transparent;
+  cursor: pointer;
+}
+.groupListItem:hover,
+.groupListItemActive {
+  background: var(--dsw-alias-bg-layer-2);
+}
+.groupListItemActive {
+  border-inline-start-color: var(--work-accent);
+}
+.groupListItem strong,
+.groupListItem span,
+.groupListItem small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.groupListItem span,
+.groupListItem small {
+  color: var(--work-muted);
+  font-size: 11px;
+  margin-top: 6px;
+}
+.groupConversation {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.groupHeader h2 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.groupMembers {
+  padding: 12px 20px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.groupMemberTags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.groupMember {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding-inline-start: 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  font-size: 11px;
+}
+.groupMember strong {
+  overflow-wrap: anywhere;
+}
+.groupInvite {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.groupInvite label,
+.groupAssignmentForm label,
+.createGroupForm > label {
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.groupInvite select,
+.groupAssignmentForm select,
+.createGroupForm select,
+.createGroupForm input {
+  min-height: 34px;
+  max-width: 100%;
+  padding: 6px 9px;
+  color: inherit;
+  background: var(--dsw-alias-bg-base);
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+}
+.groupMessages {
+  display: flex;
+  flex: 1 1 240px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 220px;
+  max-height: 440px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.groupMessage {
+  align-self: flex-start;
+  width: min(92%, 620px);
+  padding: 11px 13px;
+  background: var(--dsw-alias-bg-layer-2);
+  border-radius: var(--dsw-radius-sm);
+}
+.groupMessageHuman {
+  composes: groupMessage;
+  align-self: flex-end;
+  background: var(--dsw-alias-interactive-bg-active);
+}
+.groupMessageMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--work-muted);
+  font-size: 10px;
+}
+.groupMessage p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.groupMessage .groupAssignmentMeta {
+  color: var(--work-accent);
+  font-size: 10px;
+}
+.groupAssignmentForm {
+  padding: 14px 20px;
+  border-top: 0.5px solid var(--work-line);
+}
+.groupAssignmentForm h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+.groupAssignmentForm > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 0.4fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+.groupComposer {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  padding: 12px 20px 18px;
+  border-top: 0.5px solid var(--work-line);
+}
+.groupComposer label {
+  flex: 1;
+  min-width: 0;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.groupComposer textarea {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  max-height: 150px;
+  resize: vertical;
+  margin-top: 6px;
+  padding: 10px;
+  color: inherit;
+  background: var(--dsw-alias-bg-base);
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  font: inherit;
+  font-size: 12px;
+}
+.groupDisclaimer {
+  margin-top: 12px;
+  color: var(--work-muted);
+  font-size: 10px;
+}
+.createGroupForm {
+  display: grid;
+  gap: 16px;
+}
+.createGroupForm fieldset {
+  min-width: 0;
+  padding: 14px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+}
+.createGroupForm legend {
+  padding-inline: 6px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.createGroupForm > button {
+  justify-self: end;
+}
 .notification {
   display: flex;
   align-items: center;
@@ -1320,6 +1780,16 @@
   .chartGrid {
     grid-template-columns: 1fr;
   }
+  .agentLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .groupLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .groupList {
+    max-height: 230px;
+    overflow-y: auto;
+  }
 }
 @container (max-width: 720px) {
   .navigation {
@@ -1407,11 +1877,67 @@
   .priorityFacts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .agentQueueRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .agentQueueRow > button {
+    justify-self: start;
+  }
+  .agentEvent {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .agentEvent > small {
+    grid-column: 2;
+  }
+  .agentDelegate {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .agentDelegate span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .agentDelegate small {
+    grid-column: 2;
+    grid-row: 1;
+  }
   .assistantSignal {
     flex-wrap: wrap;
   }
   .assistantSignal .grow {
     flex-basis: 65%;
+  }
+  .groupToolbar,
+  .groupComposer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .groupToolbar > button,
+  .groupComposer > button {
+    align-self: flex-start;
+  }
+  .groupHeader,
+  .groupMembers,
+  .groupMessages,
+  .groupAssignmentForm,
+  .groupComposer {
+    padding-inline: 14px;
+  }
+  .groupAssignmentForm > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .groupAssignmentForm > div > button {
+    justify-self: start;
+  }
+  .groupMessage {
+    width: min(100%, 620px);
+  }
+  .groupInvite {
+    align-items: stretch;
+  }
+  .groupInvite label {
+    flex: 1 1 170px;
   }
   .dailyRow {
     align-items: flex-start;

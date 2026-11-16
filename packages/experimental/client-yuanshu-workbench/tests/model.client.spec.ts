@@ -57,6 +57,20 @@ describe('workbench demonstration state', () => {
     })
   })
 
+  it('saves and clears position-specific assistant preferences independently', () => {
+    const store = createWorkbenchStore().create()
+    store.actions.saveRolePreference('procurement', 'Quality approval precedes a supplier commitment.')
+    store.actions.saveRolePreference('quality', 'Keep containment evidence with each lot.')
+    expect(store.getSnapshot().rolePreferences).toEqual({
+      procurement: 'Quality approval precedes a supplier commitment.',
+      quality: 'Keep containment evidence with each lot.',
+    })
+    store.actions.saveRolePreference('procurement', '')
+    expect(store.getSnapshot().rolePreferences).toEqual({
+      quality: 'Keep containment evidence with each lot.',
+    })
+  })
+
   it('saves method evidence and self-checks with each version and isolates role perspectives', () => {
     const store = createWorkbenchStore().create()
     store.actions.recordMethod('procurement:0', 'evidence', 'lot A, supplier commitment v2', 'initial')
@@ -140,6 +154,25 @@ describe('workbench demonstration state', () => {
       workStatuses: { [id]: 'done' },
       verifications: { [id]: 'Reinspection passed; report QA-17' },
       followUps: [{ workItemId: id, role: 'quality', text: 'Confirm the acceptance criteria', done: true }],
+    })
+  })
+
+  it('records workgroup membership, arrangements and message history', () => {
+    const store = createWorkbenchStore().create()
+    store.actions.createWorkgroup('Prototype follow-up', 'supervision', ['project', 'quality'])
+    store.actions.addWorkgroupMember('local-1', 'testing')
+    store.actions.addWorkgroupMessage('local-1', 'human', 'Confirm the test gate', 'message', false)
+    store.actions.addWorkgroupMessage('local-1', 'project', 'I will check the milestone.', 'assignment', true, 'project')
+    store.actions.removeWorkgroupMember('local-1', 'testing')
+
+    expect(store.getSnapshot().workgroups?.find(group => group.id === 'local-1')).toMatchObject({
+      name: 'Prototype follow-up',
+      kind: 'supervision',
+      members: ['project', 'quality'],
+      messages: [
+        { id: 1, author: 'human', body: 'Confirm the test gate', kind: 'message', simulated: false },
+        { id: 2, author: 'project', body: 'I will check the milestone.', kind: 'assignment', owner: 'project', simulated: true },
+      ],
     })
   })
 })

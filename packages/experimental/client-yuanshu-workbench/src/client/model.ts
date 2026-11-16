@@ -3,6 +3,7 @@ import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-sto
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { roleFixtures } from './fixtures.ts'
 import type { WorkStatus } from './scenario-data.ts'
+import { createDemoWorkgroups, type Workgroup, type WorkgroupKind } from './workgroup-data.ts'
 
 /** Demonstrated positions; the selector changes focus, never authorization. */
 export type RoleId =
@@ -30,7 +31,7 @@ export type TaskId =
   0 | 1 | 2 | 3 | 4 | 5 | 6 | `${Exclude<RoleId, 'procurement' | 'quality' | 'director'>}.${0 | 1 | 2}`
 /** Workbench destinations shared by every position. */
 export type ViewId =
-  'assistant' | 'dashboard' | 'priorities' | 'tasks' | 'versions' | 'calendar' | 'team' | 'notifications' | 'files' | 'methods' | 'work'
+  'assistant' | 'dashboard' | 'priorities' | 'agent' | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
 /** A saved demo draft snapshot owned by one task and position. */
 export interface DraftVersion {
   readonly number: number
@@ -77,6 +78,8 @@ export interface WorkbenchState {
   workStatuses: Record<string, WorkStatus | undefined>
   verifications: Record<string, string | undefined>
   followUps: DemoFollowUp[]
+  rolePreferences?: Partial<Record<RoleId, string>>
+  workgroups?: Workgroup[]
 }
 
 function editableDraft(state: WorkbenchState, key: string, initial: string): WorkDraft {
@@ -165,6 +168,53 @@ const workbenchActions = {
   setWorkStatus: (state: WorkbenchState, id: string, status: WorkStatus) => {
     state.workStatuses[id] = status
   },
+  saveRolePreference: (state: WorkbenchState, role: RoleId, text: string) => {
+    state.rolePreferences ??= {}
+    if (text.trim() === '') {
+      state.rolePreferences = Object.fromEntries(
+        Object.entries(state.rolePreferences).filter(([id]) => id !== role),
+      )
+    } else state.rolePreferences[role] = text
+  },
+  createWorkgroup: (state: WorkbenchState, name: string, kind: WorkgroupKind, members: readonly RoleId[]) => {
+    state.workgroups ??= createDemoWorkgroups()
+    const nextId = state.workgroups.filter(group => group.id.startsWith('local-')).length + 1
+    state.workgroups.push({
+      id: `local-${nextId}`,
+      name,
+      kind,
+      members: [...new Set(members)],
+      messages: [],
+    })
+  },
+  addWorkgroupMember: (state: WorkbenchState, id: string, role: RoleId) => {
+    const group = (state.workgroups ??= createDemoWorkgroups()).find(candidate => candidate.id === id)
+    if (group !== undefined && !group.members.includes(role)) group.members.push(role)
+  },
+  removeWorkgroupMember: (state: WorkbenchState, id: string, role: RoleId) => {
+    const group = (state.workgroups ??= createDemoWorkgroups()).find(candidate => candidate.id === id)
+    if (group !== undefined) group.members = group.members.filter(member => member !== role)
+  },
+  addWorkgroupMessage: (
+    state: WorkbenchState,
+    id: string,
+    author: RoleId | 'human',
+    body: string,
+    kind: 'message' | 'assignment',
+    simulated: boolean,
+    owner?: RoleId,
+  ) => {
+    const group = (state.workgroups ??= createDemoWorkgroups()).find(candidate => candidate.id === id)
+    if (group === undefined) return
+    group.messages.push({
+      id: group.messages.length + 1,
+      author,
+      body,
+      kind,
+      simulated,
+      ...(owner === undefined ? {} : { owner }),
+    })
+  },
   saveVerification: (state: WorkbenchState, id: string, text: string) => {
     state.verifications[id] = text
   },
@@ -200,6 +250,8 @@ export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof
       workStatuses: {},
       verifications: {},
       followUps: [],
+      rolePreferences: {},
+      workgroups: createDemoWorkgroups(),
     }),
     actions: workbenchActions,
   })

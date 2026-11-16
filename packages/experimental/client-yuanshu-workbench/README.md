@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional bundle opens a role-aware assistant inbox inside DSH. It surfaces position focus, assigned work, and schedule items with direct actions; the position dashboard retains role-specific charts for follow-up. All 18 verified positions and the additional company management view show four KPI-led work scenarios and three daily work entries, each linked to a position method. Company management links summarized risks to responsible positions. Records and KPI mappings are demonstrations persisted in this browser profile; the bundle does not connect to YuanShu MCP, call a model, or persist data through the Host.
+Inside DSH, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
 
 ## Table of Contents
 
@@ -42,10 +42,13 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 - Positions have six charts; company management and the vehicle business president have eight: trends, progress, business mix, plan comparison, weekly completions and risk matrices, plus management collections and resource coverage. New charts open raw data details and a related task.
 - Switch all 19 position views: the assistant inbox and position dashboard adapt to the selected role, while shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
 - Review ten ranked company priorities with synthetic values, sources, owners and next actions; filter them by the active position and open the responsible KPI workflow.
+- Run a local assistant-workflow simulation with a four-step plan, source and KPI evidence, cross-position review, an editable recommendation and a human approval step. Confirmation updates only the associated browser-local demo work item.
+- Save a position-specific assistant preference in the browser profile and review it beside the method, source evidence and proposed action for each run.
 - Open any of the four KPI-led scenarios for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also lists three role-specific daily work entries.
 - All 57 role-task pairs have a suggested method, task-specific inputs, deliverables and acceptance criteria. Materials, analysis, results and review include method guidance, editable evidence notes and self-checks; saved versions include execution snapshots. The method library opens the corresponding task.
 - Open a task, edit its recommendation, save a version, compare snapshots, adopt a preset suggestion and simulate a review handoff.
 - Select a calendar date and add a local event; switch position views without losing that event or notification read state.
+- Create project, supervision or topic workgroups; invite position assistants, post work arrangements, exchange local messages and revisit each group's history. Assistant replies are scripted demonstrations.
 - Review shared materials and position responsibilities through the Files and Team pages.
 
 -----
@@ -92,7 +95,9 @@ Workbench navigation and draft edits do not change model requests or their cache
 
 - Position selection demonstrates presentation adaptation; it grants no identity or business permissions. Company management is an added demonstration view, not a database position. Project management has no configured KPIs; its charts show demonstration progress.
 - Chart values, materials and scheduled dates are synthetic. They are not validated KPI formulas or live operational results.
-- Handoffs and notifications are local simulations; no messages are sent and no platform tasks or approvals are created.
+- Handoffs and notifications are local simulations; no external messages are sent and no platform tasks or approvals are created. Workgroup membership, arrangements and message history stay in the browser profile.
+- Assistant plans, delegated reviews, activity records and approval outcomes are scripted demonstrations; no model or MCP tool is called, and confirmation does not create or update platform data.
+- Position preferences are browser-local prototype context; they are not sent to a model or YuanShu.
 - The 16 suggested methods require business approval before use as formal procedures. Self-checks record user assertions; incomplete work can be handed off with visible gaps and is never automatically approved.
 - Demo records persist only in this browser profile and are not synchronized across devices or stored as YuanShu business records. YuanShu MCP integration and durable business state are outside this prototype.
 

@@ -17,10 +17,12 @@ import {
   IconPlusOutlineRegular,
   IconChevronRightOutlineRegular,
   IconSearchOutlineRegular,
+  IconNewChatOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SidebarPanelIconOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { DraftVersion, RoleId, TaskId, WorkbenchStoreProps } from './model.ts'
+import type { WorkgroupKind } from './workgroup-data.ts'
 import type { WorkbenchKey } from './locales.ts'
 import { managementDomains, navigation, roleFixtures, roleGroups, roleIds, taskTitles } from './fixtures.ts'
 import css from './Workbench.module.css'
@@ -29,6 +31,7 @@ import { dashboardCharts } from './dashboard-data.ts'
 import { methodFor, roleMethods, type MethodStage } from './methodology-data.ts'
 import { dailyWorkForRole, positionScenarios, workItemsForRole, workItemForScenario, type WorkStatus } from './scenario-data.ts'
 import { prioritiesForRole, priorityAssignment, priorityItems } from './priorities-data.ts'
+import { createDemoWorkgroups } from './workgroup-data.ts'
 
 interface WorkbenchInjected {
   readonly onReturn: () => void
@@ -51,10 +54,12 @@ const navIcons = {
   assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
   priorities: IconArchiveOutlineRegular,
+  agent: IconChecklistOutlineRegular,
   tasks: IconChecklistOutlineRegular,
   versions: IconCompareSplitOutlineRegular,
   calendar: IconClockOutlineRegular,
   team: IconUsersOutlineRegular,
+  groups: IconNewChatOutlineRegular,
   notifications: IconArchiveOutlineRegular,
   files: IconPaperclipOutlineRegular,
   methods: IconLayersOutlineRegular,
@@ -75,13 +80,27 @@ export function Workbench(props: WorkbenchProps) {
   const [stage, setStage] = useState<MethodStage>(0)
   const [candidate, setCandidate] = useState(false)
   const [activeScenario, setActiveScenario] = useState<number | null>(null)
-  const [dialog, setDialog] = useState<'submit' | 'event' | 'source' | 'compare' | null>(null)
+  const [dialog, setDialog] = useState<'submit' | 'event' | 'source' | 'compare' | 'group' | null>(null)
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
   const [feedback, setFeedback] = useState('')
   const [followUpRole, setFollowUpRole] = useState<RoleId>('quality')
   const [followUpText, setFollowUpText] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'role'>('all')
+  const [activePriorityId, setActivePriorityId] = useState<string>()
+  const [activePriorityRole, setActivePriorityRole] = useState<RoleId>(role)
+  const [agentProgress, setAgentProgress] = useState(0)
+  const [agentStatus, setAgentStatus] = useState<'ready' | 'running' | 'awaitingApproval' | 'approved'>('ready')
+  const [agentDraft, setAgentDraft] = useState('')
+  const [activeGroupId, setActiveGroupId] = useState('project-validation')
+  const [groupMessageDraft, setGroupMessageDraft] = useState('')
+  const [groupAssignmentDraft, setGroupAssignmentDraft] = useState('')
+  const [groupAssignmentRole, setGroupAssignmentRole] = useState<RoleId>(role)
+  const [groupInviteRole, setGroupInviteRole] = useState<RoleId>(role)
+  const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupKind, setNewGroupKind] = useState<WorkgroupKind>('project')
+  const [newGroupMembers, setNewGroupMembers] = useState<RoleId[]>([role])
+  const [newGroupInviteRole, setNewGroupInviteRole] = useState<RoleId>(roleIds.find(id => id !== role) ?? role)
   const contentRef = useRef<HTMLDivElement>(null)
   const key = `${role}:${state.task}`
   const draft = state.drafts[key]
@@ -106,6 +125,15 @@ export function Workbench(props: WorkbenchProps) {
   const confirmationCount = workItems.filter(item => workStatus(item.id, item.status) === 'waiting').length
   const reviewCount = workItems.filter(item => workStatus(item.id, item.status) === 'review').length
   const leadPriority = prioritiesForRole(role)[0]
+  const groups = state.workgroups ?? createDemoWorkgroups()
+  const activeGroup = groups.find(group => group.id === activeGroupId) ?? groups[0]
+  const groupInviteChoices = activeGroup?.members === undefined ? roleIds : roleIds.filter(id => !activeGroup.members.includes(id))
+  const selectedGroupInviteRole = groupInviteChoices.includes(groupInviteRole) ? groupInviteRole : groupInviteChoices[0]
+  const newGroupInviteChoices = roleIds.filter(id => !newGroupMembers.includes(id))
+  const selectedNewGroupInviteRole = newGroupInviteChoices.includes(newGroupInviteRole) ? newGroupInviteRole : newGroupInviteChoices[0]
+  const activePriority = priorityItems.find(item => item.id === activePriorityId)
+  const activeAssignment = activePriority === undefined ? undefined : priorityAssignment(activePriority, activePriorityRole)
+  const agentScenario = activeAssignment === undefined ? undefined : positionScenarios[activeAssignment.role][activeAssignment.kpiIndex]
   const currentWorkItem = workItems.find(item => item.task === state.task)
   const currentWorkStatus = currentWorkItem === undefined ? undefined : workStatus(currentWorkItem.id, currentWorkItem.status)
   const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
@@ -148,9 +176,65 @@ export function Workbench(props: WorkbenchProps) {
     const scenario = positionScenarios[assignment.role][assignment.kpiIndex]
     if (scenario === undefined) return
     actions.changeRole(assignment.role)
-    actions.setWorkStatus(scenario.workItemId, 'inProgress')
-    openScenario(assignment.kpiIndex, scenario.task)
-    actions.navigate('work')
+    setActivePriorityId(item.id)
+    setActivePriorityRole(assignment.role)
+    setAgentProgress(0)
+    setAgentStatus('ready')
+    setAgentDraft(t(item.action))
+    selectView('agent')
+  }
+  const advanceAgent = () => {
+    if (agentStatus === 'ready') {
+      setAgentProgress(1)
+      setAgentStatus('running')
+      return
+    }
+    if (agentStatus !== 'running' || agentProgress >= 4) return
+    const nextProgress = agentProgress + 1
+    setAgentProgress(nextProgress)
+    if (nextProgress === 4) setAgentStatus('awaitingApproval')
+  }
+  const approveAgent = () => {
+    if (agentScenario === undefined || agentDraft.trim() === '') return
+    actions.setWorkStatus(agentScenario.workItemId, 'inProgress')
+    setAgentStatus('approved')
+  }
+  const openGroupDialog = () => {
+    setNewGroupName('')
+    setNewGroupKind('project')
+    setNewGroupMembers([role])
+    setNewGroupInviteRole(roleIds.find(id => id !== role) ?? role)
+    setDialog('group')
+  }
+  const createGroup = () => {
+    const name = newGroupName.trim()
+    if (name === '' || newGroupMembers.length === 0) return
+    const nextId = (state.workgroups ?? []).filter(group => group.id.startsWith('local-')).length + 1
+    actions.createWorkgroup(name, newGroupKind, newGroupMembers)
+    setActiveGroupId(`local-${nextId}`)
+    setDialog(null)
+  }
+  const sendGroupMessage = () => {
+    if (activeGroup === undefined || groupMessageDraft.trim() === '') return
+    const message = groupMessageDraft.trim()
+    actions.addWorkgroupMessage(activeGroup.id, 'human', message, 'message', false)
+    for (const member of activeGroup.members.slice(0, 3)) {
+      actions.addWorkgroupMessage(
+        activeGroup.id,
+        member,
+        t('groups.agentReply', { focus: t(`${member}.focus` as WorkbenchKey) }),
+        'message',
+        true,
+      )
+    }
+    setGroupMessageDraft('')
+  }
+  const assignGroupWork = () => {
+    if (activeGroup === undefined || groupAssignmentDraft.trim() === '') return
+    const owner = activeGroup.members.includes(groupAssignmentRole) ? groupAssignmentRole : activeGroup.members[0]
+    if (owner === undefined) return
+    actions.addWorkgroupMessage(activeGroup.id, 'human', groupAssignmentDraft.trim(), 'assignment', false, owner)
+    setGroupAssignmentDraft('')
   }
   const prioritiesPage = () => {
     const visibleItems = priorityFilter === 'all' ? priorityItems : prioritiesForRole(role)
@@ -228,6 +312,235 @@ export function Workbench(props: WorkbenchProps) {
           {visibleItems.length === 0 && <p className={css.empty}>{t('priorities.noRoleItems')}</p>}
         </section>
         <p className={css.priorityDisclaimer}>{t('assistant.scopeHint')}</p>
+      </>
+    )
+  }
+  const agentPage = () => {
+    if (activePriority === undefined || activeAssignment === undefined || agentScenario === undefined) {
+      const choices = prioritiesForRole(role).slice(0, 3)
+      return (
+        <>
+          <div className={css.pageHeading}>
+            <div>
+              <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
+              <h1>{t('agent.title')}</h1>
+              <p>{t('agent.queueIntro')}</p>
+            </div>
+            <Tag>{t('demo')}</Tag>
+          </div>
+          <section className={css.agentQueue} aria-label={t('agent.chooseSignal')}>
+            <h2>{t('agent.chooseSignal')}</h2>
+            {choices.map(item => (
+              <article className={css.agentQueueRow} key={item.id}>
+                <div>
+                  <strong>{t(item.title)}</strong>
+                  <p>{t(item.reason)}</p>
+                  <small>{t(item.source)}</small>
+                </div>
+                <Button variant="outline" onClick={() => { openPriority(item) }}>
+                  {t('agent.startWithSignal')}
+                </Button>
+              </article>
+            ))}
+            {choices.length === 0 && <p className={css.empty}>{t('priorities.noRoleItems')}</p>}
+          </section>
+          <p className={css.priorityDisclaimer}>{t('agent.simulationNote')}</p>
+        </>
+      )
+    }
+
+    const item = activePriority
+    const assignment = activeAssignment
+    const scenario = agentScenario
+    const runMethod = methodFor(assignment.role, scenario.task)
+    const collaborators = item.assignments.filter(candidate => candidate.role !== assignment.role).slice(0, 3)
+    const metricLabel = t(`${assignment.role}.metric${assignment.kpiIndex + 1}` as WorkbenchKey)
+    const currentValue = `${item.current}${item.unit === '%' ? '%' : ` ${item.unit}`}`
+    const targetValue = `${item.target}${item.unit === '%' ? '%' : ` ${item.unit}`}`
+    const impactDetail = t('agent.step.impactDetail', { metric: metricLabel, current: currentValue, target: targetValue })
+    const collaborationDetail = t('agent.step.collaborationDetail', { count: collaborators.length })
+    const steps = [
+      { title: t('agent.step.source'), detail: t(item.source) },
+      { title: t('agent.step.impact'), detail: impactDetail },
+      { title: t('agent.step.collaboration'), detail: collaborationDetail },
+      { title: t('agent.step.recommendation'), detail: agentDraft },
+    ]
+    const events = [
+      { title: t('agent.event.source'), detail: t(item.source) },
+      { title: t('agent.event.impact'), detail: impactDetail },
+      { title: t('agent.event.collaboration'), detail: collaborationDetail },
+      { title: t('agent.event.recommendation'), detail: agentDraft },
+    ].slice(0, agentProgress)
+    const statusKey = ({
+      ready: 'agent.status.ready',
+      running: 'agent.status.running',
+      awaitingApproval: 'agent.status.awaitingApproval',
+      approved: 'agent.status.approved',
+    } as const)[agentStatus]
+
+    return (
+      <>
+        <div className={css.pageHeading}>
+          <div>
+            <p className={css.eyebrow}>{t('agent.title')} / {t(`role.${assignment.role}`)}</p>
+            <h1>{t(item.title)}</h1>
+            <p>{t(item.reason)}</p>
+          </div>
+        </div>
+        <div className={css.agentLayout}>
+          <div className={css.agentMain}>
+            <section className={css.agentSection} aria-label={t('agent.plan')}>
+              <div className={css.sectionHeading}>
+                <div>
+                  <h2>{t('agent.plan')}</h2>
+                  <p className={css.intro}>{t('agent.runFor', { role: t(`role.${assignment.role}`) })}</p>
+                </div>
+                <Tag>{t(statusKey)}</Tag>
+              </div>
+              <div
+                className={css.agentProgressTrack}
+                role="progressbar"
+                aria-label={t('agent.planProgress')}
+                aria-valuemin={0}
+                aria-valuemax={steps.length}
+                aria-valuenow={agentProgress}
+              >
+                <span style={{ width: `${agentProgress * 25}%` }} />
+              </div>
+              <ol className={css.agentSteps}>
+                {steps.map((step, index) => {
+                  const completed = agentProgress > index || agentStatus === 'approved'
+                  const current = agentStatus === 'running' && agentProgress === index
+                  const stepState = completed ? 'agent.stepDone' : current ? 'agent.stepActive' : agentProgress === 0 && index === 0 ? 'agent.stepReady' : 'agent.stepPending'
+                  return (
+                    <li className={css.agentStep} data-state={completed ? 'done' : current ? 'active' : 'pending'} key={step.title}>
+                      <span className={css.agentStepNumber}>{String(index + 1).padStart(2, '0')}</span>
+                      <div>
+                        <div className={css.agentStepHeading}>
+                          <strong>{step.title}</strong>
+                          <small>{t(stepState)}</small>
+                        </div>
+                        <p>{step.detail}</p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+              <div className={css.agentMethod}>
+                <small>{t('assistant.method')}</small>
+                <strong>{t(runMethod.method.title)}</strong>
+                <p>{t(runMethod.method.why)}</p>
+              </div>
+            </section>
+
+            <section className={css.agentSection} aria-label={t('agent.activity')}>
+              <div className={css.sectionHeading}>
+                <div>
+                  <h2>{t('agent.activity')}</h2>
+                  <p className={css.intro}>{t('agent.activityIntro')}</p>
+                </div>
+                <Tag>{t('demo')}</Tag>
+              </div>
+              {events.length === 0 ? (
+                <p className={css.empty}>{t('agent.activityEmpty')}</p>
+              ) : (
+                <ol className={css.agentEvents}>
+                  {events.map((event, index) => (
+                    <li className={css.agentEvent} key={event.title}>
+                      <span>{String(index + 1).padStart(2, '0')}</span>
+                      <div>
+                        <strong>{event.title}</strong>
+                        <p>{event.detail}</p>
+                      </div>
+                      <small>{t('agent.simulatedResult')}</small>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {agentProgress >= 3 && (
+                <div className={css.agentDelegates}>
+                  <h3>{t('agent.delegates')}</h3>
+                  {collaborators.length === 0 ? (
+                    <p>{t('agent.noDelegates')}</p>
+                  ) : collaborators.map(candidate => (
+                    <div className={css.agentDelegate} key={candidate.role}>
+                      <strong>{t(`role.${candidate.role}`)}</strong>
+                      <span>{t('agent.delegateReview', {
+                        metric: t(`${candidate.role}.metric${candidate.kpiIndex + 1}` as WorkbenchKey),
+                        value: roleFixtures[candidate.role].metrics[candidate.kpiIndex],
+                      })}</span>
+                      <small>{t('agent.simulatedResult')}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className={css.agentAside}>
+            <section className={css.agentSection} aria-label={t('agent.evidence')}>
+              <h2>{t('agent.evidence')}</h2>
+              <dl className={css.agentEvidence}>
+                <div><dt>{t('priorities.source')}</dt><dd>{t(item.source)}</dd></div>
+                <div><dt>{t('assistant.roleFocus')}</dt><dd>{metricLabel} · {currentValue} / {targetValue}</dd></div>
+                <div><dt>{t('assistant.due')}</dt><dd>{t(item.dueKey)}</dd></div>
+              </dl>
+              <p className={css.agentSimulationNote}>{t('agent.simulationNote')}</p>
+            </section>
+            <section className={css.agentSection} aria-label={t('agent.memory')}>
+              <h2>{t('agent.memory')}</h2>
+              <label className={css.field}>
+                {t('agent.memoryLabel')}
+                <textarea
+                  aria-label={t('agent.memoryLabel')}
+                  placeholder={t('agent.memoryPlaceholder')}
+                  value={state.rolePreferences?.[assignment.role] ?? ''}
+                  onChange={(event) => { actions.saveRolePreference(assignment.role, event.target.value) }}
+                />
+              </label>
+              <p className={css.agentMemoryHint}>{t('agent.memoryHint')}</p>
+            </section>
+            <section className={css.agentSection} aria-label={t('agent.recommendation')}>
+              <h2>{t('agent.recommendation')}</h2>
+              <label className={css.field}>
+                {t('agent.recommendationLabel')}
+                <textarea value={agentDraft} onChange={(event) => { setAgentDraft(event.target.value) }} />
+              </label>
+              {agentStatus === 'awaitingApproval' && (
+                <>
+                  <p className={css.agentApprovalNote}>{t('agent.approvalNote')}</p>
+                  <div className={css.agentActions}>
+                    <Button variant="outline" onClick={() => { setAgentProgress(2); setAgentStatus('running') }}>
+                      {t('agent.requestMore')}
+                    </Button>
+                    <Button variant="primary" disabled={agentDraft.trim() === ''} onClick={approveAgent}>
+                      {t('agent.approve')}
+                    </Button>
+                  </div>
+                </>
+              )}
+              {agentStatus === 'approved' ? (
+                <div className={css.agentOutcome}>
+                  <strong>{t('agent.outcomeCreated')}</strong>
+                  <p>{t('agent.outcomeHint', { role: t(`role.${assignment.role}`), due: t(item.dueKey) })}</p>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      actions.openTask(scenario.task)
+                      actions.navigate('work')
+                    }}
+                  >
+                    {t('agent.openWork')}
+                  </Button>
+                </div>
+              ) : agentStatus === 'ready' || agentStatus === 'running' ? (
+                <Button variant="primary" onClick={advanceAgent}>
+                  {t(agentStatus === 'ready' ? 'agent.start' : 'agent.continue', { step: Math.min(agentProgress + 1, steps.length) })}
+                </Button>
+              ) : null}
+            </section>
+          </aside>
+        </div>
       </>
     )
   }
@@ -938,6 +1251,134 @@ export function Workbench(props: WorkbenchProps) {
       </section>
     </>
   )
+  const groupsPage = () => (
+    <>
+      <div className={css.groupToolbar}>
+        <p className={css.intro}>{t('groups.intro')}</p>
+        <Button variant="primary" icon={<IconNewChatOutlineRegular size={16} />} onClick={openGroupDialog}>
+          {t('groups.create')}
+        </Button>
+      </div>
+      <div className={css.groupLayout}>
+        <aside className={css.groupList} aria-label={t('groups.list')}>
+          <div className={css.sectionHeading}>
+            <h2>{t('groups.list')}</h2>
+            <Tag>{t('count', { count: groups.length })}</Tag>
+          </div>
+          {groups.map(group => (
+            <button
+              className={`${css.groupListItem} ${activeGroup?.id === group.id ? css.groupListItemActive : ''}`}
+              key={group.id}
+              aria-current={activeGroup?.id === group.id ? 'page' : undefined}
+              onClick={() => { setActiveGroupId(group.id) }}
+            >
+              <strong>{group.nameKey === undefined ? group.name : t(group.nameKey)}</strong>
+              <span>{t(`groups.kind.${group.kind}` as WorkbenchKey)} · {t('groups.memberCount', { count: group.members.length })}</span>
+              <small>{t('groups.messageCount', { count: group.messages.length })}</small>
+            </button>
+          ))}
+        </aside>
+        {activeGroup !== undefined ? (
+          <section className={css.groupConversation} aria-label={t('groups.conversation')}>
+            <header className={css.groupHeader}>
+              <div>
+                <p className={css.eyebrow}>{t('groups.kind.' + activeGroup.kind as WorkbenchKey)}</p>
+                <h2>{activeGroup.nameKey === undefined ? activeGroup.name : t(activeGroup.nameKey)}</h2>
+              </div>
+              <Tag>{t('groups.memberCount', { count: activeGroup.members.length })}</Tag>
+            </header>
+            <div className={css.groupMembers}>
+              <div className={css.groupMemberTags}>
+                {activeGroup.members.map(member => (
+                  <span className={css.groupMember} key={member}>
+                    <strong>{t(`role.${member}`)}</strong>
+                    <Button size="sm" variant="ghost" aria-label={t('groups.removeMember', { role: t(`role.${member}`) })} onClick={() => { actions.removeWorkgroupMember(activeGroup.id, member) }}>
+                      ×
+                    </Button>
+                  </span>
+                ))}
+                {activeGroup.members.length === 0 && <small>{t('groups.noMembers')}</small>}
+              </div>
+              <div className={css.groupInvite}>
+                <label>
+                  {t('groups.invitePosition')}
+                  <select
+                    aria-label={t('groups.invitePosition')}
+                    value={selectedGroupInviteRole ?? ''}
+                    onChange={(event) => { setGroupInviteRole(event.target.value as RoleId) }}
+                    disabled={groupInviteChoices.length === 0}
+                  >
+                    {groupInviteChoices.map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
+                  </select>
+                </label>
+                <Button variant="outline" disabled={selectedGroupInviteRole === undefined} onClick={() => {
+                  if (selectedGroupInviteRole !== undefined) actions.addWorkgroupMember(activeGroup.id, selectedGroupInviteRole)
+                }}>
+                  {t('groups.invite')}
+                </Button>
+              </div>
+            </div>
+            <div className={css.groupMessages} role="log" aria-label={t('groups.history')} aria-live="polite">
+              {activeGroup.messages.map(message => (
+                <article className={message.author === 'human' ? css.groupMessageHuman : css.groupMessage} key={`${activeGroup.id}:${message.id}`}>
+                  <div className={css.groupMessageMeta}>
+                    <strong>{t(message.author === 'human' ? 'groups.me' : `role.${message.author}` as WorkbenchKey)}</strong>
+                    <small>{t('groups.sequence', { index: message.id })}</small>
+                    {message.simulated && <Tag>{t('groups.simulatedAgent')}</Tag>}
+                  </div>
+                  {message.kind === 'assignment' && message.owner !== undefined && (
+                    <p className={css.groupAssignmentMeta}>{t('groups.assignmentOwner', { role: t(`role.${message.owner}`) })}</p>
+                  )}
+                  <p>{message.bodyKey === undefined ? message.body : t(message.bodyKey)}</p>
+                </article>
+              ))}
+              {activeGroup.messages.length === 0 && <p className={css.empty}>{t('groups.emptyHistory')}</p>}
+            </div>
+            <div className={css.groupAssignmentForm}>
+              <h3>{t('groups.assignTitle')}</h3>
+              <div>
+                <Input
+                  aria-label={t('groups.assignPlaceholder')}
+                  placeholder={t('groups.assignPlaceholder')}
+                  value={groupAssignmentDraft}
+                  onChange={(event) => { setGroupAssignmentDraft(event.target.value) }}
+                />
+                <label>
+                  {t('assistant.owner')}
+                  <select
+                    aria-label={t('groups.assignmentOwnerSelect')}
+                    value={activeGroup.members.includes(groupAssignmentRole) ? groupAssignmentRole : activeGroup.members[0] ?? ''}
+                    onChange={(event) => { setGroupAssignmentRole(event.target.value as RoleId) }}
+                    disabled={activeGroup.members.length === 0}
+                  >
+                    {activeGroup.members.map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
+                  </select>
+                </label>
+                <Button variant="outline" disabled={!groupAssignmentDraft.trim() || activeGroup.members.length === 0} onClick={assignGroupWork}>
+                  {t('groups.assign')}
+                </Button>
+              </div>
+            </div>
+            <form className={css.groupComposer} onSubmit={(event) => { event.preventDefault(); sendGroupMessage() }}>
+              <label>
+                {t('groups.messageLabel')}
+                <textarea
+                  aria-label={t('groups.messageLabel')}
+                  placeholder={t('groups.messagePlaceholder')}
+                  value={groupMessageDraft}
+                  onChange={(event) => { setGroupMessageDraft(event.target.value) }}
+                />
+              </label>
+              <Button type="submit" variant="primary" disabled={!groupMessageDraft.trim()}>
+                {t('groups.send')}
+              </Button>
+            </form>
+          </section>
+        ) : <p className={css.empty}>{t('groups.noGroups')}</p>}
+      </div>
+      <p className={css.groupDisclaimer}>{t('groups.disclaimer')}</p>
+    </>
+  )
   const notificationsPage = () => (
     <>
       <div className={css.sectionHeading}>
@@ -1333,7 +1774,7 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {view !== 'dashboard' && view !== 'assistant' && view !== 'work' && (
+            {view !== 'dashboard' && view !== 'assistant' && view !== 'work' && view !== 'priorities' && view !== 'agent' && (
               <div className={css.pageHeading}>
                 <div>
                   <p className={css.eyebrow}>
@@ -1359,6 +1800,8 @@ export function Workbench(props: WorkbenchProps) {
               dashboard()
             ) : view === 'priorities' ? (
               prioritiesPage()
+            ) : view === 'agent' ? (
+              agentPage()
             ) : view === 'tasks' ? (
               <>
                 <p className={css.intro}>{t('task.owner')}</p>
@@ -1378,6 +1821,8 @@ export function Workbench(props: WorkbenchProps) {
               calendarPage()
             ) : view === 'team' ? (
               teamPage()
+            ) : view === 'groups' ? (
+              groupsPage()
             ) : view === 'notifications' ? (
               notificationsPage()
             ) : view === 'work' ? (
@@ -1434,16 +1879,69 @@ export function Workbench(props: WorkbenchProps) {
           }}
           closeLabel={t('close')}
           title={t(
-            dialog === 'event'
-              ? 'calendar.add'
-              : dialog === 'compare'
-                ? 'versions.compare'
-                : dialog === 'source'
-                  ? 'files.preview'
-                  : 'work.submit',
+            dialog === 'group'
+              ? 'groups.createTitle'
+              : dialog === 'event'
+                ? 'calendar.add'
+                : dialog === 'compare'
+                  ? 'versions.compare'
+                  : dialog === 'source'
+                    ? 'files.preview'
+                    : 'work.submit',
           )}
         >
-          {dialog === 'submit' ? (
+          {dialog === 'group' ? (
+            <form className={css.createGroupForm} onSubmit={(event) => { event.preventDefault(); createGroup() }}>
+              <label>
+                {t('groups.name')}
+                <Input
+                  required
+                  data-modal-autofocus
+                  value={newGroupName}
+                  onChange={(event) => { setNewGroupName(event.target.value) }}
+                />
+              </label>
+              <label>
+                {t('groups.kindLabel')}
+                <select value={newGroupKind} onChange={(event) => { setNewGroupKind(event.target.value as WorkgroupKind) }}>
+                  {(['project', 'supervision', 'topic'] as const).map(kind => (
+                    <option value={kind} key={kind}>{t(`groups.kind.${kind}` as WorkbenchKey)}</option>
+                  ))}
+                </select>
+              </label>
+              <fieldset>
+                <legend>{t('groups.members')}</legend>
+                <div className={css.groupMemberTags}>
+                  {newGroupMembers.map(member => (
+                    <span className={css.groupMember} key={member}>
+                      <strong>{t(`role.${member}`)}</strong>
+                      <Button type="button" size="sm" variant="ghost" aria-label={t('groups.removeMember', { role: t(`role.${member}`) })} onClick={() => {
+                        setNewGroupMembers(members => members.filter(id => id !== member))
+                      }}>×</Button>
+                    </span>
+                  ))}
+                  {newGroupMembers.length === 0 && <small>{t('groups.noMembers')}</small>}
+                </div>
+                <div className={css.groupInvite}>
+                  <label>
+                    {t('groups.invitePosition')}
+                    <select
+                      aria-label={t('groups.invitePosition')}
+                      value={selectedNewGroupInviteRole ?? ''}
+                      onChange={(event) => { setNewGroupInviteRole(event.target.value as RoleId) }}
+                      disabled={newGroupInviteChoices.length === 0}
+                    >
+                      {newGroupInviteChoices.map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
+                    </select>
+                  </label>
+                  <Button type="button" variant="outline" disabled={selectedNewGroupInviteRole === undefined} onClick={() => {
+                    if (selectedNewGroupInviteRole !== undefined) setNewGroupMembers(members => [...members, selectedNewGroupInviteRole])
+                  }}>{t('groups.addMember')}</Button>
+                </div>
+              </fieldset>
+              <Button type="submit" variant="primary" disabled={!newGroupName.trim() || newGroupMembers.length === 0}>{t('groups.create')}</Button>
+            </form>
+          ) : dialog === 'submit' ? (
             <>
               <p>{t('work.reviewNote')}</p>
               <h3>{t('guide.reviewTitle')}</h3>
