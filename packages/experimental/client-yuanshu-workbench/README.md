@@ -1,5 +1,5 @@
 ---
-description: "Install an optional Shaoshi workbench with role-specific charts and shared task, version, calendar, collaboration and notification views."
+description: "Install an optional Shaoshi workbench with a role-aware assistant inbox, position dashboards and shared work views."
 kind: "package-bundle"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional bundle adds YuanShu workbench to the native DSH sidebar. All 18 positions verified in the design document have distinct demonstration charts, tasks, materials and methods. An additional company management view summarizes operating collections, delivery, quality, supply and organizational risks, with links to responsible positions. The selector groups these 19 views by management, engineering, production, market and support responsibilities. Every position has tasks, saved versions, a calendar, team collaboration, notifications, materials and methods. All business records live in browser memory; the bundle contributes no platform integration, model calls or Host persistence.
+This optional bundle opens a role-aware assistant inbox inside DSH. It surfaces position focus, assigned work, and schedule items with direct actions; the position dashboard retains role-specific charts for follow-up. All 18 verified positions and the additional company management view show four KPI-led work scenarios and three daily work entries, each linked to a position method. Company management links summarized risks to responsible positions. All records and KPI mappings are demonstrations held in browser memory; the bundle does not connect to YuanShu MCP, call a model, or persist data through the Host.
 
 ## Table of Contents
 
@@ -35,12 +35,13 @@ DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh plugin --profile web add "link
 DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web/tests/pin-browse-picker.overlay.yml --port 4317 --no-open
 ```
 
-Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** directly, with only its own navigation and content visible. The isolated profile has its own model configuration and history. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Reopening the workbench retains its demo drafts until page refresh or plugin reload.
+Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. The isolated profile has its own model configuration and history. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Reopening the workbench retains its demo drafts until page refresh or plugin reload.
 
 ### What you can try
 
 - Positions have six charts; company management and the vehicle business president have eight: trends, progress, business mix, plan comparison, weekly completions and risk matrices, plus management collections and resource coverage. New charts open raw data details and a related task.
-- Switch all 19 views: charts, focus items, tasks, materials and methods change; shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
+- Switch all 19 position views: the assistant inbox and position dashboard adapt to the selected role, while shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
+- Open any of the four KPI-led scenarios for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also lists three role-specific daily work entries.
 - All 57 role-task pairs have a suggested method, task-specific inputs, deliverables and acceptance criteria. Materials, analysis, results and review include method guidance, editable evidence notes and self-checks; saved versions include execution snapshots. The method library opens the corresponding task.
 - Open a task, edit its recommendation, save a version, compare snapshots, adopt a preset suggestion and simulate a review handoff.
 - Select a calendar date and add a local event; switch position views without losing that event or notification read state.

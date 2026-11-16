@@ -27,6 +27,7 @@ import css from './Workbench.module.css'
 import { DashboardCharts } from './DashboardCharts.tsx'
 import { dashboardCharts } from './dashboard-data.ts'
 import { methodFor, roleMethods, type MethodStage } from './methodology-data.ts'
+import { dailyWorkForRole, positionScenarios } from './scenario-data.ts'
 
 interface WorkbenchInjected {
   readonly onReturn: () => void
@@ -46,6 +47,7 @@ export function WorkbenchIcon(props: SidebarPanelIconOwnerProps) {
 }
 
 const navIcons = {
+  assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
   tasks: IconChecklistOutlineRegular,
   versions: IconCompareSplitOutlineRegular,
@@ -70,6 +72,7 @@ export function Workbench(props: WorkbenchProps) {
   const [query, setQuery] = useState('')
   const [stage, setStage] = useState<MethodStage>(0)
   const [candidate, setCandidate] = useState(false)
+  const [activeScenario, setActiveScenario] = useState<number | null>(null)
   const [dialog, setDialog] = useState<'submit' | 'event' | 'source' | 'compare' | null>(null)
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
@@ -91,7 +94,7 @@ export function Workbench(props: WorkbenchProps) {
   const methodReady = execution.checked.length === 4 && execution.evidence.trim() !== '' && execution.analysis.trim() !== '' && text.trim() !== ''
   const currentTitle = t(taskTitles[state.task])
   const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
-  const title = view === 'work' ? currentTitle : t(navigation.find(n => n.id === view)?.label ?? 'nav.dashboard')
+  const title = view === 'work' ? currentTitle : t(navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
   const selectView = (next: typeof view) => {
     actions.navigate(next)
     setNavOpen(false)
@@ -100,18 +103,25 @@ export function Workbench(props: WorkbenchProps) {
   }
   const selectPosition = (next: RoleId) => {
     actions.changeRole(next)
-    selectView('dashboard')
+    selectView('assistant')
     setQuery('')
     setCandidate(false)
+    setActiveScenario(null)
     setSelectedVersion(0)
   }
   const openTask = (id: TaskId) => {
     actions.openTask(id)
     setStage(0)
     setCandidate(false)
+    setActiveScenario(null)
     setFeedback('')
     setNavOpen(false)
     if (contentRef.current !== null) contentRef.current.scrollTop = 0
+  }
+  const openScenario = (kpiIndex: number, id: TaskId) => {
+    openTask(id)
+    setActiveScenario(kpiIndex)
+    setCandidate(true)
   }
   const taskRows = (compact = false) => (
     <div className={css.taskRows}>
@@ -239,6 +249,150 @@ export function Workbench(props: WorkbenchProps) {
       </button>
     )
   }
+  const assistant = () => (
+    <>
+      <div className={css.pageHeading}>
+        <div>
+          <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
+          <h1>{t('assistant.title')}</h1>
+          <p>{t('assistant.subtitle')}</p>
+        </div>
+        <Button
+          variant="primary"
+          icon={<IconPlusOutlineRegular size={16} />}
+          onClick={() => { selectView('methods') }}
+        >
+          {t('new')}
+        </Button>
+      </div>
+      <div className={css.assistantLayout}>
+        <section className={css.assistantPriority} aria-labelledby="assistant-priority-title">
+          <div className={css.sectionHeading}>
+            <h2 id="assistant-priority-title">{t('assistant.priority')}</h2>
+            <Tag>{t('demoSample')}</Tag>
+          </div>
+          <p className={css.eyebrow}>{t('assistant.roleFocus')}</p>
+          <h2 className={css.assistantTaskTitle}>{t(taskTitles[fixture.tasks[0]])}</h2>
+          <p className={css.assistantReason}>{t(`${role}.focus`)}</p>
+          <div className={css.assistantSource}>
+            <small>{t('assistant.source')}</small>
+            <strong>{t(`${role}.metric2`)} · {fixture.metrics[1]}</strong>
+          </div>
+          <div className={css.assistantActions}>
+            <Button
+              variant="primary"
+              icon={<IconChevronRightOutlineRegular size={16} />}
+              onClick={() => { openTask(fixture.tasks[0]) }}
+            >
+              {t('assistant.continue')}
+            </Button>
+            <Button variant="outline" onClick={() => { selectView('dashboard') }}>
+              {t('assistant.positionData')}
+            </Button>
+          </div>
+        </section>
+        <section className={css.assistantInbox} aria-labelledby="assistant-inbox-title">
+          <div className={css.sectionHeading}>
+            <h2 id="assistant-inbox-title">{t('assistant.incoming')}</h2>
+            <Tag>{t('count', { count: 2 })}</Tag>
+          </div>
+          <p className={css.intro}>{t('assistant.incomingHint')}</p>
+          <button className={css.assistantSignal} onClick={() => { openTask(fixture.tasks[1]) }}>
+            <span className={css.assistantSignalMarker} aria-hidden="true" />
+            <span className={css.grow}>
+              <strong>{t(taskTitles[fixture.tasks[1]])}</strong>
+              <small>{t('assistant.taskSource')}</small>
+            </span>
+            <Tag>{t('status.pending')}</Tag>
+            <IconChevronRightOutlineRegular size={14} />
+          </button>
+          <button className={css.assistantSignal} onClick={() => { selectView('calendar') }}>
+            <span className={css.assistantSignalMarker} aria-hidden="true" />
+            <span className={css.grow}>
+              <strong>{t('calendar.0')}</strong>
+              <small>{t('assistant.calendarSource')}</small>
+            </span>
+            <Tag>{t('task.today')}</Tag>
+            <IconChevronRightOutlineRegular size={14} />
+          </button>
+          <Button variant="outline" onClick={() => { selectView('tasks') }}>
+            {t('allTasks')}
+          </Button>
+        </section>
+      </div>
+      <section className={css.scenarioSection} aria-label={t('assistant.kpiScenes')}>
+        <div className={css.sectionHeading}>
+          <div>
+            <h2>{t('assistant.kpiScenes')}</h2>
+            <p className={css.intro}>{t('assistant.kpiScenesHint')}</p>
+          </div>
+          <Tag>{t('count', { count: 4 })}</Tag>
+        </div>
+        <div className={css.scenarioGrid}>
+          {positionScenarios[role].map(({ kpiIndex, task }) => {
+            const assignment = methodFor(role, task)
+            return (
+              <article className={css.scenarioItem} key={kpiIndex}>
+                <div className={css.scenarioKpi}>
+                  <span>{t(`${role}.metric${kpiIndex + 1}` as WorkbenchKey)}</span>
+                  <strong>{fixture.metrics[kpiIndex]}</strong>
+                </div>
+                <p className={css.eyebrow}>{t('assistant.typicalWork')}</p>
+                <h3>{t(taskTitles[task])}</h3>
+                <p className={css.intro}>{t(assignment.method.why)}</p>
+                <dl className={css.scenarioFacts}>
+                  <dt>{t('guide.inputs')}</dt><dd>{t(assignment.inputs)}</dd>
+                  <dt>{t('guide.output')}</dt><dd>{t(assignment.output)}</dd>
+                </dl>
+                <div className={css.scenarioMethod}>
+                  <small>{t('assistant.method')}</small>
+                  <strong>{t(assignment.method.title)}</strong>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => { openScenario(kpiIndex, task) }}
+                >
+                  {t('assistant.leadScenario')}
+                </Button>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+      <section className={css.dailySection} aria-label={t('assistant.dailyWork')}>
+        <div className={css.sectionHeading}>
+          <div>
+            <h2>{t('assistant.dailyWork')}</h2>
+            <p className={css.intro}>{t('assistant.dailyWorkHint')}</p>
+          </div>
+          <Tag>{t('count', { count: dailyWorkForRole(role).length })}</Tag>
+        </div>
+        <div className={css.dailyRows}>
+          {roleMethods[role].map((assignment, index) => (
+            <div className={css.dailyRow} key={assignment.task}>
+              <span className={css.dailyNumber}>{index + 1}</span>
+              <div className={css.grow}>
+                <strong>{t(taskTitles[assignment.task])}</strong>
+                <small>{t('assistant.dailyMethod', { method: t(assignment.method.title) })}</small>
+              </div>
+              <Button onClick={() => { openScenario(index, assignment.task) }}>{t('assistant.openDaily')}</Button>
+            </div>
+          ))}
+        </div>
+      </section>
+      <div className={css.assistantFooter}>
+        <div>
+          <p className={css.eyebrow}>{t('assistant.scope')}</p>
+          <p>{t('assistant.scopeHint')}</p>
+        </div>
+        <div className={css.assistantFooterActions}>
+          <Button onClick={() => { selectView('notifications') }}>{t('nav.notifications')}</Button>
+          <Button onClick={() => { selectView('calendar') }}>{t('goCalendar')}</Button>
+          <Button onClick={() => { selectView('team') }}>{t('nav.team')}</Button>
+        </div>
+      </div>
+    </>
+  )
   const dashboard = () => (
     <>
       <div className={css.pageHeading}>
@@ -651,6 +805,19 @@ export function Workbench(props: WorkbenchProps) {
         </div>
         <p>{t(method.why)}</p>
       </div>
+      {activeScenario !== null && (
+        <section className={`${css.card} ${css.scenarioLead}`} aria-label={t('assistant.leadPanel')}>
+          <div className={css.sectionHeading}>
+            <div>
+              <p className={css.eyebrow}>{t('assistant.leadPanel')}</p>
+              <h2>{t(`${role}.metric${activeScenario + 1}` as WorkbenchKey)} · {fixture.metrics[activeScenario]}</h2>
+            </div>
+            <Tag>{t('assistant.aiLead')}</Tag>
+          </div>
+          <p>{t('assistant.leadPlan', { method: t(method.title), work: currentTitle })}</p>
+          <p className={css.intro}>{t('assistant.humanReview')}</p>
+        </section>
+      )}
       <nav className={css.stages} aria-label={t('work.title')}>
         {([0, 1, 2, 3] as const).map(i => (
           <Button
@@ -796,7 +963,7 @@ export function Workbench(props: WorkbenchProps) {
             <dt>{t('guide.acceptance')}</dt><dd>{t(practice.acceptance)}</dd>
           </dl>
           <p className={css.intro}>{t('guide.prototype')}</p>
-          <details className={css.methodSnapshot}>
+          <details className={css.methodSnapshot} open={activeScenario !== null}>
             <summary>{t('work.ai')}</summary>
             <div className={css.sectionHeading}>
               <h2>{t('work.ai')}</h2>
@@ -932,7 +1099,7 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {view !== 'dashboard' && view !== 'work' && (
+            {view !== 'dashboard' && view !== 'assistant' && view !== 'work' && (
               <div className={css.pageHeading}>
                 <div>
                   <p className={css.eyebrow}>
@@ -952,7 +1119,9 @@ export function Workbench(props: WorkbenchProps) {
                 )}
               </div>
             )}
-            {view === 'dashboard' ? (
+            {view === 'assistant' ? (
+              assistant()
+            ) : view === 'dashboard' ? (
               dashboard()
             ) : view === 'tasks' ? (
               <>

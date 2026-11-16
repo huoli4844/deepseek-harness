@@ -13,7 +13,7 @@ English | [中文](design.zh.md)
 
 ## Summary
 
-Employees open DSH to pick up work relevant to their role, inspect materials, collaborate with AI, review results, and advance authorized business operations in YuanShu. The interface organizes ongoing work and inspectable results; roles share an interaction framework while using different entry points, steps, result views, and actions. This document specifies product scope, video references, interface concepts, role adaptation, MCP integration, code reuse, and acceptance. It is a design proposal for review; illustrated business cases are examples, and delivery requires implementation and validation in the real environment.
+After sign-in, employees enter a role-specific personal assistant. It brings authorized YuanShu changes, pending work, and upcoming commitments to each employee with a source, reason, and suggested action. Employees use DSH for daily work, collaboration, and AI-assisted results, then use YuanShu capabilities within their authorization. The interface adapts priorities by role while retaining a common workflow. This document covers product scope, video references, role adaptation, MCP integration, code reuse, and acceptance; prototype data does not represent a live business connection.
 
 ## Table of contents
 
@@ -43,13 +43,15 @@ For this project, DSH means dedicated client software for Shaoshi employees. Yua
 
 | Item | Design requirement | Initial scope |
 |---|---|---|
-| Entry | Connect branding, login, tenant, role, and personal work | Dedicated workbench composition with access to general DSH tasks |
+| Entry | Connect authenticated identity, tenant, role, and personal assistant | Open the assistant inbox by default; retain role charts and general DSH tasks |
 | Role adaptation | Adapt entry points, materials, steps, results, and actions | Validate two substantially different roles, selected by business owners |
 | Complete workflow | Start with materials, draft, review, authorize execution, retrieve results | Complete at least one real business workflow |
 | Business source | Use capabilities published by YuanShu | Show missing capabilities explicitly; label prototype data |
 | Dedicated plugin | Independently compose, install, disable, and upgrade business capabilities | Keep Shaoshi business conditions out of the agent loop |
 
 The first release does not cover every role and business process or introduce a general page builder. Role work packs use reviewed declarative configuration and a small set of built-in result renderers. The client exposes supported, authorized capabilities. YuanShu results determine business success; AI text cannot establish approval or successful submission.
+
+After login, the Host resolves the current user, tenant, active positions, and grants before reading relevant changes, tasks, collaboration requests, and deadlines through permitted MCP capabilities. The assistant ranks each item by impact, deadline, owner, and work stage, then shows its source, reason, and next action. Missing data or authorization produces an explicit unavailable state rather than a fabricated alert. DSH provides Sessions, model collaboration, files, and task experience; YuanShu MCP provides authorized business reads and operations. State-changing actions identify their object, version, and effect and follow platform confirmation, approval, and result-verification rules.
 
 <a id="evidence"></a>
 ## 2. Video reference and existing implementation
@@ -58,7 +60,7 @@ The reference is [“DeepSeek Harness can do this too? I turned it into a dedica
 
 | Reference location | Organization in the video | Shaoshi DSH mapping |
 |---|---|---|
-| Around 01:20–01:40 | Start, continue, understand, and review entry points | Intent-based left navigation; prioritize work to continue |
+| Around 01:20–01:40 | Start, continue, understand, and review entry points | Keep intent navigation; first surface role-relevant changes and work to continue |
 | Around 02:40–03:20 | Parallel work threads, stage tabs, content in the center | Recoverable work items with central stages and results |
 | Around 03:20 | Review comments address a segment and timestamp | Bind comments to result versions and exact fields, passages, or times |
 | Around 10:40–11:00 | Test an interactive prototype with familiar work | Validate the workflow with real materials before expanding |
@@ -78,6 +80,8 @@ Role adaptation spans the entire work process. YuanShu publishes role work packs
 | Content | Objects, field visibility, evidence, supported renderers | Display role-relevant columns, evidence, and result editors |
 | AI collaboration | Method references, input/output requirements, tool scope, review criteria | Collaborate on the current work and selected material to produce reviewable results |
 | Next action | Owner, allowed operations, permission and approval requirements | Show concrete verbs, execution scope, and who acts next |
+
+Each position's typical scenarios combine confirmed KPIs, business objects, and daily tasks. The platform provides KPI definitions, current state, source evidence, freshness, trigger reasons, and related work; the client applies that position's work method. The assistant first checks material completeness, lists facts and gaps, proposes a next step, and prepares a reviewable result. Employees review it and decide whether to adopt it or start an authorized business operation. Business owners review KPI-to-scenario mappings; the client does not infer official alerts from position names or demonstration values.
 
 For one illustrative incoming-material issue, procurement sees promised dates, supplier responses, and a handling draft; quality sees inspection results, defects, and correction validation; the R&D director sees development impact, alternatives, and coordination needs. Work identifiers and business objects remain linked, while fields, stages, and primary actions differ. This is an adaptation example, not an assertion about Shaoshi policy.
 
@@ -148,27 +152,31 @@ Database inspection supports this design only. The deployed client does not conn
 <a id="navigation"></a>
 ## 4. Information architecture
 
-Use intent navigation, an ongoing-work list, work stages, and results with AI collaboration. Roles determine content and priority while control locations remain stable for collaboration across roles.
+Use an assistant inbox, role charts, ongoing work, and results with AI collaboration. The assistant inbox opens after sign-in; charts support metric investigation and comparison, while work detail contains materials, results, review, and execution. Roles determine data ranking and primary actions while control locations remain stable for collaboration across roles.
 
 | Region | Content | Interaction rule |
 |---|---|---|
-| Upper left | Shaoshi identity, active role, start, continue, understand, review | Switch roles; use employee-facing intent labels |
+| Upper left | Shaoshi identity, active role, My assistant, Position dashboard, and Start work | Switch roles; keep the assistant in a fixed entry point |
 | Lower left | Ongoing work, favorites, recently opened | Show title, stage, and next actor; support search and archiving |
 | Center header | Work title, status, owner, stages, related actions | Show authoritative status and freshness; label consequential actions explicitly |
-| Center body | Materials, results, version differences, reviews, business outcomes | Open the result requiring attention rather than an empty chat |
-| Right | AI collaboration, next step, selection, execution status | Collapsible; expose context scope and link execution to its original Run |
+| Center body | Assistant signals or work materials, results, reviews, and business outcomes | Show each signal's source, reason, owner, and actionable next step |
+| Right | DSH collaboration, next step, selection, execution status | Collapsible; expose context scope and link execution to its original Run |
 | Global entry | General tasks, native DSH, account and settings | Restore the same work, draft, and Session on return |
 
 “Find and understand” searches knowledge and business objects; users can attach results to existing work or start a new item with an explicit recipe. “Review and learn” emphasizes completed results, adoption, and reusable methods. Charts appear when a role needs comparisons. Authorized diagnostics contain developer tools, MCP catalogs, and connection details.
+
+The assistant inbox brings data to its employee and is not a tenant-wide dashboard. It reads changes and work visible to the current user and presents supporting evidence, freshness, related objects, next owner, and a suggested action together. Employees can open the item, confirm materials, or inspect role charts. Duplicate notices are grouped, expired or handled items are downgraded or closed, and every operation remains subject to YuanShu authorization.
 
 <a id="screens"></a>
 ## 5. Home and work detail
 
 These static concepts support review of layout and the main workflow; they are not screenshots of a running plugin. Names, identifiers, materials, and business content are illustrative. Implementation uses DSH themes, components, and localization rather than copying concept pixel values into global constants.
 
-![Home concept showing role priorities and ongoing work](assets/home.png)
+![Position dashboard concept showing role priorities and ongoing work](assets/home.png)
 
-Home first answers which work to advance now. Its header contains the role, scope, and one priority cue. The center shows work requiring personal action, work awaiting collaboration, and recent results, each with the current result and next action. Start through a role recipe or materials, without requiring employees to write prompts. An empty home shows authorized entry points and material intake rather than fabricated pending work.
+The position dashboard shows metrics, trends, and role methods; it is an analysis destination from the assistant inbox rather than the default home. The assistant first presents role-filtered priorities, work requiring personal action, and upcoming commitments. Each item traces to an authorized source, explains why it appeared, and opens related work. An empty inbox says there are no confirmed new items instead of inserting synthetic alerts.
+
+The assistant home also shows KPI scenarios and daily work for the active position. Each KPI scenario links a typical task, method, source materials, and deliverable; the assistant applies the method to organize evidence and prepare a draft for review. The daily list lets employees continue recurring position work with the assistant. Prototype charts, KPI values, and scenario mappings are demonstrations, not confirmed KPI definitions or live alerts.
 
 ![Work detail concept with a central result and contextual collaboration](assets/work.png)
 

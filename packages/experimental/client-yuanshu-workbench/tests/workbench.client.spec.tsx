@@ -9,6 +9,7 @@ import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts
 import { apply, inject } from '../src/client/index.ts'
 import { roleMethods } from '../src/client/methodology-data.ts'
 import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
+import { positionScenarios } from '../src/client/scenario-data.ts'
 import { zh } from '../src/client/locales.ts'
 
 usePinnedBrowserLanguages('zh-CN')
@@ -40,12 +41,30 @@ async function bench() {
 it('presents all 18 positions and company management with shared navigation and distinct work', async () => {
   await bench()
   const dialog = screen.getByRole('dialog', { name: '元枢工作台' })
+  expect(within(dialog).getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
+  expect(within(dialog).getByRole('heading', { name: 'PCBA 来料异常处置', level: 2 })).toBeDefined()
   const selector = within(dialog).getByRole('combobox', { name: '当前岗位视角' })
   const options = within(selector).getAllByRole('option')
   expect(options).toHaveLength(19)
   const views: { position: string | null; dashboard: (string | null)[]; tasks: (string | null)[] }[] = []
   for (const option of options) {
     fireEvent.change(selector, { target: { value: option.getAttribute('value') } })
+    const value = option.getAttribute('value')
+    const role = roleIds.find(id => id === value)
+    if (role === undefined) throw new Error('each position option must have a known id')
+    fireEvent.click(within(dialog).getByRole('button', { name: '我的助理' }))
+    const scenes = within(dialog).getByRole('region', { name: '从岗位 KPI 进入典型场景' })
+    const dailyWork = within(dialog).getByRole('region', { name: '岗位日常工作' })
+    expect(within(scenes).getAllByRole('button', { name: '让助理带我处理' })).toHaveLength(4)
+    expect(within(dailyWork).getAllByRole('button', { name: '由助理协同开展' })).toHaveLength(3)
+    const firstScenario = positionScenarios[role][0]
+    if (firstScenario === undefined) throw new Error('each position must have a KPI scenario')
+    fireEvent.click(within(scenes).getAllByRole('button', { name: '让助理带我处理' })[0]!)
+    expect(within(dialog).getByRole('heading', {
+      name: `${zh[`${role}.metric${firstScenario.kpiIndex + 1}` as keyof typeof zh]} · ${roleFixtures[role].metrics[firstScenario.kpiIndex]}`,
+    })).toBeDefined()
+    expect(within(dialog).getByRole('heading', { name: '候选修改 · 尚未写入草稿' })).toBeDefined()
+    fireEvent.click(within(dialog).getByRole('button', { name: '岗位工作台' }))
     expect(within(dialog).getAllByRole('region')).toHaveLength(
       ['executive', 'president'].includes(option.getAttribute('value') ?? '') ? 8 : 6,
     )
@@ -66,6 +85,19 @@ it('presents all 18 positions and company management with shared navigation and 
   expect(views).toMatchSnapshot()
 })
 
+it('surfaces position signals first and opens their associated work', async () => {
+  await bench()
+  expect(screen.getByText('关联数据')).toBeDefined()
+  expect(screen.getByText('待确认交期 · 3')).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '继续处理' }))
+  expect(screen.getByRole('heading', { name: 'PCBA 来料异常处置', level: 1 })).toBeDefined()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
+  expect(screen.getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
+  expect(screen.getByText('将根因假设与已确认事实分开，补足整改验证证据。')).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '查看岗位数据' }))
+  expect(screen.getByRole('heading', { name: '每一个质量结论，都有依据。' })).toBeDefined()
+})
+
 it.each([
   { role: 'procurement', title: '采购订单状态', row: '已逾期', value: '2', task: 'PCBA 来料异常处置' },
   { role: 'testing', title: '测试覆盖与计划', row: '功能用例', value: '92%', task: '耐久试验报告归档' },
@@ -80,6 +112,7 @@ it.each([
 ])('opens $title data and its corresponding task', async ({ role, title, row, value, task }) => {
   await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
+  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
   fireEvent.click(screen.getByRole('button', { name: `查看图表明细：${title}` }))
   const detail = screen.getByRole('dialog', { name: title })
   const dataRow = within(detail).getByRole('row', { name: new RegExp(row) })
@@ -92,6 +125,7 @@ it.each([
 it('labels monetary chart values and plans in company management', async () => {
   await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'executive' } })
+  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
   fireEvent.click(screen.getByRole('button', { name: '查看图表明细：经营回款计划与实际（万元）' }))
   const detail = screen.getByRole('dialog', { name: '经营回款计划与实际（万元）' })
   expect(within(detail).getByText('金额 · 万元')).toBeDefined()
@@ -160,11 +194,13 @@ it('retains method records across navigation and includes them in saved version 
 it('drills from company risks to the responsible view and returns through DSH layout', async () => {
   const { selectPanel } = await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'executive' } })
+  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
   expect(screen.getByRole('heading', { name: '公司经营与跨部门风险' })).toBeDefined()
   const sales = screen.getByRole('heading', { name: '经营与回款' }).closest('article')
   if (sales === null) throw new Error('the company view did not render its operating risk')
   fireEvent.click(within(sales).getByRole('button', { name: '查看责任岗位' }))
-  expect(screen.getByRole('heading', { name: '把客户承诺，落实到交付与回款。' })).toBeDefined()
+  expect(screen.getByRole('combobox', { name: '当前岗位视角' })).toHaveProperty('value', 'sales')
+  expect(screen.getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '返回 DSH 原始界面' }))
   expect(selectPanel).toHaveBeenLastCalledWith(null)
 })

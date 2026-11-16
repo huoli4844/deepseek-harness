@@ -1,8 +1,24 @@
 /** Draft snapshots and shared collaboration state stay local to one plugin instance. */
 import { describe, expect, it } from 'vitest'
 import { createWorkbenchStore } from '../src/client/model.ts'
+import { dailyWorkForRole, positionScenarios } from '../src/client/scenario-data.ts'
+import { roleIds, roleFixtures } from '../src/client/fixtures.ts'
+import { roleMethods } from '../src/client/methodology-data.ts'
 
 describe('workbench demonstration state', () => {
+  it('maps every position KPI to a typical task and its position method', () => {
+    for (const role of roleIds) {
+      expect(positionScenarios[role]).toHaveLength(roleFixtures[role].metrics.length)
+      expect(dailyWorkForRole(role)).toEqual(roleFixtures[role].tasks)
+      for (const scene of positionScenarios[role]) {
+        const assignment = roleMethods[role][scene.taskIndex]
+        expect(scene.task).toBe(assignment.task)
+        expect(roleFixtures[role].metrics[scene.kpiIndex]).toBeDefined()
+        expect(assignment.method.steps).toHaveLength(4)
+      }
+    }
+  })
+
   it('keeps saved task versions unchanged by later edits', () => {
     const store = createWorkbenchStore().create()
     store.actions.editDraft('procurement:0', 'edited recommendation', 'initial recommendation')
@@ -84,7 +100,7 @@ describe('workbench demonstration state', () => {
     first.actions.navigate('calendar')
     first.actions.markAllRead()
     expect(first.getSnapshot()).toMatchObject({ role: 'quality', task: 3, view: 'calendar', read: [0, 1, 2] })
-    expect(second.getSnapshot()).toMatchObject({ role: 'procurement', view: 'dashboard', read: [] })
+    expect(second.getSnapshot()).toMatchObject({ role: 'procurement', view: 'assistant', read: [] })
   })
 })
 

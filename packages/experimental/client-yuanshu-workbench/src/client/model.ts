@@ -29,7 +29,7 @@ export type TaskId =
   0 | 1 | 2 | 3 | 4 | 5 | 6 | `${Exclude<RoleId, 'procurement' | 'quality' | 'director'>}.${0 | 1 | 2}`
 /** Workbench destinations shared by every position. */
 export type ViewId =
-  'dashboard' | 'tasks' | 'versions' | 'calendar' | 'team' | 'notifications' | 'files' | 'methods' | 'work'
+  'assistant' | 'dashboard' | 'tasks' | 'versions' | 'calendar' | 'team' | 'notifications' | 'files' | 'methods' | 'work'
 /** A saved demo draft snapshot owned by one task and position. */
 export interface DraftVersion {
   readonly number: number
@@ -160,7 +160,7 @@ export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof
   return defineStore({
     init: (): WorkbenchState => ({
       role: 'procurement',
-      view: 'dashboard',
+      view: 'assistant',
       task: 0,
       drafts: {},
       read: [],

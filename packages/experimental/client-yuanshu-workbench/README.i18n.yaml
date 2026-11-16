@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/experimental/client-yuanshu-workbench/README.md
 /:
-  en: 9d98ecff2689c01a
-  zh: 70a37123c1a147fa
+  en: 51e0bcacdd571870
+  zh: 84ae923a5acd2411
 /deepseek-ai-dsh-client-yuanshu-workbench:
   en: bd8c8cf5dc67746e
   zh: d7d858fcbaf55d8d
 /deepseek-ai-dsh-client-yuanshu-workbench/summary:
-  en: a718ef2d38e03d1d
-  zh: 0ec4f71745a1f75f
+  en: c8a2dccb97f86cce
+  zh: c438c756cfbf6fef
 /deepseek-ai-dsh-client-yuanshu-workbench/table-of-contents:
   en: d152484eb41ac6b4
   zh: 364c80ee00a374ff
@@ -18,11 +18,11 @@
   en: bbff250eba0f1b89
   zh: b20a47f82d8ab6e0
 /deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/preview-from-this-checkout:
-  en: 2cd50e51397c7312
-  zh: 8ca1f94596d9510c
+  en: 9398361ed3a96754
+  zh: 67afe6b7d704b3f4
 /deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/what-you-can-try:
-  en: c44456ee492de351
-  zh: 013a18f026bdeb39
+  en: 951edb1da1dafaf0
+  zh: d4bbddc7434c395c
 /deepseek-ai-dsh-client-yuanshu-workbench/understand-the-implementation:
   en: 39d772cf9e178e2b
   zh: d006f5cd73b8ba02
