@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img">
+<title>同一工作在不同岗位下的界面重点</title>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:400} .title{font-weight:500}</style>
+<rect x="0" y="0" width="1440" height="960" rx="0" fill="#f6f6f0" stroke="none"/>
+<text x="42" y="61" font-size="30" fill="#303b3a" class="title">同一项工作，不同岗位的处理视角</text>
+<text x="42" y="98" font-size="16" fill="#788073" class="">供应商来料异常 · 设计示例，非实际业务记录</text>
+<text x="42" y="139" font-size="15" fill="#778274" class="">共同关联：业务对象 / 证据版本 / 工作记录    ·    权限仍由元枢判断</text>
+<rect x="36" y="183" width="440" height="681" rx="9" fill="#fff" stroke="#e0e5da"/>
+<rect x="36" y="183" width="440" height="73" rx="9" fill="#e5ece1" stroke="none"/>
+<text x="58" y="228" font-size="21" fill="#303b3a" class="title">采购工程师</text>
+<text x="58" y="295" font-size="18" fill="#303b3a" class="title">供应商响应与交付影响</text>
+<text x="58" y="333" font-size="14" fill="#607861" class="">补全材料 → 处置方案 → 交接</text>
+<path d="M58,356 L454,356" stroke="#e6e5df"/>
+<text x="58" y="393" font-size="13" fill="#7d887a" class="">当前需要检查</text>
+<text x="58" y="433" font-size="18" fill="#303b3a" class="">供应商回复</text>
+<text x="58" y="467" font-size="14" fill="#7d887a" class="">承诺交期与供货安排</text>
+<path d="M58,490 L454,490" stroke="#e6e5df"/>
+<text x="58" y="531" font-size="18" fill="#303b3a" class="">订单与到货证据</text>
+<rect x="56" y="561" width="400" height="60" rx="5" fill="#f2eee3" stroke="none"/>
+<text x="70" y="597" font-size="14" fill="#8a774d" class="">待核实：可调整的交付范围</text>
+<text x="58" y="668" font-size="14" fill="#748270" class="">AI 围绕本岗位的材料与判断协作</text>
+<rect x="58" y="708" width="396" height="50" rx="7" fill="#315f56" stroke="none"/>
+<text x="81" y="740" font-size="16" fill="#fff" class="">形成处置方案 →</text>
+<text x="58" y="811" font-size="12" fill="#7b8577" class="">关联关注点：物料交付、供应商响应</text>
+<rect x="500" y="183" width="440" height="681" rx="9" fill="#fff" stroke="#e0e5da"/>
+<rect x="500" y="183" width="440" height="73" rx="9" fill="#e5ece1" stroke="none"/>
+<text x="522" y="228" font-size="21" fill="#303b3a" class="title">生产工艺质量工程师</text>
+<text x="522" y="295" font-size="18" fill="#303b3a" class="title">缺陷证据与整改有效性</text>
+<text x="522" y="333" font-size="14" fill="#607861" class="">检验依据 → 根因 → 整改验证</text>
+<path d="M522,356 L918,356" stroke="#e6e5df"/>
+<text x="522" y="393" font-size="13" fill="#7d887a" class="">当前需要检查</text>
+<text x="522" y="433" font-size="18" fill="#303b3a" class="">来料检验记录</text>
+<text x="522" y="467" font-size="14" fill="#7d887a" class="">缺陷位置与检验结论</text>
+<path d="M522,490 L918,490" stroke="#e6e5df"/>
+<text x="522" y="531" font-size="18" fill="#303b3a" class="">整改及验证证据</text>
+<rect x="520" y="561" width="400" height="60" rx="5" fill="#f2eee3" stroke="none"/>
+<text x="534" y="597" font-size="14" fill="#8a774d" class="">待核实：措施是否有效</text>
+<text x="522" y="668" font-size="14" fill="#748270" class="">AI 围绕本岗位的材料与判断协作</text>
+<rect x="522" y="708" width="396" height="50" rx="7" fill="#315f56" stroke="none"/>
+<text x="545" y="740" font-size="16" fill="#fff" class="">提交验证结论 →</text>
+<text x="522" y="811" font-size="12" fill="#7b8577" class="">关联关注点：根因定位、异常闭环</text>
+<rect x="964" y="183" width="440" height="681" rx="9" fill="#fff" stroke="#e0e5da"/>
+<rect x="964" y="183" width="440" height="73" rx="9" fill="#e5ece1" stroke="none"/>
+<text x="986" y="228" font-size="21" fill="#303b3a" class="title">研发总监</text>
+<text x="986" y="295" font-size="18" fill="#303b3a" class="title">研发影响与跨团队阻塞</text>
+<text x="986" y="333" font-size="14" fill="#607861" class="">影响评估 → 技术判断 → 协调</text>
+<path d="M986,356 L1382,356" stroke="#e6e5df"/>
+<text x="986" y="393" font-size="13" fill="#7d887a" class="">当前需要检查</text>
+<text x="986" y="433" font-size="18" fill="#303b3a" class="">受影响的研发里程碑</text>
+<text x="986" y="467" font-size="14" fill="#7d887a" class="">技术风险与替代方案</text>
+<path d="M986,490 L1382,490" stroke="#e6e5df"/>
+<text x="986" y="531" font-size="18" fill="#303b3a" class="">团队依赖及决策依据</text>
+<rect x="984" y="561" width="400" height="60" rx="5" fill="#f2eee3" stroke="none"/>
+<text x="998" y="597" font-size="14" fill="#8a774d" class="">待核实：技术与交付约束</text>
+<text x="986" y="668" font-size="14" fill="#748270" class="">AI 围绕本岗位的材料与判断协作</text>
+<rect x="986" y="708" width="396" height="50" rx="7" fill="#315f56" stroke="none"/>
+<text x="1009" y="740" font-size="16" fill="#fff" class="">协调处理方案 →</text>
+<text x="986" y="811" font-size="12" fill="#7b8577" class="">关联关注点：技术攻关、重点任务</text>
+<text x="42" y="923" font-size="17" fill="#637a63" class="">岗位变化体现在阶段、材料、成果和动作；共同操作框架保持稳定。</text>
+</svg>

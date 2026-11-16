@@ -1,0 +1,3 @@
+- insert:
+    - id: yuanshu-workbench
+      name: '@deepseek-ai/dsh-client-yuanshu-workbench'

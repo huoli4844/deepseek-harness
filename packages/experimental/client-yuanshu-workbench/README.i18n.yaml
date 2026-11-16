@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/client-yuanshu-workbench/README.md
+/:
+  en: 9d98ecff2689c01a
+  zh: 70a37123c1a147fa
+/deepseek-ai-dsh-client-yuanshu-workbench:
+  en: bd8c8cf5dc67746e
+  zh: d7d858fcbaf55d8d
+/deepseek-ai-dsh-client-yuanshu-workbench/summary:
+  en: a718ef2d38e03d1d
+  zh: 0ec4f71745a1f75f
+/deepseek-ai-dsh-client-yuanshu-workbench/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 364c80ee00a374ff
+/deepseek-ai-dsh-client-yuanshu-workbench/use-this-package:
+  en: bbff250eba0f1b89
+  zh: b20a47f82d8ab6e0
+/deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/preview-from-this-checkout:
+  en: 2cd50e51397c7312
+  zh: 8ca1f94596d9510c
+/deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/what-you-can-try:
+  en: c44456ee492de351
+  zh: 013a18f026bdeb39
+/deepseek-ai-dsh-client-yuanshu-workbench/understand-the-implementation:
+  en: 39d772cf9e178e2b
+  zh: d006f5cd73b8ba02
+/deepseek-ai-dsh-client-yuanshu-workbench/further-exploration:
+  en: 6606c3ebb8c203f4
+  zh: cf3e5210568ba4f4
+/deepseek-ai-dsh-client-yuanshu-workbench/model-experience:
+  en: e39eb2eb9415120f
+  zh: d066a9a30e50780f
+/deepseek-ai-dsh-client-yuanshu-workbench/model-experience/kv-cache-effect:
+  en: 8c044e336d8db4c0
+  zh: 7ecc1274ee528b1e
+/deepseek-ai-dsh-client-yuanshu-workbench/known-limitations-and-deferred-work:
+  en: 8bd1e24d58e6d2e9
+  zh: 37d0f01255890fdb
+/deepseek-ai-dsh-client-yuanshu-workbench/known-limitations-and-deferred-work/dev-note:
+  en: 163812856afaac3c
+  zh: 4fd41ffdafc9631f

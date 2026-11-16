@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img">
+<title>少仕 DSH 工作详情设计</title>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-weight:400} .title{font-weight:500}</style>
+<rect x="0" y="0" width="1440" height="960" rx="0" fill="#f7f7f2" stroke="none"/>
+<rect x="0" y="0" width="236" height="960" rx="0" fill="#efeee7" stroke="none"/>
+<path d="M236,0 L236,960" stroke="#e6e5df"/>
+<rect x="24" y="28" width="34" height="34" rx="9" fill="#315f56" stroke="none"/>
+<text x="31" y="51" font-size="19" fill="#fff" class="">少</text>
+<text x="70" y="49" font-size="18" fill="#303b3a" class="title">少仕 · 工作台</text>
+<rect x="20" y="91" width="196" height="54" rx="8" fill="#f9f9f5" stroke="none"/>
+<text x="34" y="114" font-size="12" fill="#76817c" class="">当前工作视角</text>
+<text x="34" y="134" font-size="15" fill="#303b3a" class="">采购工程师</text>
+<text x="190" y="129" font-size="18" fill="#303b3a" class="">⌄</text>
+<text x="34" y="179" font-size="15" fill="#56605c" class="">开始处理</text>
+<rect x="16" y="200" width="204" height="40" rx="7" fill="#dfe8e1" stroke="none"/>
+<text x="34" y="225" font-size="15" fill="#315f56" class="">接着推进</text>
+<text x="34" y="271" font-size="15" fill="#56605c" class="">查找与理解</text>
+<text x="34" y="317" font-size="15" fill="#56605c" class="">回看与复盘</text>
+<text x="28" y="410" font-size="12" fill="#7c8279" class="">进行中的工作</text>
+<text x="28" y="453" font-size="14" fill="#303b3a" class="">到货异常 · 演示事项</text>
+<text x="28" y="477" font-size="12" fill="#7e837b" class="">方案草稿 · 待我审阅</text>
+<text x="28" y="525" font-size="14" fill="#303b3a" class="">供应商评价材料</text>
+<text x="28" y="549" font-size="12" fill="#7e837b" class="">材料整理 · 缺少附件</text>
+<text x="28" y="597" font-size="14" fill="#303b3a" class="">委外测试报告核对</text>
+<text x="28" y="621" font-size="12" fill="#7e837b" class="">证据核对 · 等待协作</text>
+<path d="M24,808 L212,808" stroke="#e6e5df"/>
+<text x="28" y="846" font-size="14" fill="#67706b" class="">通用任务</text>
+<text x="28" y="883" font-size="14" fill="#67706b" class="">原生 DSH</text>
+<text x="28" y="925" font-size="13" fill="#67706b" class="">账号与设置</text>
+<text x="270" y="36" font-size="13" fill="#7b8279" class="">少仕科技 / 采购工作</text>
+<text x="1075" y="36" font-size="12" fill="#8b8178" class="">静态设计 · 非真实业务数据</text>
+<path d="M260,57 L1412,57" stroke="#e6e5df"/>
+<text x="274" y="104" font-size="25" fill="#303b3a" class="title">到货异常处置</text>
+<text x="274" y="134" font-size="13" fill="#778076" class="">演示事项 · 采购工程师视角 · 草稿未提交</text>
+<rect x="864" y="85" width="152" height="38" rx="7" fill="#315f56" stroke="none"/>
+<text x="886" y="110" font-size="14" fill="#fff" class="">提交审阅</text>
+<text x="291" y="183" font-size="14" fill="#80867e" class="">材料</text>
+<text x="413" y="183" font-size="14" fill="#80867e" class="">分析</text>
+<rect x="516" y="160" width="89" height="35" rx="6" fill="#dfe8e1" stroke="none"/>
+<text x="535" y="183" font-size="14" fill="#315f56" class="">方案</text>
+<text x="657" y="183" font-size="14" fill="#80867e" class="">审阅</text>
+<text x="779" y="183" font-size="14" fill="#80867e" class="">执行</text>
+<text x="901" y="183" font-size="14" fill="#80867e" class="">复盘</text>
+<path d="M262,211 L1028,211" stroke="#e6e5df"/>
+<rect x="1038" y="58" width="402" height="902" rx="0" fill="#f0f2ec" stroke="none"/>
+<path d="M1038,58 L1038,960" stroke="#e6e5df"/>
+<text x="278" y="249" font-size="19" fill="#303b3a" class="title">处置方案</text>
+<text x="620" y="249" font-size="13" fill="#748174" class="">v2 草稿   ·   与 v1 比较</text>
+<text x="899" y="249" font-size="13" fill="#315f56" class="">版本记录</text>
+<rect x="274" y="275" width="742" height="595" rx="8" fill="#fff" stroke="#e3e5dc"/>
+<text x="300" y="316" font-size="20" fill="#303b3a" class="title">一、当前情况与证据</text>
+<text x="300" y="351" font-size="16" fill="#303b3a" class="">供应商交付承诺与计划存在差异，需要核对影响范围。</text>
+<text x="300" y="382" font-size="16" fill="#303b3a" class="">当前结论仅基于已关联的订单和供应商回复。</text>
+<rect x="298" y="405" width="693" height="43" rx="5" fill="#f3eee2" stroke="none"/>
+<text x="314" y="432" font-size="14" fill="#8c7547" class="">待补充：质量验收意见与项目交付约束</text>
+<text x="300" y="495" font-size="20" fill="#303b3a" class="title">二、方案比较</text>
+<rect x="298" y="518" width="694" height="38" rx="4" fill="#f2f4ee" stroke="none"/>
+<text x="312" y="543" font-size="14" fill="#303b3a" class="">方案</text>
+<text x="535" y="543" font-size="14" fill="#303b3a" class="">依据与影响</text>
+<text x="840" y="543" font-size="14" fill="#303b3a" class="">待确认</text>
+<text x="312" y="589" font-size="15" fill="#303b3a" class="">分批到货</text>
+<text x="535" y="589" font-size="14" fill="#66756a" class="">先保障关键物料</text>
+<text x="840" y="589" font-size="14" fill="#9a7d44" class="">交付可行性</text>
+<path d="M298,609 L992,609" stroke="#e6e5df"/>
+<text x="312" y="644" font-size="15" fill="#303b3a" class="">调整供货安排</text>
+<text x="535" y="644" font-size="14" fill="#66756a" class="">需重新核对相关约束</text>
+<text x="840" y="644" font-size="14" fill="#9a7d44" class="">供应商回复</text>
+<text x="300" y="705" font-size="20" fill="#303b3a" class="title">三、建议与下一步</text>
+<rect x="298" y="727" width="694" height="58" rx="5" fill="#e9f0e8" stroke="none"/>
+<text x="314" y="750" font-size="15" fill="#303b3a" class="">补齐证据后形成选定方案，提交有权限的人员审阅。</text>
+<text x="314" y="775" font-size="13" fill="#5b7f68" class="">已选中本段，AI 将仅围绕这段提出修改建议。</text>
+<text x="300" y="834" font-size="13" fill="#798476" class="">引用：订单资料 / 供应商回复记录</text>
+<text x="280" y="909" font-size="13" fill="#778174" class="">材料 3    评论 2    当前成果 v2    业务尚未提交</text>
+<text x="1062" y="99" font-size="20" fill="#303b3a" class="title">AI 协作</text>
+<text x="1372" y="99" font-size="12" fill="#7e887d" class="">收起</text>
+<text x="1062" y="135" font-size="13" fill="#7a8478" class="">当前范围：本事项 · 方案 · 选中段落</text>
+<path d="M1058,155 L1418,155" stroke="#e6e5df"/>
+<rect x="1060" y="178" width="357" height="94" rx="8" fill="#fff" stroke="none"/>
+<text x="1077" y="207" font-size="14" fill="#303b3a" class="title">已关联材料</text>
+<text x="1077" y="234" font-size="13" fill="#788274" class="">订单资料 · 供应商回复 · 草稿 v2</text>
+<text x="1077" y="256" font-size="12" fill="#315f56" class="">查看材料范围 →</text>
+<text x="1062" y="313" font-size="15" fill="#303b3a" class="title">建议下一步</text>
+<text x="1062" y="344" font-size="14" fill="#303b3a" class="">先补全缺失证据，再比较处置方案。</text>
+<text x="1062" y="373" font-size="13" fill="#808778" class="">尚未执行任何业务操作。</text>
+<path d="M1060,401 L1416,401" stroke="#e6e5df"/>
+<rect x="1060" y="423" width="357" height="158" rx="8" fill="#fff" stroke="none"/>
+<text x="1077" y="453" font-size="14" fill="#303b3a" class="title">针对选中段落</text>
+<text x="1077" y="486" font-size="14" fill="#303b3a" class="">我可以将建议改为核对清单，</text>
+<text x="1077" y="512" font-size="14" fill="#303b3a" class="">并把缺少的依据逐项标出来。</text>
+<text x="1077" y="550" font-size="14" fill="#315f56" class="">生成候选修改 →</text>
+<rect x="1060" y="704" width="357" height="173" rx="9" fill="#fff" stroke="#dce2d7"/>
+<text x="1076" y="735" font-size="14" fill="#9b9f93" class="">围绕当前成果提出要求…</text>
+<text x="1076" y="800" font-size="13" fill="#6d7c6c" class="">＋ 材料    已选中一段</text>
+<rect x="1320" y="826" width="80" height="34" rx="6" fill="#315f56" stroke="none"/>
+<text x="1344" y="849" font-size="14" fill="#fff" class="">发送</text>
+<text x="1063" y="913" font-size="12" fill="#818a7d" class="">修改先成为候选版本，由你决定采纳</text>
+</svg>

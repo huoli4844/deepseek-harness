@@ -1,0 +1,183 @@
+// @vitest-environment jsdom
+/** Role views and nested dialogs through the installed plugin registration. */
+import { afterEach, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, screen, within } from '@testing-library/react'
+import { SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
+import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
+import { apply, inject } from '../src/client/index.ts'
+import { roleMethods } from '../src/client/methodology-data.ts'
+import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
+import { zh } from '../src/client/locales.ts'
+
+usePinnedBrowserLanguages('zh-CN')
+const runtimes = new Set<SlotTestRuntime>()
+afterEach(async () => {
+  cleanup()
+  for (const runtime of runtimes) await runtime.dispose()
+  runtimes.clear()
+})
+
+async function bench() {
+  const runtime = await SlotTestRuntime.create()
+  runtimes.add(runtime)
+  const locale = new LocaleRuntime(runtime.ctx)
+  locale.register('common', { zh: commonZh, en: commonEn })
+  runtime.ctx.provide('locale', locale)
+  runtime.slots.installLocale(locale)
+  const selectPanel = vi.fn()
+  runtime.ctx.provide('layout', { selectPanel } as never)
+  await runtime.declare({
+    main: { kind: 'keyed', scope: 'root' },
+    'sidebar.panellist': { kind: 'list', scope: 'root' },
+  })
+  await runtime.mount({ inject, apply })
+  runtime.renderSlot('main', {}, { entryKey: 'yuanshu-workbench' })
+  return { selectPanel }
+}
+
+it('presents all 18 positions and company management with shared navigation and distinct work', async () => {
+  await bench()
+  const dialog = screen.getByRole('dialog', { name: '元枢工作台' })
+  const selector = within(dialog).getByRole('combobox', { name: '当前岗位视角' })
+  const options = within(selector).getAllByRole('option')
+  expect(options).toHaveLength(19)
+  const views: { position: string | null; dashboard: (string | null)[]; tasks: (string | null)[] }[] = []
+  for (const option of options) {
+    fireEvent.change(selector, { target: { value: option.getAttribute('value') } })
+    expect(within(dialog).getAllByRole('region')).toHaveLength(
+      ['executive', 'president'].includes(option.getAttribute('value') ?? '') ? 8 : 6,
+    )
+    const dashboard = within(dialog)
+      .getAllByRole('heading')
+      .map(heading => heading.textContent)
+    for (const name of ['我的任务', '任务版本', '日程日历', '团队协作']) {
+      expect(within(dialog).getByRole('button', { name })).toBeDefined()
+    }
+    fireEvent.click(within(dialog).getByRole('button', { name: '我的任务' }))
+    const tasks = within(dialog)
+      .getAllByRole('button')
+      .filter(button => button.textContent?.includes('待审阅') || button.textContent?.includes('待处理'))
+      .map(button => button.textContent)
+    expect(tasks).toHaveLength(3)
+    views.push({ position: option.textContent, dashboard, tasks })
+  }
+  expect(views).toMatchSnapshot()
+})
+
+it.each([
+  { role: 'procurement', title: '采购订单状态', row: '已逾期', value: '2', task: 'PCBA 来料异常处置' },
+  { role: 'testing', title: '测试覆盖与计划', row: '功能用例', value: '92%', task: '耐久试验报告归档' },
+  { role: 'operator', title: '每周工单完成与计划', row: '第 6 周', value: '27', task: '生产发料与异常登记' },
+  {
+    role: 'equipment',
+    title: '设备安全与停机风险',
+    row: '影响程度 高 · 处理紧迫度 高',
+    value: '0',
+    task: '关键设备故障维修',
+  },
+])('opens $title data and its corresponding task', async ({ role, title, row, value, task }) => {
+  await bench()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
+  fireEvent.click(screen.getByRole('button', { name: `查看图表明细：${title}` }))
+  const detail = screen.getByRole('dialog', { name: title })
+  const dataRow = within(detail).getByRole('row', { name: new RegExp(row) })
+  expect(within(dataRow).getByRole('cell', { name: value })).toBeDefined()
+  fireEvent.click(within(detail).getByRole('button', { name: '打开关联任务' }))
+  expect(screen.getByRole('heading', { name: task, level: 1 })).toBeDefined()
+  expect(screen.getAllByRole('dialog')).toHaveLength(1)
+})
+
+it('labels monetary chart values and plans in company management', async () => {
+  await bench()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'executive' } })
+  fireEvent.click(screen.getByRole('button', { name: '查看图表明细：经营回款计划与实际（万元）' }))
+  const detail = screen.getByRole('dialog', { name: '经营回款计划与实际（万元）' })
+  expect(within(detail).getByText('金额 · 万元')).toBeDefined()
+  const row = within(detail).getByRole('row', { name: /第 6 周/ })
+  expect(within(row).getByRole('cell', { name: '82' })).toBeDefined()
+  expect(within(row).getByRole('cell', { name: '95' })).toBeDefined()
+})
+
+it('connects every role’s three methods to the corresponding work and specific guidance', async () => {
+  await bench()
+  const assignments = []
+  for (const role of roleIds) {
+    fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
+    expect(roleMethods[role].map(item => item.task)).toEqual(roleFixtures[role].tasks)
+    for (const assignment of roleMethods[role]) {
+      fireEvent.click(screen.getByRole('button', { name: '工作方法' }))
+      const card = screen.getByRole('heading', { name: zh[taskTitles[assignment.task]] }).closest('article')
+      if (card === null) throw new Error('the method card must identify its task')
+      fireEvent.click(within(card).getByRole('button', { name: '按此方法开展' }))
+      expect(screen.getByRole('heading', { name: zh[taskTitles[assignment.task]], level: 1 })).toBeDefined()
+      expect(screen.getByRole('heading', { name: zh[assignment.method.title] })).toBeDefined()
+      expect(screen.getByText(zh[assignment.inputs])).toBeDefined()
+      expect(screen.getByText(zh[assignment.output])).toBeDefined()
+      expect(screen.getByText(zh[assignment.acceptance])).toBeDefined()
+      assignments.push({
+        role: zh[`role.${role}`], task: zh[taskTitles[assignment.task]], method: zh[assignment.method.title],
+        inputs: zh[assignment.inputs], output: zh[assignment.output], acceptance: zh[assignment.acceptance],
+        steps: assignment.method.steps.map(step => [zh[step.title], zh[step.prompt]]),
+      })
+    }
+  }
+  expect(assignments).toHaveLength(57)
+  expect(assignments).toMatchSnapshot()
+})
+
+it('retains method records across navigation and includes them in saved version comparisons', async () => {
+  await bench()
+  fireEvent.click(screen.getByRole('button', { name: '工作方法' }))
+  const supplier = screen.getByRole('heading', { name: '供应商季度评价' }).closest('article')
+  if (supplier === null) throw new Error('supplier work must expose its method')
+  fireEvent.click(within(supplier).getByRole('button', { name: '按此方法开展' }))
+  fireEvent.change(screen.getByRole('textbox', { name: '材料核对记录' }), { target: { value: '核对本季度到货台账 v2，缺少两项响应记录。' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: '已完成本阶段自查' }))
+  fireEvent.click(screen.getByRole('button', { name: '2 · 分析' }))
+  fireEvent.change(screen.getByRole('textbox', { name: '分析与验证记录' }), { target: { value: '按相同评价周期比较交付偏差，缺失数据待供应商确认。' } })
+  fireEvent.click(screen.getByRole('button', { name: '3 · 工作成果' }))
+  fireEvent.click(screen.getByRole('button', { name: '保存草稿版本' }))
+  fireEvent.click(screen.getByRole('button', { name: '任务版本' }))
+  const compare = screen.getAllByRole('button', { name: '比较版本' })[0]
+  if (compare === undefined) throw new Error('a saved version must expose comparison')
+  fireEvent.click(compare)
+  const comparison = screen.getByRole('dialog', { name: '比较版本' })
+  expect(within(comparison).getByText('材料核对记录: 核对本季度到货台账 v2，缺少两项响应记录。')).toBeDefined()
+  fireEvent.click(within(comparison).getByRole('button', { name: '关闭' }))
+  fireEvent.click(screen.getByRole('button', { name: '我的任务' }))
+  fireEvent.click(screen.getByRole('button', { name: /供应商季度评价.*待处理/ }))
+  expect(screen.getByRole('textbox', { name: '材料核对记录' })).toHaveProperty('value', '核对本季度到货台账 v2，缺少两项响应记录。')
+  expect(screen.getByRole('checkbox', { name: '已完成本阶段自查' })).toHaveProperty('checked', true)
+  fireEvent.click(screen.getByRole('button', { name: '提交协同审阅' }))
+  const submission = screen.getByRole('dialog', { name: '提交协同审阅' })
+  expect(within(submission).getByText('仍有未完成的自查或记录，可带着缺口提交协同审阅。')).toBeDefined()
+  fireEvent.click(within(submission).getByRole('button', { name: '确认模拟交接' }))
+  expect(screen.getByRole('button', { name: '已模拟交接' })).toBeDefined()
+})
+
+it('drills from company risks to the responsible view and returns through DSH layout', async () => {
+  const { selectPanel } = await bench()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'executive' } })
+  expect(screen.getByRole('heading', { name: '公司经营与跨部门风险' })).toBeDefined()
+  const sales = screen.getByRole('heading', { name: '经营与回款' }).closest('article')
+  if (sales === null) throw new Error('the company view did not render its operating risk')
+  fireEvent.click(within(sales).getByRole('button', { name: '查看责任岗位' }))
+  expect(screen.getByRole('heading', { name: '把客户承诺，落实到交付与回款。' })).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '返回 DSH 原始界面' }))
+  expect(selectPanel).toHaveBeenLastCalledWith(null)
+})
+
+it('keeps the workbench open when Escape closes a nested material dialog', async () => {
+  const { selectPanel } = await bench()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'hr' } })
+  fireEvent.click(screen.getByRole('button', { name: '文件与资料' }))
+  fireEvent.click(screen.getByRole('button', { name: /岗位需求与招聘计划/ }))
+  expect(screen.getAllByRole('dialog')).toHaveLength(2)
+  fireEvent.keyDown(document.activeElement ?? document, { key: 'Escape' })
+  expect(screen.getAllByRole('dialog')).toHaveLength(1)
+  expect(selectPanel).not.toHaveBeenCalledWith(null)
+  fireEvent.keyDown(document.activeElement ?? document, { key: 'Escape' })
+  expect(selectPanel).toHaveBeenLastCalledWith(null)
+})

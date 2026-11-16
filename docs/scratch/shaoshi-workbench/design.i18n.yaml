@@ -1,0 +1,91 @@
+# Bilingual-pair consistency record for design.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/scratch/shaoshi-workbench/design.md
+/:
+  en: 4e230d0fc7ea9f82
+  zh: 8da3a05c6d521949
+/shaoshi-dsh-workbench-development-design:
+  en: b6414dc889d3e95d
+  zh: 7200fd294a1f0194
+/shaoshi-dsh-workbench-development-design/summary:
+  en: 7989b965f521e239
+  zh: 7203fa29ed30fb92
+/shaoshi-dsh-workbench-development-design/table-of-contents:
+  en: a2eae1878969f239
+  zh: b734c81d2e42658f
+/shaoshi-dsh-workbench-development-design/1-product-and-scope:
+  en: 2359381c0eca4c3e
+  zh: 972f31cdce920471
+/shaoshi-dsh-workbench-development-design/2-video-reference-and-existing-implementation:
+  en: e7fd046ecae929ba
+  zh: 4e3a0ab7189aec9d
+/shaoshi-dsh-workbench-development-design/3-role-adaptation:
+  en: 5e0c3ecfeebc15b6
+  zh: 7c72808a0c129c3d
+/shaoshi-dsh-workbench-development-design/3-role-adaptation/3-1-read-only-verification-of-shaoshi-positions-and-kpis:
+  en: 58a4676a089a4612
+  zh: cf784cc6ac9ab79e
+/shaoshi-dsh-workbench-development-design/3-role-adaptation/3-2-work-views-derived-from-actual-positions:
+  en: 2604dd875c461e61
+  zh: 11c1efe8d8b34a6c
+/shaoshi-dsh-workbench-development-design/3-role-adaptation/3-3-from-role-configuration-to-executable-work-packs:
+  en: 543e003a0de37335
+  zh: a0c230433de923cf
+/shaoshi-dsh-workbench-development-design/4-information-architecture:
+  en: fcb454867bd530ec
+  zh: 3f28775fbad6657f
+/shaoshi-dsh-workbench-development-design/5-home-and-work-detail:
+  en: fa419c53a18a1b7e
+  zh: 8d3bb52343ba943e
+/shaoshi-dsh-workbench-development-design/6-representative-workflows:
+  en: 504e19c9d7a15678
+  zh: ed147c6a67bd9e30
+/shaoshi-dsh-workbench-development-design/6-representative-workflows/6-1-incoming-material-exception-across-roles:
+  en: c1ede8a35629cf67
+  zh: 4c092e3b67dd685b
+/shaoshi-dsh-workbench-development-design/6-representative-workflows/6-2-quality-correction-through-causes-and-verification:
+  en: c2b7eea3d6c40eaf
+  zh: 6be0f6bad27b458d
+/shaoshi-dsh-workbench-development-design/6-representative-workflows/6-3-knowledge-answers-as-work-materials:
+  en: 925a88dc213143d1
+  zh: 3d474d2a2e6f386e
+/shaoshi-dsh-workbench-development-design/7-visuals-responsive-layout-and-states:
+  en: 726a12c6f4991950
+  zh: c595a0b134041fd9
+/shaoshi-dsh-workbench-development-design/8-domain-model-and-state-ownership:
+  en: 7a53f12ce3b69b15
+  zh: 16d8515a6e964b00
+/shaoshi-dsh-workbench-development-design/9-plugin-and-client-architecture:
+  en: 33c4c8d8b8c7c9f5
+  zh: d30e1420c6f01864
+/shaoshi-dsh-workbench-development-design/9-plugin-and-client-architecture/9-1-technical-prerequisite-for-the-three-region-layout:
+  en: f581fe92365d125f
+  zh: c03d9c6a5f6e758d
+/shaoshi-dsh-workbench-development-design/10-mcp-capabilities-and-platform-collaboration:
+  en: 8d728b3b6a5f00c0
+  zh: f54e304b0b65bffb
+/shaoshi-dsh-workbench-development-design/11-ai-methods-and-context:
+  en: 4fe0c1d9707ea952
+  zh: b6ef5973536ad3e3
+/shaoshi-dsh-workbench-development-design/12-execution-approval-and-recovery:
+  en: ab5877fcd92cb769
+  zh: 08fafa003f964c13
+/shaoshi-dsh-workbench-development-design/13-identity-data-and-permissions:
+  en: d3f859cd23cc19d3
+  zh: 8f4deb825aaa0472
+/shaoshi-dsh-workbench-development-design/14-branch-strategy-and-reuse:
+  en: efb6d1e8f235f208
+  zh: d0cf8c34f0b1983b
+/shaoshi-dsh-workbench-development-design/15-development-and-acceptance:
+  en: 673582918de3ce65
+  zh: bd191a6ef4035354
+/shaoshi-dsh-workbench-development-design/16-testing-quality-and-observability:
+  en: ec11a77c460f2a29
+  zh: 28bafa7c3fb57c8c
+/shaoshi-dsh-workbench-development-design/further-exploration:
+  en: 877ede47f1ffc46d
+  zh: df9f9fb4b5bf992f
+/shaoshi-dsh-workbench-development-design/dev-note:
+  en: c9ff6f9552317ddd
+  zh: 029e663261df5ca2
