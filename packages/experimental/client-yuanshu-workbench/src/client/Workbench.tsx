@@ -28,6 +28,7 @@ import { DashboardCharts } from './DashboardCharts.tsx'
 import { dashboardCharts } from './dashboard-data.ts'
 import { methodFor, roleMethods, type MethodStage } from './methodology-data.ts'
 import { dailyWorkForRole, positionScenarios, workItemsForRole, workItemForScenario, type WorkStatus } from './scenario-data.ts'
+import { prioritiesForRole, priorityAssignment, priorityItems } from './priorities-data.ts'
 
 interface WorkbenchInjected {
   readonly onReturn: () => void
@@ -49,6 +50,7 @@ export function WorkbenchIcon(props: SidebarPanelIconOwnerProps) {
 const navIcons = {
   assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
+  priorities: IconArchiveOutlineRegular,
   tasks: IconChecklistOutlineRegular,
   versions: IconCompareSplitOutlineRegular,
   calendar: IconClockOutlineRegular,
@@ -79,6 +81,7 @@ export function Workbench(props: WorkbenchProps) {
   const [feedback, setFeedback] = useState('')
   const [followUpRole, setFollowUpRole] = useState<RoleId>('quality')
   const [followUpText, setFollowUpText] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'role'>('all')
   const contentRef = useRef<HTMLDivElement>(null)
   const key = `${role}:${state.task}`
   const draft = state.drafts[key]
@@ -102,6 +105,7 @@ export function Workbench(props: WorkbenchProps) {
   const priorityCount = workItems.filter(item => item.priority === 'high' && workStatus(item.id, item.status) !== 'done').length
   const confirmationCount = workItems.filter(item => workStatus(item.id, item.status) === 'waiting').length
   const reviewCount = workItems.filter(item => workStatus(item.id, item.status) === 'review').length
+  const leadPriority = prioritiesForRole(role)[0]
   const currentWorkItem = workItems.find(item => item.task === state.task)
   const currentWorkStatus = currentWorkItem === undefined ? undefined : workStatus(currentWorkItem.id, currentWorkItem.status)
   const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
@@ -137,6 +141,95 @@ export function Workbench(props: WorkbenchProps) {
     openTask(id)
     setActiveScenario(kpiIndex)
     setCandidate(true)
+  }
+  const openPriority = (item: typeof priorityItems[number]) => {
+    const assignment = priorityAssignment(item, role) ?? item.assignments[0]
+    if (assignment === undefined) return
+    const scenario = positionScenarios[assignment.role][assignment.kpiIndex]
+    if (scenario === undefined) return
+    actions.changeRole(assignment.role)
+    actions.setWorkStatus(scenario.workItemId, 'inProgress')
+    openScenario(assignment.kpiIndex, scenario.task)
+    actions.navigate('work')
+  }
+  const prioritiesPage = () => {
+    const visibleItems = priorityFilter === 'all' ? priorityItems : prioritiesForRole(role)
+    return (
+      <>
+        <div className={css.pageHeading}>
+          <div>
+            <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
+            <h1>{t('priorities.title')}</h1>
+            <p>{t('priorities.subtitle')}</p>
+          </div>
+          <Tag>{t('count', { count: visibleItems.length })}</Tag>
+        </div>
+        <div className={css.priorityFilters} role="group" aria-label={t('priorities.title')}>
+          <Button variant={priorityFilter === 'all' ? 'outline' : 'ghost'} aria-pressed={priorityFilter === 'all'} onClick={() => { setPriorityFilter('all') }}>
+            {t('priorities.all')}
+          </Button>
+          <Button variant={priorityFilter === 'role' ? 'outline' : 'ghost'} aria-pressed={priorityFilter === 'role'} onClick={() => { setPriorityFilter('role') }}>
+            {t('priorities.forRole')}
+          </Button>
+        </div>
+        <section className={css.priorityList} aria-label={t('priorities.title')}>
+          {visibleItems.map((item) => {
+            const assignment = priorityAssignment(item, role) ?? item.assignments[0]
+            if (assignment === undefined) return null
+            const scenario = positionScenarios[assignment.role][assignment.kpiIndex]
+            if (scenario === undefined) return null
+            const workItem = workItemForScenario(assignment.role, assignment.kpiIndex)
+            const method = methodFor(assignment.role, scenario.task)
+            const status = workStatus(workItem.id, workItem.status)
+            return (
+              <article className={css.priorityRow} key={item.id}>
+                <div className={css.priorityRank} aria-label={t('priorities.rank', { rank: item.rank })}>
+                  <strong>{String(item.rank).padStart(2, '0')}</strong>
+                </div>
+                <div className={css.priorityBody}>
+                  <div className={css.priorityTitleRow}>
+                    <h2>{t(item.title)}</h2>
+                    <Tag>{statusLabel(status)}</Tag>
+                  </div>
+                  <p className={css.priorityReason}>{t(item.reason)}</p>
+                  <div className={css.priorityFacts}>
+                    <div>
+                      <small>{t(`${assignment.role}.metric${assignment.kpiIndex + 1}` as WorkbenchKey)}</small>
+                      <strong>{item.current}{item.unit === '%' ? '%' : ` ${item.unit}`}</strong>
+                    </div>
+                    <div>
+                      <small>{t('priorities.target')}</small>
+                      <strong>{item.target}{item.unit === '%' ? '%' : ` ${item.unit}`}</strong>
+                    </div>
+                    <div>
+                      <small>{t('assistant.owner')}</small>
+                      <strong>{t(`role.${assignment.role}`)}</strong>
+                    </div>
+                    <div>
+                      <small>{t('assistant.due')}</small>
+                      <strong>{t(item.dueKey)}</strong>
+                    </div>
+                  </div>
+                  <div className={css.priorityTrace}>
+                    <p><strong>{t('priorities.source')}:</strong> {t(item.source)}</p>
+                    <p><strong>{t('assistant.nextAction')}:</strong> {t(item.action)}</p>
+                    <small>{t('assistant.method')}: {t(method.method.title)} · {t(taskTitles[scenario.task])}</small>
+                  </div>
+                </div>
+                <div className={css.priorityAction}>
+                  <small>{t('priorities.participants', { count: item.assignments.length })}</small>
+                  <Button variant="outline" onClick={() => { openPriority(item) }}>
+                    {t('priorities.open')}
+                  </Button>
+                </div>
+              </article>
+            )
+          })}
+          {visibleItems.length === 0 && <p className={css.empty}>{t('priorities.noRoleItems')}</p>}
+        </section>
+        <p className={css.priorityDisclaimer}>{t('assistant.scopeHint')}</p>
+      </>
+    )
   }
   const taskRows = (compact = false) => (
     <div className={css.taskRows}>
@@ -296,37 +389,43 @@ export function Workbench(props: WorkbenchProps) {
           </div>
           <p className={css.eyebrow}>{t('assistant.roleFocus')}</p>
           <p className={css.intro}>{t(`${role}.focus`)}</p>
-          {workItems.filter(item => workStatus(item.id, item.status) !== 'done').slice(0, 1).map(item => (
-            <div key={item.id}>
-              <h2 className={css.assistantTaskTitle}>{t(taskTitles[item.task])}</h2>
-              <p className={css.assistantReason}>{t('assistant.whyNow')}: {t('assistant.sourceReason')}</p>
-              <p className={css.assistantReason}>{t('assistant.nextAction')}: {t('assistant.nextReview')}</p>
-              <div className={css.assistantItemMeta}>
-                <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
-                <span>{t('assistant.due')}: {t(item.dueKey)}</span>
-                <span>{t('assistant.owner')}: {t(`role.${item.owner}`)}</span>
+          {leadPriority !== undefined && (() => {
+            const assignment = priorityAssignment(leadPriority, role)
+            if (assignment === undefined) return null
+            const scenario = positionScenarios[role][assignment.kpiIndex]
+            if (scenario === undefined) return null
+            const item = workItemForScenario(role, assignment.kpiIndex)
+            return (
+              <div key={leadPriority.id}>
+                <h2 className={css.assistantTaskTitle}>{t(leadPriority.title)}</h2>
+                <p className={css.assistantReason}>{t('assistant.whyNow')}: {t(leadPriority.reason)}</p>
+                <p className={css.assistantReason}>{t('assistant.nextAction')}: {t(leadPriority.action)}</p>
+                <div className={css.assistantItemMeta}>
+                  <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
+                  <span>{t('assistant.due')}: {t(leadPriority.dueKey)}</span>
+                  <span>{t('assistant.owner')}: {t(`role.${role}`)}</span>
+                </div>
+                <small>{t(`${role}.metric${assignment.kpiIndex + 1}` as WorkbenchKey)} · {leadPriority.current}{leadPriority.unit === '%' ? '%' : ` ${leadPriority.unit}`} / {leadPriority.target}{leadPriority.unit === '%' ? '%' : ` ${leadPriority.unit}`}</small>
+                <div className={css.assistantSource}>
+                  <small>{t('priorities.source')}</small>
+                  <strong>{t(leadPriority.source)}</strong>
+                </div>
+                <Button
+                  variant="primary"
+                  icon={<IconChevronRightOutlineRegular size={16} />}
+                  onClick={() => { openPriority(leadPriority) }}
+                >
+                  {t('assistant.continue')}
+                </Button>
               </div>
-            </div>
-          ))}
-          {workItems.every(item => workStatus(item.id, item.status) === 'done') && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
+            )
+          })()}
+          {leadPriority === undefined && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
           <div className={css.assistantSource}>
             <small>{t('assistant.dataPath')}</small>
             <strong>{t('assistant.dataTrace')} · {t('assistant.dataFreshness')}</strong>
           </div>
           <div className={css.assistantActions}>
-            <Button
-              variant="primary"
-              icon={<IconChevronRightOutlineRegular size={16} />}
-              onClick={() => {
-                const item = workItems.find(candidate => workStatus(candidate.id, candidate.status) !== 'done')
-                if (item !== undefined) {
-                  actions.setWorkStatus(item.id, 'inProgress')
-                  openTask(item.task)
-                }
-              }}
-            >
-              {t('assistant.continue')}
-            </Button>
             <Button variant="outline" onClick={() => { selectView('dashboard') }}>
               {t('assistant.positionData')}
             </Button>
@@ -1182,7 +1281,7 @@ export function Workbench(props: WorkbenchProps) {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
-                  {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
+                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('public')}</p>}
                   {n.id === 'files' && <p className={css.groupLabel}>{t('resources')}</p>}
                   <button
                     className={view === n.id ? css.activeNav : ''}
@@ -1258,6 +1357,8 @@ export function Workbench(props: WorkbenchProps) {
               assistant()
             ) : view === 'dashboard' ? (
               dashboard()
+            ) : view === 'priorities' ? (
+              prioritiesPage()
             ) : view === 'tasks' ? (
               <>
                 <p className={css.intro}>{t('task.owner')}</p>

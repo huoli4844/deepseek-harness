@@ -11,6 +11,7 @@ import { roleMethods } from '../src/client/methodology-data.ts'
 import { createWorkbenchStore } from '../src/client/model.ts'
 import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
 import { positionScenarios } from '../src/client/scenario-data.ts'
+import { prioritiesForRole, priorityAssignment, priorityItems, type PriorityAssignment } from '../src/client/priorities-data.ts'
 import { zh } from '../src/client/locales.ts'
 
 usePinnedBrowserLanguages('zh-CN')
@@ -44,7 +45,7 @@ it('presents all 18 positions and company management with shared navigation and 
   await bench()
   const dialog = screen.getByRole('dialog', { name: '元枢工作台' })
   expect(within(dialog).getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
-  expect(within(dialog).getByRole('heading', { name: 'PCBA 来料异常处置', level: 2 })).toBeDefined()
+  expect(within(dialog).getByRole('heading', { name: zh[priorityItems[3]!.title] })).toBeDefined()
   const selector = within(dialog).getByRole('combobox', { name: '当前岗位视角' })
   const options = within(selector).getAllByRole('option')
   expect(options).toHaveLength(19)
@@ -59,13 +60,23 @@ it('presents all 18 positions and company management with shared navigation and 
     const dailyWork = within(dialog).getByRole('region', { name: '岗位日常工作' })
     expect(within(scenes).getAllByRole('button', { name: '让助理带我处理' })).toHaveLength(4)
     expect(within(dailyWork).getAllByRole('button', { name: '由助理协同开展' })).toHaveLength(3)
-    const firstScenario = positionScenarios[role][0]
-    if (firstScenario === undefined) throw new Error('each position must have a KPI scenario')
-    fireEvent.click(within(scenes).getAllByRole('button', { name: '让助理带我处理' })[0]!)
-    expect(within(dialog).getByRole('heading', {
-      name: `${zh[`${role}.metric${firstScenario.kpiIndex + 1}` as keyof typeof zh]} · ${roleFixtures[role].metrics[firstScenario.kpiIndex]}`,
-    })).toBeDefined()
-    expect(within(dialog).getByRole('heading', { name: '候选修改 · 尚未写入草稿' })).toBeDefined()
+    expect(prioritiesForRole(role).length).toBeGreaterThan(0)
+    fireEvent.click(within(dialog).getByRole('button', { name: '十大重点事项' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '与当前岗位相关' }))
+    expect(within(dialog).getByRole('region', { name: '全公司需要推进的十大重点事项' }).querySelectorAll('article')).toHaveLength(prioritiesForRole(role).length)
+    fireEvent.click(within(dialog).getByRole('button', { name: '我的助理' }))
+    for (const scenario of positionScenarios[role]) {
+      if (scenario === undefined) throw new Error('each position must have a KPI scenario')
+      const currentScenes = within(dialog).getByRole('region', { name: '从岗位 KPI 进入典型场景' })
+      const scenarioButtons = within(currentScenes).getAllByRole('button', { name: '让助理带我处理' })
+      fireEvent.click(scenarioButtons[scenario.kpiIndex]!)
+      expect(within(dialog).getByRole('heading', { name: zh[taskTitles[scenario.task]], level: 1 })).toBeDefined()
+      expect(within(dialog).getByRole('heading', {
+        name: `${zh[`${role}.metric${scenario.kpiIndex + 1}` as keyof typeof zh]} · ${roleFixtures[role].metrics[scenario.kpiIndex]}`,
+      })).toBeDefined()
+      expect(within(dialog).getByRole('heading', { name: '候选修改 · 尚未写入草稿' })).toBeDefined()
+      fireEvent.click(within(dialog).getByRole('button', { name: '我的助理' }))
+    }
     fireEvent.click(within(dialog).getByRole('button', { name: '岗位工作台' }))
     expect(within(dialog).getAllByRole('region')).toHaveLength(
       ['executive', 'president'].includes(option.getAttribute('value') ?? '') ? 8 : 6,
@@ -73,7 +84,7 @@ it('presents all 18 positions and company management with shared navigation and 
     const dashboard = within(dialog)
       .getAllByRole('heading')
       .map(heading => heading.textContent)
-    for (const name of ['我的任务', '任务版本', '日程日历', '团队协作']) {
+    for (const name of ['十大重点事项', '我的任务', '任务版本', '日程日历', '团队协作']) {
       expect(within(dialog).getByRole('button', { name })).toBeDefined()
     }
     fireEvent.click(within(dialog).getByRole('button', { name: '我的任务' }))
@@ -92,13 +103,43 @@ it('surfaces position signals first and opens their associated work', async () =
   expect(screen.getByText(/KPI → 来源记录 → 工作事项/)).toBeDefined()
   expect(screen.getByText(/现在关注的原因/)).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '继续处理' }))
-  expect(screen.getByRole('heading', { name: 'PCBA 来料异常处置', level: 1 })).toBeDefined()
+  expect(screen.getByRole('heading', { name: zh[taskTitles[roleFixtures.procurement.tasks[1]]], level: 1 })).toBeDefined()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
   fireEvent.click(screen.getByRole('button', { name: '我的助理' }))
   expect(screen.getByRole('heading', { name: '今天要推进的工作，我已为你整理好。' })).toBeDefined()
   expect(screen.getByText('将根因假设与已确认事实分开，补足整改验证证据。')).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '查看岗位数据' }))
   expect(screen.getByRole('heading', { name: '每一个质量结论，都有依据。' })).toBeDefined()
+})
+
+it('shows all ten priority records and opens each responsible position workflow', async () => {
+  await bench()
+  fireEvent.click(screen.getByRole('button', { name: '十大重点事项' }))
+  expect(within(screen.getByRole('region', { name: '全公司需要推进的十大重点事项' })).getAllByRole('article')).toHaveLength(10)
+  let activeRole: (typeof roleIds)[number] = 'procurement'
+  for (const item of priorityItems) {
+    const region = screen.getByRole('region', { name: '全公司需要推进的十大重点事项' })
+    const rows = within(region).getAllByRole('article')
+    const row = rows.find(candidate => candidate.textContent?.includes(zh[item.title]))
+    if (row === undefined) throw new Error(`missing priority ${item.id}`)
+    expect(within(row).getByText(zh[item.reason])).toBeDefined()
+    expect(within(row).getByText(zh[item.source])).toBeDefined()
+    expect(within(row).getByText(zh[item.action])).toBeDefined()
+    const assignment: PriorityAssignment | undefined = priorityAssignment(item, activeRole) ?? item.assignments[0]
+    if (assignment === undefined) throw new Error(`missing responsible position for ${item.id}`)
+    activeRole = assignment.role
+    fireEvent.click(within(row).getByRole('button', { name: '让助理主导处理' }))
+    const scenario = positionScenarios[assignment.role][assignment.kpiIndex]
+    if (scenario === undefined) throw new Error(`missing work scenario for ${item.id}`)
+    expect(screen.getByRole('combobox', { name: '当前岗位视角' })).toHaveProperty('value', assignment.role)
+    const headings = screen.getAllByRole('heading').map(heading => heading.textContent)
+    expect(headings, `priority ${item.id} should open ${assignment.role}/${String(scenario.task)}; saw ${JSON.stringify(headings)}`).toContain(zh[taskTitles[scenario.task]])
+    fireEvent.click(screen.getByRole('button', { name: '十大重点事项' }))
+  }
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
+  fireEvent.click(screen.getByRole('button', { name: '十大重点事项' }))
+  fireEvent.click(screen.getByRole('button', { name: '与当前岗位相关' }))
+  expect(within(screen.getByRole('region', { name: '全公司需要推进的十大重点事项' })).getAllByRole('article')).toHaveLength(priorityItems.filter(item => priorityAssignment(item, 'quality') !== undefined).length)
 })
 
 it.each([

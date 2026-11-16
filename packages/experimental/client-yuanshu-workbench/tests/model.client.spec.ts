@@ -4,6 +4,7 @@ import { createWorkbenchStore } from '../src/client/model.ts'
 import { dailyWorkForRole, positionScenarios, workItemForScenario, workItemsForRole } from '../src/client/scenario-data.ts'
 import { roleIds, roleFixtures } from '../src/client/fixtures.ts'
 import { roleMethods } from '../src/client/methodology-data.ts'
+import { prioritiesForRole, priorityItems } from '../src/client/priorities-data.ts'
 
 describe('workbench demonstration state', () => {
   it('maps every position KPI to a typical task and its position method', () => {
@@ -23,6 +24,23 @@ describe('workbench demonstration state', () => {
       }
       expect(workItemsForRole(role)).toHaveLength(3)
     }
+  })
+
+  it('provides ten ranked priorities with complete evidence and coverage for every position', () => {
+    expect(priorityItems.map(item => item.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(new Set(priorityItems.map(item => item.id)).size).toBe(10)
+    for (const item of priorityItems) {
+      expect(item.title).toBeDefined()
+      expect(item.reason).toBeDefined()
+      expect(item.source).toBeDefined()
+      expect(item.action).toBeDefined()
+      expect(item.assignments.length).toBeGreaterThan(0)
+      expect(item.current).not.toBe(item.target)
+      for (const assignment of item.assignments) {
+        expect(positionScenarios[assignment.role][assignment.kpiIndex]).toBeDefined()
+      }
+    }
+    for (const role of roleIds) expect(prioritiesForRole(role).length).toBeGreaterThan(0)
   })
 
   it('keeps saved task versions unchanged by later edits', () => {
