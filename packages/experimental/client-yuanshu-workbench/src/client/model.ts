@@ -29,7 +29,7 @@ export type RoleId =
 /** Identities of the fixed local demonstration tasks. */
 export type TaskId =
   0 | 1 | 2 | 3 | 4 | 5 | 6 | `${Exclude<RoleId, 'procurement' | 'quality' | 'director'>}.${0 | 1 | 2}`
-/** Workbench destinations shared by every position. */
+/** Workbench routes; agent and versions open from source work; `team` is a persisted alias. */
 export type ViewId =
   'assistant' | 'dashboard' | 'priorities' | 'agent' | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
 /** A saved demo draft snapshot owned by one task and position. */
@@ -65,6 +65,7 @@ export interface DemoFollowUp {
   readonly role: RoleId
   readonly text: string
   readonly done: boolean
+  readonly groupId?: string
 }
 /** Browser-local prototype data; it is not a YuanShu business record. */
 export interface WorkbenchState {
@@ -218,13 +219,14 @@ const workbenchActions = {
   saveVerification: (state: WorkbenchState, id: string, text: string) => {
     state.verifications[id] = text
   },
-  addFollowUp: (state: WorkbenchState, workItemId: string, role: RoleId, text: string) => {
+  addFollowUp: (state: WorkbenchState, workItemId: string, role: RoleId, text: string, groupId?: string) => {
     state.followUps.push({
       id: state.followUps.length + 1,
       workItemId,
       role,
       text,
       done: false,
+      ...(groupId === undefined ? {} : { groupId }),
     })
   },
   completeFollowUp: (state: WorkbenchState, id: number) => {

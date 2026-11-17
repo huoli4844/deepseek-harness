@@ -9,8 +9,6 @@ import {
   IconLayersOutlineRegular,
   IconChecklistOutlineRegular,
   IconClockOutlineRegular,
-  IconUsersOutlineRegular,
-  IconCompareSplitOutlineRegular,
   IconArchiveOutlineRegular,
   IconPaperclipOutlineRegular,
   IconPanelLeftOutlineRegular,
@@ -54,11 +52,8 @@ const navIcons = {
   assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
   priorities: IconArchiveOutlineRegular,
-  agent: IconChecklistOutlineRegular,
   tasks: IconChecklistOutlineRegular,
-  versions: IconCompareSplitOutlineRegular,
   calendar: IconClockOutlineRegular,
-  team: IconUsersOutlineRegular,
   groups: IconNewChatOutlineRegular,
   notifications: IconArchiveOutlineRegular,
   files: IconPaperclipOutlineRegular,
@@ -84,9 +79,7 @@ export function Workbench(props: WorkbenchProps) {
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
   const [feedback, setFeedback] = useState('')
-  const [followUpRole, setFollowUpRole] = useState<RoleId>('quality')
-  const [followUpText, setFollowUpText] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState<'all' | 'role'>('all')
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'role'>('role')
   const [activePriorityId, setActivePriorityId] = useState<string>()
   const [activePriorityRole, setActivePriorityRole] = useState<RoleId>(role)
   const [agentProgress, setAgentProgress] = useState(0)
@@ -96,6 +89,7 @@ export function Workbench(props: WorkbenchProps) {
   const [groupMessageDraft, setGroupMessageDraft] = useState('')
   const [groupAssignmentDraft, setGroupAssignmentDraft] = useState('')
   const [groupAssignmentRole, setGroupAssignmentRole] = useState<RoleId>(role)
+  const [groupAssignmentTask, setGroupAssignmentTask] = useState<TaskId>(state.task)
   const [groupInviteRole, setGroupInviteRole] = useState<RoleId>(role)
   const [newGroupName, setNewGroupName] = useState('')
   const [newGroupKind, setNewGroupKind] = useState<WorkgroupKind>('project')
@@ -127,6 +121,9 @@ export function Workbench(props: WorkbenchProps) {
   const leadPriority = prioritiesForRole(role)[0]
   const groups = state.workgroups ?? createDemoWorkgroups()
   const activeGroup = groups.find(group => group.id === activeGroupId) ?? groups[0]
+  const activeGroupFollowUps = state.followUps.filter(item => item.groupId === activeGroup?.id)
+  const legacyFollowUps = state.followUps.filter(item => item.groupId === undefined)
+  const groupAssignmentWorkItem = workItems.find(item => item.task === groupAssignmentTask) ?? workItems[0]
   const groupInviteChoices = activeGroup?.members === undefined ? roleIds : roleIds.filter(id => !activeGroup.members.includes(id))
   const selectedGroupInviteRole = groupInviteChoices.includes(groupInviteRole) ? groupInviteRole : groupInviteChoices[0]
   const newGroupInviteChoices = roleIds.filter(id => !newGroupMembers.includes(id))
@@ -141,7 +138,13 @@ export function Workbench(props: WorkbenchProps) {
     attention: 'status.attention', inProgress: 'status.inProgress', waiting: 'status.waiting',
     review: 'status.review', done: 'status.done',
   } as const)[status])
-  const title = view === 'work' ? currentTitle : t(navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
+  const title = view === 'work'
+    ? currentTitle
+    : view === 'agent'
+      ? t('agent.title')
+      : view === 'versions'
+        ? t('versions.pageTitle')
+        : t(view === 'team' ? 'nav.groups' : navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
   const selectView = (next: typeof view) => {
     actions.navigate(next)
     setNavOpen(false)
@@ -222,7 +225,7 @@ export function Workbench(props: WorkbenchProps) {
       actions.addWorkgroupMessage(
         activeGroup.id,
         member,
-        t('groups.agentReply', { focus: t(`${member}.focus` as WorkbenchKey) }),
+        t('groups.agentReply', { focus: t(`${member}.focus`) }),
         'message',
         true,
       )
@@ -232,8 +235,10 @@ export function Workbench(props: WorkbenchProps) {
   const assignGroupWork = () => {
     if (activeGroup === undefined || groupAssignmentDraft.trim() === '') return
     const owner = activeGroup.members.includes(groupAssignmentRole) ? groupAssignmentRole : activeGroup.members[0]
-    if (owner === undefined) return
+    if (owner === undefined || groupAssignmentWorkItem === undefined) return
     actions.addWorkgroupMessage(activeGroup.id, 'human', groupAssignmentDraft.trim(), 'assignment', false, owner)
+    actions.addFollowUp(groupAssignmentWorkItem.id, owner, groupAssignmentDraft.trim(), activeGroup.id)
+    actions.setWorkStatus(groupAssignmentWorkItem.id, 'waiting')
     setGroupAssignmentDraft('')
   }
   const prioritiesPage = () => {
@@ -826,24 +831,34 @@ export function Workbench(props: WorkbenchProps) {
         <div className={css.sectionHeading}>
           <div>
             <h2>{t('assistant.dailyWork')}</h2>
-            <p className={css.intro}>{t('assistant.dailyWorkHint')}</p>
+            <p className={css.intro}>{t('assistant.dailySopHint')}</p>
           </div>
           <Tag>{t('count', { count: dailyWorkForRole(role).length })}</Tag>
         </div>
         <div className={css.dailyRows}>
           {roleMethods[role].map((assignment, index) => (
-            <div className={css.dailyRow} key={assignment.task}>
+            <article className={css.dailyRow} key={assignment.task}>
               <span className={css.dailyNumber}>{index + 1}</span>
-              <div className={css.grow}>
+              <div className={css.dailyTitle}>
                 <strong>{t(taskTitles[assignment.task])}</strong>
                 <small>{t('assistant.dailyMethod', { method: t(assignment.method.title) })}</small>
               </div>
+              <Tag className={css.dailyTag}>{t('assistant.sopSuggested')}</Tag>
+              <ol className={css.dailySopFlow} aria-label={t('assistant.sopFlow', { task: t(taskTitles[assignment.task]) })}>
+                {assignment.method.steps.map((step, stepIndex) => (
+                  <li key={step.title}>
+                    <span>{String(stepIndex + 1).padStart(2, '0')}</span>
+                    <strong>{t(step.title)}</strong>
+                    <small>{t(step.prompt)}</small>
+                  </li>
+                ))}
+              </ol>
               <Button onClick={() => {
                 const item = workItems.find(candidate => candidate.task === assignment.task)
                 if (item !== undefined) actions.setWorkStatus(item.id, 'inProgress')
                 openScenario(item?.metricIndex ?? 0, assignment.task)
               }}>{t('assistant.openDaily')}</Button>
-            </div>
+            </article>
           ))}
         </div>
       </section>
@@ -855,7 +870,7 @@ export function Workbench(props: WorkbenchProps) {
         <div className={css.assistantFooterActions}>
           <Button onClick={() => { selectView('notifications') }}>{t('nav.notifications')}</Button>
           <Button onClick={() => { selectView('calendar') }}>{t('goCalendar')}</Button>
-          <Button onClick={() => { selectView('team') }}>{t('nav.team')}</Button>
+          <Button onClick={() => { selectView('groups') }}>{t('nav.groups')}</Button>
         </div>
       </div>
     </>
@@ -1022,7 +1037,7 @@ export function Workbench(props: WorkbenchProps) {
             <span>09:30</span>
             <div>
               <strong>{t('calendar.0')}</strong>
-              <small>{t('nav.team')}</small>
+              <small>{t('nav.groups')}</small>
             </div>
             <span>14:00</span>
             <div>
@@ -1032,10 +1047,10 @@ export function Workbench(props: WorkbenchProps) {
           </div>
           <Button
             onClick={() => {
-              selectView('team')
+              selectView('groups')
             }}
           >
-            {t('goTeam')}
+            {t('goGroups')}
           </Button>
         </section>
       </div>
@@ -1169,88 +1184,6 @@ export function Workbench(props: WorkbenchProps) {
       </div>
     </>
   )
-  const teamPage = () => (
-    <>
-      <p className={css.intro}>{t('team.intro')}</p>
-      <section className={css.card}>
-        <div className={css.sectionHeading}>
-          <h2>{t(taskTitles[fixture.tasks[0]])}</h2>
-          <Button
-            onClick={() => {
-              openTask(fixture.tasks[0])
-            }}
-          >
-            {t('open')}
-          </Button>
-        </div>
-        <div className={css.teamGrid}>
-          {roleIds.map(id => (
-            <article key={id} className={css.teamMember}>
-              <span className={css.person}>
-                <IconUsersOutlineRegular size={22} />
-              </span>
-              <h3>{t(`role.${id}`)}</h3>
-              <p>{t(`team.${id}`)}</p>
-              <Tag>{t(id === role ? 'selected' : 'status.waiting')}</Tag>
-              <Button
-                onClick={() => {
-                  selectPosition(id)
-                  openTask(roleFixtures[id].tasks[0])
-                }}
-              >
-                {t('team.switch')}
-              </Button>
-            </article>
-          ))}
-        </div>
-        <section className={css.followUpSection}>
-          <h2>{t('assistant.teamQueue')}</h2>
-          <div className={css.followUpForm}>
-            <label>
-              {t('assistant.owner')}
-              <select value={followUpRole} onChange={(event) => { setFollowUpRole(event.target.value as RoleId) }}>
-                {roleIds.filter(id => id !== role).map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
-              </select>
-            </label>
-            <label>
-              {t('assistant.followUp')}
-              <Input
-                value={followUpText}
-                placeholder={t('assistant.followUpPlaceholder')}
-                onChange={(event) => { setFollowUpText(event.target.value) }}
-              />
-            </label>
-            <Button variant="primary" disabled={!followUpText.trim()} onClick={() => {
-              const item = workItems.find(candidate => candidate.task === state.task) ?? workItems[0]
-              if (item !== undefined) {
-                actions.addFollowUp(item.id, followUpRole, followUpText.trim())
-                actions.setWorkStatus(item.id, 'waiting')
-                setFollowUpText('')
-                setFeedback(t('assistant.followUpAdded'))
-              }
-            }}>{t('assistant.sendFollowUp')}</Button>
-          </div>
-          <div className={css.followUpRows}>
-            {state.followUps.map(item => (
-              <div className={css.followUpRow} key={item.id}>
-                <div className={css.grow}>
-                  <strong>{item.text}</strong>
-                  <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
-                </div>
-                <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
-                {!item.done && <Button onClick={() => {
-                  actions.completeFollowUp(item.id)
-                  actions.setWorkStatus(item.workItemId, 'inProgress')
-                }}>{t('assistant.followUpDone')}</Button>}
-              </div>
-            ))}
-            {state.followUps.length === 0 && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
-          </div>
-        </section>
-        <p className={css.intro}>{t('team.note')}</p>
-      </section>
-    </>
-  )
   const groupsPage = () => (
     <>
       <div className={css.groupToolbar}>
@@ -1273,7 +1206,7 @@ export function Workbench(props: WorkbenchProps) {
               onClick={() => { setActiveGroupId(group.id) }}
             >
               <strong>{group.nameKey === undefined ? group.name : t(group.nameKey)}</strong>
-              <span>{t(`groups.kind.${group.kind}` as WorkbenchKey)} · {t('groups.memberCount', { count: group.members.length })}</span>
+              <span>{t(`groups.kind.${group.kind}`)} · {t('groups.memberCount', { count: group.members.length })}</span>
               <small>{t('groups.messageCount', { count: group.messages.length })}</small>
             </button>
           ))}
@@ -1322,7 +1255,7 @@ export function Workbench(props: WorkbenchProps) {
               {activeGroup.messages.map(message => (
                 <article className={message.author === 'human' ? css.groupMessageHuman : css.groupMessage} key={`${activeGroup.id}:${message.id}`}>
                   <div className={css.groupMessageMeta}>
-                    <strong>{t(message.author === 'human' ? 'groups.me' : `role.${message.author}` as WorkbenchKey)}</strong>
+                    <strong>{t(message.author === 'human' ? 'groups.me' : `role.${message.author}`)}</strong>
                     <small>{t('groups.sequence', { index: message.id })}</small>
                     {message.simulated && <Tag>{t('groups.simulatedAgent')}</Tag>}
                   </div>
@@ -1344,6 +1277,19 @@ export function Workbench(props: WorkbenchProps) {
                   onChange={(event) => { setGroupAssignmentDraft(event.target.value) }}
                 />
                 <label>
+                  {t('groups.assignmentTask')}
+                  <select
+                    aria-label={t('groups.assignmentTask')}
+                    value={groupAssignmentWorkItem?.task ?? ''}
+                    onChange={(event) => {
+                      const item = workItems.find(candidate => String(candidate.task) === event.target.value)
+                      if (item !== undefined) setGroupAssignmentTask(item.task)
+                    }}
+                  >
+                    {workItems.map(item => <option value={item.task} key={item.id}>{t(taskTitles[item.task])}</option>)}
+                  </select>
+                </label>
+                <label>
                   {t('assistant.owner')}
                   <select
                     aria-label={t('groups.assignmentOwnerSelect')}
@@ -1354,11 +1300,52 @@ export function Workbench(props: WorkbenchProps) {
                     {activeGroup.members.map(id => <option value={id} key={id}>{t(`role.${id}`)}</option>)}
                   </select>
                 </label>
-                <Button variant="outline" disabled={!groupAssignmentDraft.trim() || activeGroup.members.length === 0} onClick={assignGroupWork}>
+                <Button variant="outline" disabled={!groupAssignmentDraft.trim() || activeGroup.members.length === 0 || groupAssignmentWorkItem === undefined} onClick={assignGroupWork}>
                   {t('groups.assign')}
                 </Button>
               </div>
             </div>
+            <section className={css.groupFollowUps} aria-label={t('groups.confirmations')}>
+              <div className={css.sectionHeading}>
+                <h3>{t('groups.confirmations')}</h3>
+                <Tag>{t('count', { count: activeGroupFollowUps.length })}</Tag>
+              </div>
+              {activeGroupFollowUps.map(item => (
+                <div className={css.followUpRow} key={item.id}>
+                  <div className={css.grow}>
+                    <strong>{item.text}</strong>
+                    <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
+                  </div>
+                  <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
+                  {!item.done && <Button size="sm" onClick={() => {
+                    actions.completeFollowUp(item.id)
+                    actions.setWorkStatus(item.workItemId, 'inProgress')
+                  }}>{t('groups.confirmed')}</Button>}
+                </div>
+              ))}
+              {activeGroupFollowUps.length === 0 && <p className={css.empty}>{t('groups.noConfirmations')}</p>}
+            </section>
+            {legacyFollowUps.length > 0 && (
+              <section className={css.groupFollowUps} aria-label={t('groups.legacyConfirmations')}>
+                <div className={css.sectionHeading}>
+                  <h3>{t('groups.legacyConfirmations')}</h3>
+                  <Tag>{t('count', { count: legacyFollowUps.length })}</Tag>
+                </div>
+                {legacyFollowUps.map(item => (
+                  <div className={css.followUpRow} key={item.id}>
+                    <div className={css.grow}>
+                      <strong>{item.text}</strong>
+                      <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
+                    </div>
+                    <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
+                    {!item.done && <Button size="sm" onClick={() => {
+                      actions.completeFollowUp(item.id)
+                      actions.setWorkStatus(item.workItemId, 'inProgress')
+                    }}>{t('groups.confirmed')}</Button>}
+                  </div>
+                ))}
+              </section>
+            )}
             <form className={css.groupComposer} onSubmit={(event) => { event.preventDefault(); sendGroupMessage() }}>
               <label>
                 {t('groups.messageLabel')}
@@ -1581,6 +1568,7 @@ export function Workbench(props: WorkbenchProps) {
                 <h2>{currentTitle}</h2>
                 <Button
                   size="sm"
+                  aria-label={t('versions.open', { count: versions.length })}
                   onClick={() => {
                     selectView('versions')
                   }}
@@ -1722,14 +1710,15 @@ export function Workbench(props: WorkbenchProps) {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
-                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('public')}</p>}
+                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('companyFocus')}</p>}
+                  {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
                   {n.id === 'files' && <p className={css.groupLabel}>{t('resources')}</p>}
                   <button
-                    className={view === n.id ? css.activeNav : ''}
+                    className={view === n.id || (view === 'team' && n.id === 'groups') ? css.activeNav : ''}
                     onClick={() => {
                       selectView(n.id)
                     }}
-                    aria-current={view === n.id ? 'page' : undefined}
+                    aria-current={view === n.id || (view === 'team' && n.id === 'groups') ? 'page' : undefined}
                   >
                     <Icon size={17} />
                     <span>{t(n.label)}</span>
@@ -1819,9 +1808,7 @@ export function Workbench(props: WorkbenchProps) {
               versionPage()
             ) : view === 'calendar' ? (
               calendarPage()
-            ) : view === 'team' ? (
-              teamPage()
-            ) : view === 'groups' ? (
+            ) : view === 'team' || view === 'groups' ? (
               groupsPage()
             ) : view === 'notifications' ? (
               notificationsPage()
@@ -1905,7 +1892,7 @@ export function Workbench(props: WorkbenchProps) {
                 {t('groups.kindLabel')}
                 <select value={newGroupKind} onChange={(event) => { setNewGroupKind(event.target.value as WorkgroupKind) }}>
                   {(['project', 'supervision', 'topic'] as const).map(kind => (
-                    <option value={kind} key={kind}>{t(`groups.kind.${kind}` as WorkbenchKey)}</option>
+                    <option value={kind} key={kind}>{t(`groups.kind.${kind}`)}</option>
                   ))}
                 </select>
               </label>

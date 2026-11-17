@@ -122,15 +122,12 @@ export const roleFixtures: Record<RoleId, RoleFixture> = {
   },
 }
 /** Every position exposes the same collaboration destinations. */
-export const navigation: readonly { readonly id: Exclude<ViewId, 'work'>; readonly label: WorkbenchKey }[] = [
+export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team' | 'agent' | 'versions'>; readonly label: WorkbenchKey }[] = [
   { id: 'assistant', label: 'nav.assistant' },
   { id: 'dashboard', label: 'nav.dashboard' },
   { id: 'priorities', label: 'nav.priorities' },
-  { id: 'agent', label: 'nav.agent' },
   { id: 'tasks', label: 'nav.tasks' },
-  { id: 'versions', label: 'nav.versions' },
   { id: 'calendar', label: 'nav.calendar' },
-  { id: 'team', label: 'nav.team' },
   { id: 'groups', label: 'nav.groups' },
   { id: 'notifications', label: 'nav.notifications' },
   { id: 'files', label: 'nav.files' },

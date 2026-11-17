@@ -26,7 +26,7 @@ After sign-in, employees enter a role-specific personal assistant. It brings aut
 - [7. Visuals, responsive layout, and states](#visual)
 - [8. Domain model and state ownership](#domain)
 - [9. Plugin and client architecture](#architecture)
-- [10. MCP capabilities and platform collaboration](#mcp)
+- [10. Business APIs, MCP, and DSH tools](#mcp)
 - [11. AI methods and context](#ai)
 - [12. Execution, approval, and recovery](#execution)
 - [13. Identity, data, and permissions](#identity)
@@ -66,6 +66,8 @@ The reference is [“DeepSeek Harness can do this too? I turned it into a dedica
 | Around 10:40–11:00 | Test an interactive prototype with familiar work | Validate the workflow with real materials before expanding |
 | Method across the video | Extract Skills, plan the whole workflow, prototype, develop, connect capabilities, compare accepted results | Drive development with role methods, accepted examples, and business acceptance |
 
+Requirements from the follow-up video for scene memory, identity binding, progressive retrieval, and controlled Agent collaboration are maintained in [integration design section 7.1](integration-design.md#scene-continuity). These are proposed requirements; the current prototype does not resume business work across sessions.
+
 Inspection on `feature/yuanshu-platform` covered `ui-yuanshu-chat`, `yuanshu-client`, `yuanshu-gateway`, `yuanshu-tool`, and related tests, including its role-workbench and MCP changes. `RoleWorkbench.tsx` already varies headlines, metrics, pending items, and records using platform roles, providing a useful data foundation. Its organization emphasizes briefings, metrics, and lists. This proposal makes ongoing work, staged results, and contextual collaboration the main path. These observations come from source inspection, not rendered-UI or business acceptance.
 
 <a id="roles"></a>
@@ -98,7 +100,7 @@ Versioned packs associate roles, recipes, view identifiers, available actions, m
 
 ### 3.1 Read-only verification of Shaoshi positions and KPIs
 
-On 2026-11-16, a read-only session using the supplied connection identified `go_admin_kit` as the database and `public` as the table schema; the `postgres` database does not contain these tables. Shaoshi uses `tenant_id = 3` and tenant code `shaoshi`. Queries inspected structures, positions, and KPI configuration without writes or repository copies of connection details, passwords, employee names, or full KPI text.
+On 2026-11-17, a read-only session confirmed that the supplied database server contains database `go_admin_kit`; the position tables are in its `public` schema. Shaoshi uses `tenant_id = 3` and tenant code `shaoshi`. Queries inspected table structures, positions, KPI configuration, and capability-directory metadata without writes or repository copies of connection details, passwords, employee names, or full KPI text.
 
 | Observation | Result | Design consequence |
 |---|---|---|
@@ -279,33 +281,53 @@ P0 treats home and work detail separately: home uses a global entry, while work 
 Manage registrations, listeners, and contributions through `ctx.effect()` or `ctx.on()`. On plugin disablement, tenant change, or Session disposal, stop consumers and asynchronous work before releasing connections and credential references. Do not leave polling, selected tools, or listeners behind. Service definition, MCP provider, and UI/Agent consumers form the complete capability; split further only when they evolve independently.
 
 <a id="mcp"></a>
-## 10. MCP capabilities and platform collaboration
+## 10. Business APIs, MCP, and DSH tools
 
-The source implements calls and projections for several YuanShu capabilities, but source tool names do not establish live tenant availability. Authenticate and discover capabilities, then determine availability from schemas, versions, authorization scope, and supported operations. The tables distinguish existing call foundations from platform aggregates requiring agreement.
+The source-backed interface allocation is maintained in [the integration design](integration-design.md). YuanShu already provides a unified, user-scoped MCP service at `/api/v1/client/mcp`, including deterministic `workbench_*` reads for the UI. Keep HTTP for login, tenant bootstrap, files, health, and notification delivery; use MCP for governed workbench, knowledge, ontology, professional capability, and task operations. A tool is one operation, MCP is the discovery and invocation protocol, and a DSH-native tool is an optional task-shaped orchestration.
 
-| Inspected foundation | Representative tools | Design use and verification |
+The integration document's exposure matrix is normative for this prototype: control-plane and transport operations stay HTTP; governed business capabilities use MCP Tools or Resources; DSH calls MCP Tools directly from the Host when a screen needs deterministic data, without asking a model to choose the call.
+
+| Capability | Recommended interface | Shaoshi workbench use |
 |---|---|---|
-| Workbench and roles | `workbench_describe`, `workbench_profile`, `workbench_position`, `workbench_home`, `workbench_records` | Reuse roles and visibility; verify responses and do not treat list projections as a complete work service |
-| Knowledge | `knowledge_search`, `knowledge_ask` | Search, answers, attached sources; verify collection permissions and traceable citations |
-| Ontology | `ontology_spaces`, `ontology_context`, `ontology_objects_query`, `ontology_evidence` | Select space and context before querying objects and evidence |
-| Professional and workflow | `scenarios_list`, `agent_delegate`, `scenario_run`, discovered algorithm and DAG capabilities | Execute published schemas; distinguish professional-agent catalogs from workflows rather than guessing from names |
-| Execution recovery | `task_get`, `task_result`, `task_events`, `task_cancel`, `task_resume` | Use original task_ref and expose only `available_operations` |
-| Approval | `task_approvals`, `task_approve` | Show approvers and object versions; verify separation of duties and supplemental-input semantics |
+| Login, current user, tenant, active positions, grants, logout, and session renewal | YuanShu HTTPS API | Authenticate the employee before loading any tenant or position data. These endpoints and token rules still require confirmation from YuanShu owners. |
+| Workbench bootstrap, position pack, reviewed KPI definitions, and bounded work records | YuanShu MCP `workbench_*` projections | Host calls the user-scoped service deterministically for the UI. Filter and authorize on the platform; do not add a duplicate REST facade. |
+| Explicit user actions such as creating a work item, posting a group assignment, uploading evidence, or submitting an approval | Existing YuanShu API when the platform defines one; otherwise a narrowly scoped MCP operation | Start from a visible user action, validate current permissions, preserve the platform task reference, and support idempotent status lookup. Do not infer an endpoint from a database table. |
+| Knowledge search, evidence retrieval, semantic business queries, cross-source analysis, metric reads, and governed metadata reads | MCP tools | Let the assistant select a bounded query or evidence operation from the employee's request and current work context. |
+| SOPs, policy references, role guidance, and other read-oriented context | MCP resources where the platform exposes stable resources; otherwise MCP read tools | Load only relevant context. Return source identifiers and citations so the assistant can ground its answer. |
+| Draft generation or preparation that combines several reads and DSH session context | DSH-native tool, optionally implemented as an orchestration over MCP tools | Offer the model one task-shaped operation rather than every low-level connector call. It must not claim a platform write succeeded. |
+| Platform-side proposals, approvals, or other state changes initiated by an agent | A narrowly described MCP tool only when YuanShu exposes it; explicit API action for the UI | Require platform authorization and approval policy on every call. Show the exact target and effect before confirmation, then read the authoritative result. |
 
-| Business capability to agree | Minimum information and behavior | Product behavior when absent |
+### What the database currently confirms
+
+A read-only inspection of the supplied YuanShu database on 2026-11-17 found 18 active Shaoshi positions and 200 current position-KPI rows. All current KPI rows have `review_status = unreviewed`; the 18 positions include project management with no KPI rows. Treat these as configuration candidates, not approved scorecards or live measurements.
+
+The database `mcp_tool_registry` has 47 active rows in the inspected snapshot. This table is not the complete client MCP catalog: the unified service also registers workbench, ontology, task, and published asset capabilities, while applying projection and per-call authorization. Registry metadata alone does not establish which operations are exposed to a particular employee, safe for a model, or usable by this tenant; discover capabilities after authentication and verify schemas, user grants, resource scope, and approval rules.
+
+The tenant currently has two active DAG definitions, one knowledge collection, no tenant Agent definitions, and no tenant metric definitions in the inspected tables. These counts do not prove that no equivalent functionality is published elsewhere. In particular, database presence does not confirm a login API, employee task/calendar/group API, or live KPI query service. YuanShu must provide its API documentation, MCP endpoint and authorization details, and a redacted capability discovery result before those can be treated as available.
+
+### Keep the layers distinct
+
+| Term | Meaning here | Example |
 |---|---|---|
-| Role packs and recipes | Stable IDs, versions, roles, stages, method references, supported views and actions | Show configuration issues rather than hardcoding role rules |
-| Work aggregates | List, detail, ownership, objects, stages, conditional updates, permissions | Allow existing object reads without pretending a complete recoverable work item exists |
-| Results and review | Version saves, conditional updates, comment anchors, permissions, file access, publication | Keep labeled local drafts and disable unsupported submissions or collaboration |
-| Role handoff | Participants, next actor, review/approval relationships, version invalidation | Do not equate sharing a link with handoff completion or approval |
-| Business writes | Authorized operations, idempotency keys, input versions, approval references, queryable submissions | Hide or disable actions with an explanation of missing capability |
+| Business API | A typed, stable platform interface used by the application or another service | `GET current-user`, `GET my-tasks`, `POST submit-for-review` |
+| MCP | A protocol for a client to discover and call server capabilities; a server may expose tools, resources, and prompts, and may internally use APIs, libraries, or direct application logic | Discover `knowledge.search`, then call it with the authorized collection and query |
+| Tool | One named operation with a description and input/output schema that an AI model may be allowed to call | MCP-published `knowledge.search`, or a DSH-local `prepare_supplier_exception_draft` |
+| DSH-native tool | A model-facing operation registered in DSH's scoped tool registry; it can call local services, YuanShu APIs, or MCP tools | Combine authorized reads and selected attachments into a cited draft |
 
-These aggregates have no assumed tool names and are not claimed to exist. Platform and client owners agree on fields, pagination, capability versions, conditional updates, errors, idempotency, and recovery, then retain real redacted responses as contract examples. A gateway can organize responses but cannot create authorization, transaction, or business-success guarantees absent from the platform.
+MCP does not automatically wrap every REST endpoint, and an API is not automatically safe to expose as a model tool. MCP tool annotations and descriptions help clients understand use but do not replace YuanShu authorization, tenant isolation, or human approval. Every business read and write must be authorized by YuanShu for the current user; DSH hiding a button is only a presentation choice.
+
+### Design rules for the integration
+
+Keep control-plane UI operations on typed APIs and governed business reads/writes on the existing MCP service. Keep model-facing Tools task-focused, bounded, and explicit about read/write effects. Implement a DSH orchestration Tool only when it removes meaningful multi-call reasoning or supplies DSH-owned Session behavior; do not create a thin duplicate for every MCP Tool. Reuse the same YuanShu business rules and authorization whether an operation enters through an API or MCP. Require idempotency and a status lookup for writes whose network outcome can be unknown. Never send employee passwords to a model or store them in a Session.
+
+The database inventory is an implementation-planning observation, not an API or permission contract. YuanShu and DSH owners must confirm endpoint schemas, pagination, token audience and renewal, capability versions, conditional updates, error categories, idempotency, audit records, and recovery before live integration.
 
 <a id="ai"></a>
 ## 11. AI methods and context
 
 Each recipe contains a testable method: applicability, inputs, key judgments, steps, result requirements, citation rules, review criteria, prohibited assumptions, and an accepted example. Business owners confirm methods and the platform publishes versions. DSH loads the portions relevant to current work rather than placing all enterprise data and MCP tools in a prompt.
+
+The primary interaction is an active work loop: a platform notice or scheduled checkpoint wakes the role Agent; it evaluates relevance, gathers evidence through bounded MCP Tools, loads the applicable method, prepares a reviewable result, requests human confirmation for consequential actions, executes through the platform, and tracks the original task to a verified result. Event delivery and durable cursors are platform responsibilities; MCP catalog subscriptions do not replace a business event feed.
 
 Model context expands progressively through authorized tenant and user scope, work and recipe, stage, selected material, and tools needed now. Knowledge, attachments, and tool results are data, not instructions to expand permissions or change system rules. Role information, selections, citations, and tool results reaching a model request must be reconstructable from Session logs; secrets stay outside logs.
 

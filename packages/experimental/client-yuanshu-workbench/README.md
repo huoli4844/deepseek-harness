@@ -41,15 +41,15 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 
 - Positions have six charts; company management and the vehicle business president have eight: trends, progress, business mix, plan comparison, weekly completions and risk matrices, plus management collections and resource coverage. New charts open raw data details and a related task.
 - Switch all 19 position views: the assistant inbox and position dashboard adapt to the selected role, while shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
-- Review ten ranked company priorities with synthetic values, sources, owners and next actions; filter them by the active position and open the responsible KPI workflow.
+- Review company priorities with synthetic values, sources, owners and next actions; the list opens on work assigned to the active position, with a switch to the full company list and its KPI workflows.
 - Run a local assistant-workflow simulation with a four-step plan, source and KPI evidence, cross-position review, an editable recommendation and a human approval step. Confirmation updates only the associated browser-local demo work item.
 - Save a position-specific assistant preference in the browser profile and review it beside the method, source evidence and proposed action for each run.
-- Open any of the four KPI-led scenarios for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also lists three role-specific daily work entries.
+- Open any KPI-led scenario for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also has three frequent work scenarios with visible four-step SOP flows and a direct assistant action.
 - All 57 role-task pairs have a suggested method, task-specific inputs, deliverables and acceptance criteria. Materials, analysis, results and review include method guidance, editable evidence notes and self-checks; saved versions include execution snapshots. The method library opens the corresponding task.
-- Open a task, edit its recommendation, save a version, compare snapshots, adopt a preset suggestion and simulate a review handoff.
+- Open a task, edit its recommendation, save a version, open its version history to compare snapshots, adopt a preset suggestion and simulate a review handoff.
 - Select a calendar date and add a local event; switch position views without losing that event or notification read state.
 - Create project, supervision or topic workgroups; invite position assistants, post work arrangements, exchange local messages and revisit each group's history. Assistant replies are scripted demonstrations.
-- Review shared materials and position responsibilities through the Files and Team pages.
+- Review demonstration materials in Files; arrange position work and track confirmations in Workgroups.
 
 -----
 

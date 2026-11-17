@@ -12,20 +12,20 @@
   en: cb3d09927b93b309
   zh: b4ee0535c9cfe704
 /shaoshi-dsh-workbench-development-design/table-of-contents:
-  en: a2eae1878969f239
-  zh: b734c81d2e42658f
+  en: af8c9619791be029
+  zh: 397db8b27a7bbab3
 /shaoshi-dsh-workbench-development-design/1-product-and-scope:
   en: 96abfbfe27453952
   zh: 5e8cf08ac75be46b
 /shaoshi-dsh-workbench-development-design/2-video-reference-and-existing-implementation:
-  en: 5b008b55a02f8b6a
-  zh: b38161a72c1285ac
+  en: 4898c2d4451fcc7b
+  zh: a4f5e561987098d4
 /shaoshi-dsh-workbench-development-design/3-role-adaptation:
   en: 0f7ee3694b5ae29f
   zh: d477c790f30984ae
 /shaoshi-dsh-workbench-development-design/3-role-adaptation/3-1-read-only-verification-of-shaoshi-positions-and-kpis:
-  en: 58a4676a089a4612
-  zh: cf784cc6ac9ab79e
+  en: a0edc1e223274b6d
+  zh: b1b2796a01866923
 /shaoshi-dsh-workbench-development-design/3-role-adaptation/3-2-work-views-derived-from-actual-positions:
   en: 2604dd875c461e61
   zh: 11c1efe8d8b34a6c
@@ -62,12 +62,21 @@
 /shaoshi-dsh-workbench-development-design/9-plugin-and-client-architecture/9-1-technical-prerequisite-for-the-three-region-layout:
   en: f581fe92365d125f
   zh: c03d9c6a5f6e758d
-/shaoshi-dsh-workbench-development-design/10-mcp-capabilities-and-platform-collaboration:
-  en: 8d728b3b6a5f00c0
-  zh: f54e304b0b65bffb
+/shaoshi-dsh-workbench-development-design/10-business-apis-mcp-and-dsh-tools:
+  en: 5c990615d2d21718
+  zh: aedb235ca5e9c464
+/shaoshi-dsh-workbench-development-design/10-business-apis-mcp-and-dsh-tools/what-the-database-currently-confirms:
+  en: 2882837f513278d1
+  zh: bbafcd4f505aa222
+/shaoshi-dsh-workbench-development-design/10-business-apis-mcp-and-dsh-tools/keep-the-layers-distinct:
+  en: 1efa1bb7efc12e64
+  zh: 3f50083d42430238
+/shaoshi-dsh-workbench-development-design/10-business-apis-mcp-and-dsh-tools/design-rules-for-the-integration:
+  en: 5587bd55f11f1357
+  zh: 0c87ee20a90c9aa0
 /shaoshi-dsh-workbench-development-design/11-ai-methods-and-context:
-  en: 4fe0c1d9707ea952
-  zh: b6ef5973536ad3e3
+  en: 3901619467d78082
+  zh: 94b83832adc15cce
 /shaoshi-dsh-workbench-development-design/12-execution-approval-and-recovery:
   en: ab5877fcd92cb769
   zh: 08fafa003f964c13

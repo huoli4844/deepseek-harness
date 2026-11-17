@@ -145,7 +145,7 @@ describe('workbench demonstration state', () => {
     const store = createWorkbenchStore().create()
     const id = 'procurement:0'
     store.actions.setWorkStatus(id, 'inProgress')
-    store.actions.addFollowUp(id, 'quality', 'Confirm the acceptance criteria')
+    store.actions.addFollowUp(id, 'quality', 'Confirm the acceptance criteria', 'quality-group')
     store.actions.setWorkStatus(id, 'waiting')
     store.actions.saveVerification(id, 'Reinspection passed; report QA-17')
     store.actions.setWorkStatus(id, 'done')
@@ -153,8 +153,18 @@ describe('workbench demonstration state', () => {
     expect(store.getSnapshot()).toMatchObject({
       workStatuses: { [id]: 'done' },
       verifications: { [id]: 'Reinspection passed; report QA-17' },
-      followUps: [{ workItemId: id, role: 'quality', text: 'Confirm the acceptance criteria', done: true }],
+      followUps: [{ workItemId: id, role: 'quality', text: 'Confirm the acceptance criteria', done: true, groupId: 'quality-group' }],
     })
+  })
+
+  it('retains historical confirmations without assigning them to a workgroup', () => {
+    const store = createWorkbenchStore().create()
+    store.actions.addFollowUp('procurement:0', 'quality', 'Confirm the original acceptance criteria')
+
+    expect(store.getSnapshot().followUps).toMatchObject([
+      { workItemId: 'procurement:0', role: 'quality', text: 'Confirm the original acceptance criteria', done: false },
+    ])
+    expect(store.getSnapshot().followUps[0]?.groupId).toBeUndefined()
   })
 
   it('records workgroup membership, arrangements and message history', () => {

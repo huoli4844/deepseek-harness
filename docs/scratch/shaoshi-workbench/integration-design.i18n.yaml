@@ -1,0 +1,76 @@
+# Bilingual-pair consistency record for integration-design.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/scratch/shaoshi-workbench/integration-design.md
+/:
+  en: 54cbb950f708858c
+  zh: 1875a672b50b8248
+/shaoshi-yuanshu-workbench-integration-design:
+  en: 0a860e815875ed77
+  zh: b2bf00161b8b6139
+/shaoshi-yuanshu-workbench-integration-design/1-decisions:
+  en: ccf188935c186e56
+  zh: 5cc65e11a723ce80
+/shaoshi-yuanshu-workbench-integration-design/2-evidence-scope-and-confidence:
+  en: 39e4def14f6abf76
+  zh: e64edbcb9cb66b45
+/shaoshi-yuanshu-workbench-integration-design/3-architecture:
+  en: 388afb5c5ce6922e
+  zh: 368868aead8b2be6
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides:
+  en: 0ad8ef2b82f0d77e
+  zh: 66dce084dfc62248
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-1-http-entry-points:
+  en: 185f4b04634f2c06
+  zh: e3d316f0a8db57d1
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-2-unified-employee-mcp:
+  en: cf3974c05e18a037
+  zh: 2103b49bc1ff4f4b
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-3-workbench-and-business-capabilities:
+  en: eefcc127390c7a70
+  zh: 995a0f542fe88615
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-4-database-capabilities:
+  en: da7bee6120658012
+  zh: faf7574990043be5
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation:
+  en: b0e31f7e15ace94d
+  zh: 5e4289323466bf30
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation/5-1-recommended-yuanshu-exposure-contract:
+  en: 6de02ea31cd4cb96
+  zh: c287c157ad13d29f
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation/5-2-mcp-tool-admission-rules:
+  en: 722ec9d6366b35f4
+  zh: e5648418c43ee926
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation/5-3-agent-first-active-work-loop:
+  en: d544d2a482f025e5
+  zh: 5c1c5dc7905ee5c6
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation/5-4-capability-exposure-by-yuanshu-domain:
+  en: d3fe3f1b9db6f31f
+  zh: 773035ae6bd65056
+/shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation/5-5-what-yuanshu-should-expose-as-management-api:
+  en: 4badd600cf629d35
+  zh: 6f4dd21b98452525
+/shaoshi-yuanshu-workbench-integration-design/6-identity-tenant-position-and-kpi-model:
+  en: 0224f55af3a7c923
+  zh: b42cc7efb8d5424d
+/shaoshi-yuanshu-workbench-integration-design/7-role-workbench-and-common-work:
+  en: 1a7f0d2b6def0de0
+  zh: 72385d47b1818fd4
+/shaoshi-yuanshu-workbench-integration-design/7-role-workbench-and-common-work/7-1-continuous-scene-work-and-assistant-learning:
+  en: fa78fa8ff65841a6
+  zh: e2404c43b18b9fe8
+/shaoshi-yuanshu-workbench-integration-design/8-login-and-oauth-sequence:
+  en: 065684f107178ee5
+  zh: 7947bdc1825e0493
+/shaoshi-yuanshu-workbench-integration-design/9-task-execution-and-recovery:
+  en: 8d9ead88c5c05253
+  zh: fe09010f8cd3c53d
+/shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse:
+  en: 3884ad9a20ca0e86
+  zh: 175ecc2aa4888a01
+/shaoshi-yuanshu-workbench-integration-design/11-delivery-plan-and-acceptance:
+  en: 6991565e1c765779
+  zh: b73c31fb3726b922
+/shaoshi-yuanshu-workbench-integration-design/12-source-and-tenant-evidence-index:
+  en: 2c0981191c970409
+  zh: 0e494dc8cd5b3cd4

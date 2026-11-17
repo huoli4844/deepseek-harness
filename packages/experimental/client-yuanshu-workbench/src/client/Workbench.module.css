@@ -945,14 +945,16 @@
   border-top: 0.5px solid var(--work-line);
 }
 .dailyRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  min-height: 68px;
-  padding-block: 10px;
+  padding: 16px 0;
   border-bottom: 0.5px solid var(--work-line);
 }
 .dailyNumber {
+  grid-row: 1;
+  grid-column: 1;
   width: 26px;
   height: 26px;
   display: grid;
@@ -960,16 +962,82 @@
   flex: none;
   border: 0.5px solid var(--work-line);
   border-radius: 50%;
+  corner-shape: round;
   color: var(--work-muted);
 }
-.dailyRow .grow {
+.dailyTitle {
+  grid-row: 1;
+  grid-column: 2;
   min-width: 0;
+}
+.dailyTag {
+  grid-row: 1;
+  grid-column: 3;
 }
 .dailyRow strong {
   display: block;
 }
 .dailyRow small {
   margin-top: 3px;
+}
+.dailySopFlow {
+  grid-row: 2;
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.dailySopFlow li {
+  position: relative;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px 14px 10px;
+  border: 0.5px solid var(--work-line);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.dailySopFlow li + li {
+  border-inline-start: 0;
+}
+.dailySopFlow li:first-child {
+  border-radius: var(--dsw-radius-sm) 0 0 var(--dsw-radius-sm);
+}
+.dailySopFlow li:last-child {
+  border-radius: 0 var(--dsw-radius-sm) var(--dsw-radius-sm) 0;
+}
+.dailySopFlow li:not(:last-child)::after {
+  position: absolute;
+  z-index: 1;
+  inset-inline-end: -5px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid var(--work-muted);
+  border-inline-end: 1px solid var(--work-muted);
+  background: var(--dsw-alias-bg-layer-1);
+  content: '';
+  transform: rotate(45deg);
+}
+.dailySopFlow li > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--work-accent);
+  font-size: 11px;
+}
+.dailySopFlow li > strong {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.dailySopFlow li > small {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+.dailyRow > button {
+  grid-row: 3;
+  grid-column: 3;
+  justify-self: end;
 }
 .scenarioLead {
   margin-bottom: 20px;
@@ -993,40 +1061,6 @@
 }
 .verification .field {
   margin-block: 12px;
-}
-.followUpSection {
-  margin-top: 30px;
-  padding-top: 22px;
-  border-top: 0.5px solid var(--work-line);
-}
-.followUpSection h2 {
-  margin-bottom: 16px;
-}
-.followUpForm {
-  display: grid;
-  grid-template-columns: minmax(140px, 0.7fr) minmax(0, 1.3fr) auto;
-  align-items: end;
-  gap: 12px;
-  padding-bottom: 18px;
-  border-bottom: 0.5px solid var(--work-line);
-}
-.followUpForm label {
-  display: grid;
-  gap: 7px;
-  color: var(--work-muted);
-  font-size: 11px;
-}
-.followUpForm select {
-  min-height: 36px;
-  padding-inline: 10px;
-  border: 0.5px solid var(--work-line);
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-bg-base);
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
-}
-.followUpRows {
-  margin-top: 8px;
 }
 .followUpRow {
   display: flex;
@@ -1188,6 +1222,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--work-accent);
 }
 .dayEvents > div,
@@ -1204,35 +1239,6 @@
 .dayEvents strong {
   display: block;
   margin-top: 6px;
-}
-.teamGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-.teamMember {
-  border: 0.5px solid var(--work-line);
-  padding: 22px 16px;
-  border-radius: var(--dsw-radius-sm);
-}
-.person {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  margin-bottom: 16px;
-  background: var(--dsw-alias-interactive-bg-active);
-  color: var(--work-accent);
-}
-.teamMember p {
-  font-size: 12px;
-  color: var(--work-muted);
-  margin-block: 10px 16px;
-}
-.teamMember > button {
-  display: flex;
-  margin-top: 16px;
 }
 .groupToolbar {
   display: flex;
@@ -1277,9 +1283,13 @@
   border-inline-start: 2px solid transparent;
   cursor: pointer;
 }
-.groupListItem:hover,
 .groupListItemActive {
   background: var(--dsw-alias-bg-layer-2);
+}
+@media (hover: hover) {
+  .groupListItem:hover {
+    background: var(--dsw-alias-bg-layer-2);
+  }
 }
 .groupListItemActive {
   border-inline-start-color: var(--work-accent);
@@ -1419,9 +1429,20 @@
 }
 .groupAssignmentForm > div {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(150px, 0.4fr) auto;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 0.85fr) minmax(110px, 0.9fr) auto;
   align-items: end;
   gap: 10px;
+}
+.groupFollowUps {
+  padding: 8px 20px 14px;
+  border-top: 0.5px solid var(--work-line);
+}
+.groupFollowUps .sectionHeading {
+  margin-bottom: 4px;
+}
+.groupFollowUps h3 {
+  margin: 0;
+  font-size: 12px;
 }
 .groupComposer {
   display: flex;
@@ -1495,6 +1516,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--work-accent);
 }
 .readDot {
@@ -1515,6 +1537,8 @@
   margin-bottom: 24px;
 }
 .detailDialog {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   --work-line: var(--dsw-alias-border-l3);
   --work-muted: var(--dsw-alias-label-tertiary);
   --work-accent: var(--dsw-alias-brand-primary);
@@ -1763,9 +1787,6 @@
   .workLayout > aside {
     min-height: 180px;
   }
-  .teamGrid {
-    grid-template-columns: 1fr;
-  }
   .calendarLayout {
     grid-template-columns: 1fr;
   }
@@ -1921,6 +1942,7 @@
   .groupMembers,
   .groupMessages,
   .groupAssignmentForm,
+  .groupFollowUps,
   .groupComposer {
     padding-inline: 14px;
   }
@@ -1940,18 +1962,44 @@
     flex: 1 1 170px;
   }
   .dailyRow {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: 26px minmax(0, 1fr);
+    align-items: start;
   }
-  .dailyRow .grow {
-    flex-basis: calc(100% - 46px);
+  .dailyTag {
+    grid-row: 2;
+    grid-column: 2;
+    justify-self: start;
+  }
+  .dailySopFlow {
+    grid-row: 3;
+    grid-column: 2;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dailySopFlow li {
+    min-height: 0;
+    padding: 10px 12px;
+  }
+  .dailySopFlow li + li {
+    border-inline-start: 0.5px solid var(--work-line);
+    border-top: 0;
+  }
+  .dailySopFlow li:first-child {
+    border-radius: var(--dsw-radius-sm) var(--dsw-radius-sm) 0 0;
+  }
+  .dailySopFlow li:last-child {
+    border-radius: 0 0 var(--dsw-radius-sm) var(--dsw-radius-sm);
+  }
+  .dailySopFlow li:not(:last-child)::after {
+    inset-inline-end: auto;
+    top: auto;
+    bottom: -5px;
+    left: 19px;
+    transform: rotate(135deg);
   }
   .dailyRow > button {
-    margin-inline-start: 38px;
-  }
-  .followUpForm {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
+    grid-row: 4;
+    grid-column: 2;
+    justify-self: start;
   }
   .followUpRow {
     align-items: flex-start;
