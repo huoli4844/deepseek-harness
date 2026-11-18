@@ -188,12 +188,15 @@ export function initializeProfileFromDefault(
  * @param name - the profile name.
  * @param userLayer - `false` skips parsing `cordis.patch.yml` (the default dump).
  * @param fromDefaultProfile - shipped template that replaces the profile before loading it.
+ * @param launchBundles - additional bundle layers for this source launch.
  * @returns the loaded profile.
  * @throws when explicit initialization names an unknown template or a shipped target.
  */
-export function prepareProfile(name: string, userLayer = true, fromDefaultProfile?: string): Profile {
+export function prepareProfile(
+  name: string, userLayer = true, fromDefaultProfile?: string, launchBundles?: readonly string[],
+): Profile {
   if (fromDefaultProfile !== undefined) initializeProfileFromDefault(name, fromDefaultProfile)
-  const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
+  const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer, launchBundles })
   reportSkippedBundles(NAME, profile)
   writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   return profile
@@ -219,6 +222,7 @@ interface ComposedProfile {
  * @param patchFiles - `--patch` overlay paths, in argv order.
  * @param fromDefaultProfile - shipped template that replaces the named profile.
  * @param resolvedProfile - application-owned profile and installation.
+ * @param launchBundles - additional bundle layers for this source launch.
  * @returns the profile and its patch layers.
  */
 async function composeProfile(
@@ -226,8 +230,9 @@ async function composeProfile(
   patchFiles: readonly string[],
   fromDefaultProfile?: string,
   resolvedProfile?: ResolvedProfileRuntime,
+  launchBundles?: readonly string[],
 ): Promise<ComposedProfile> {
-  const profile = resolvedProfile?.profile ?? prepareProfile(name, true, fromDefaultProfile)
+  const profile = resolvedProfile?.profile ?? prepareProfile(name, true, fromDefaultProfile, launchBundles)
   if (resolvedProfile !== undefined) writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   const resolutionOptions = { installAnchor: resolvedProfile?.installAnchor ?? INSTALL_ANCHOR, profile }
   const resolution = await createRuntimeResolution(resolutionOptions)
@@ -255,6 +260,8 @@ export interface RunProfileOptions {
   fromDefaultProfile?: string | undefined
   /** `--patch` overlay paths, in argv order. */
   patchFiles: readonly string[]
+  /** Additional bundle layers added before the saved user patch. */
+  launchBundles?: readonly string[] | undefined
   /** The invocation's inner arguments, handed to the tree through `ctx.cmdlineArgs`. */
   args: readonly string[]
   /** Application-owned package runtime, scoped to plugin package operations. */
@@ -303,7 +310,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   })()
   try {
     const composed = await composeProfile(
-      options.profile, options.patchFiles, options.fromDefaultProfile, options.resolvedProfile,
+      options.profile, options.patchFiles, options.fromDefaultProfile, options.resolvedProfile, options.launchBundles,
     )
     const appReady = createAppReady()
     const shutdown = createProcessShutdown(dispose)
@@ -330,6 +337,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       dir: composed.profile.dir, patchPath: composed.profile.patchPath,
       installAnchor: options.resolvedProfile?.installAnchor ?? INSTALL_ANCHOR,
       startedBundles: composed.profile.layers.map(layer => layer.packageName),
+      ...(composed.profile.launchBundles === undefined ? {} : { launchBundles: composed.profile.launchBundles }),
       cwd: process.cwd(), home: resolveDshHome(),
       overlays: composed.overlays, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
     }

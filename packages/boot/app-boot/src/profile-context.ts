@@ -23,6 +23,8 @@ export interface ProfileContext {
   readonly home: string
   /** Bundle packages used to start this process, before any persisted edits. */
   readonly startedBundles: readonly string[]
+  /** Additional bundle layers selected for this invocation. */
+  readonly launchBundles?: readonly string[]
   /** Parsed command-line overlays, applied above profile and home patches. */
   readonly overlays: readonly PatchOptions[]
   /** Launch-time DSH_TELEMETRY_DISABLED value; any non-empty value opts out. */
@@ -61,7 +63,9 @@ export function resolveTelemetryPatch(disabledEnv: string | undefined, hasRow: b
  * @returns Bundle patches in application order.
  */
 export function readBundlePatches(binName: string, context: ProfileContext, initialProfile?: Profile): PatchOptions[] {
-  const profile = initialProfile ?? loadProfileDirectory(binName, context.dir, context.installAnchor, { userLayer: false })
+  const profile = initialProfile ?? loadProfileDirectory(binName, context.dir, context.installAnchor, {
+    userLayer: false, launchBundles: context.launchBundles,
+  })
   return profile.layers.flatMap(layer => layer.patches)
 }
 

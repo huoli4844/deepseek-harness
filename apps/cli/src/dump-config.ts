@@ -28,14 +28,16 @@ const NAME = 'dsh'
  * never parsed).
  * @param patches - `--patch` overlay paths, in argv order.
  * @param fromDefaultProfile - shipped template that replaces the profile before loading it.
+ * @param launchBundles - additional bundle layers for this source launch.
  */
 export function runDumpConfig(
   profile: string,
   defaultOnly: boolean,
   patches: readonly string[],
   fromDefaultProfile?: string,
+  launchBundles?: readonly string[],
 ): void {
-  const loaded = prepareProfile(profile, !defaultOnly, fromDefaultProfile)
+  const loaded = prepareProfile(profile, !defaultOnly, fromDefaultProfile, launchBundles)
   const layers = collectConfigDumpLayers(loaded, defaultOnly, patches)
   // The dump anchors on the same empty root file the boot includes.
   process.stdout.write(renderConfigDump(NAME, join(loaded.dir, PROFILE_ROOT_FILENAME), layers))

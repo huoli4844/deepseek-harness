@@ -28,6 +28,10 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
   const { manageDesktopProfile, ...profileOptions } = options
   const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
 
+  const launchBundles = import.meta.main && import.meta.filename.endsWith('.ts') && invocation.profile === 'web'
+    ? ['@deepseek-ai/dsh-client-yuanshu-workbench']
+    : undefined
+
   switch (invocation.mode) {
     case 'profile': {
       const { runProfile } = await import('./profile-boot.ts')
@@ -37,6 +41,7 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
           profile: invocation.profile,
           fromDefaultProfile: invocation.fromDefaultProfile,
           patchFiles: invocation.patches,
+          launchBundles,
           args: invocation.args,
           ...profileOptions,
         })
@@ -59,12 +64,13 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
         invocation.defaultOnly,
         invocation.patches,
         invocation.fromDefaultProfile,
+        launchBundles,
       )
       break
     }
     case 'dump-config-schema': {
       const { runDumpConfigSchema } = await import('./dump-config-schema.ts')
-      await runDumpConfigSchema(invocation.profile, invocation.patches, invocation.fromDefaultProfile)
+      await runDumpConfigSchema(invocation.profile, invocation.patches, invocation.fromDefaultProfile, launchBundles)
       break
     }
     default:

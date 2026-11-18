@@ -1,5 +1,5 @@
 ---
-description: "Install an optional Shaoshi workbench with a role-aware assistant inbox, position dashboards and shared work views."
+description: "Use the Shaoshi workbench to review a role-aware assistant inbox, position dashboards and shared work views."
 kind: "package-bundle"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Inside DSH, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
+Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
 
 ## Table of Contents
 
@@ -27,15 +27,14 @@ Inside DSH, this bundle opens a role-aware assistant inbox with position focus, 
 
 ### Preview from this checkout
 
-From the repository root, build the checkout and install the local bundle into an isolated Web profile. The default DSH composition does not include this specialized workbench.
+After building the checkout, run the Web profile from the root of the `dev` branch. The source launcher adds the workbench bundle before applying your Web profile patches.
 
 ```sh
 pnpm run build
-DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh plugin --profile web add "link:$PWD/packages/experimental/client-yuanshu-workbench"
-DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web/tests/pin-browse-picker.overlay.yml --port 4317 --no-open
+pnpm dsh web
 ```
 
-Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. The isolated profile has its own model configuration and history. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
+Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
 ### What you can try
 
@@ -65,7 +64,7 @@ The manifest declares both `dsh.bundle.patch` and `dsh.client`. The patch insert
 | File | Responsibility |
 |---|---|
 | [Manifest](package.json) | Bundle and browser exports |
-| [Patch](dsh/cordis.patch.yml) | Opt-in activation row |
+| [Patch](dsh/cordis.patch.yml) | Workbench activation row |
 | [Browser entry](src/client/index.ts) | Lifecycle-owned registrations |
 | [Workbench](src/client/Workbench.tsx) | Position and common views |
 | [Store](src/client/model.ts) | Browser-local workbench state and saved snapshots |
@@ -108,6 +107,6 @@ Workbench navigation and draft edits do not change model requests or their cache
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-This package is an opt-in plugin prototype on `dev`, intended for interface review before platform integration.
+This package is an experimental plugin prototype on `dev`, intended for interface review before platform integration.
 
 </details>

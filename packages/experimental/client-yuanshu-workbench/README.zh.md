@@ -1,5 +1,5 @@
 ---
-description: "安装少仕科技专用的可选工作台，提供岗位助理收件页、岗位图表和公共工作功能。"
+description: "使用少仕科技专用工作台查看岗位助理收件页、岗位图表和公共工作功能。"
 kind: "package-bundle"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-此组合包在 DSH 中打开适配岗位的助理收件页，汇总岗位关注、任务与日程并提供直达操作。岗位工作台提供图表；18 个岗位和公司管理层各有 4 个 KPI 关联场景与 3 项连接工作方法的日常任务。工作群用于项目、督办和专题沟通，可邀请岗位助理并保留浏览器本地历史。所有记录均为浏览器 profile 中的演示数据；组合包未连接元枢 MCP、不调用模型，也不通过 Host 持久化数据。
+此组合包在 DSH Web 中打开适配岗位的助理收件页，汇总岗位关注、任务与日程并提供直达操作。岗位工作台提供图表；18 个岗位和公司管理层各有 4 个 KPI 关联场景与 3 项连接工作方法的日常任务。工作群用于项目、督办和专题沟通，可邀请岗位助理并保留浏览器本地历史。所有记录均为浏览器 profile 中的演示数据；组合包未连接元枢 MCP、不调用模型，也不通过 Host 持久化数据。
 
 ## 目录
 
@@ -27,15 +27,14 @@ kind: "package-bundle"
 
 ### 从当前检出目录预览
 
-在仓库根目录构建当前检出版本，并将本地组合包安装到独立 Web profile。DSH 默认组合不包含此专用工作台。
+构建当前检出版本后，在 `dev` 分支的仓库根目录启动 Web profile。源码启动器先加入工作台组合包，再应用你的 Web profile 补丁。
 
 ```sh
 pnpm run build
-DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh plugin --profile web add "link:$PWD/packages/experimental/client-yuanshu-workbench"
-DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web/tests/pin-browse-picker.overlay.yml --port 4317 --no-open
+pnpm dsh web
 ```
 
-打开 DSH 输出的本地入口地址。插件加载后进入**元枢工作台**的**我的助理**页，仅显示工作台自己的导航和内容。收件页汇集岗位关注、本人任务和日程；**岗位工作台**用于查看图表和比较。独立 profile 拥有单独的模型配置与历史记录。通过工作台底部按钮返回 DSH 原始界面，当前会话保持选中。演示记录保存在当前浏览器 profile 中，页面刷新或插件重新加载后仍会保留；清除站点数据会删除这些记录。
+打开 DSH 输出的本地入口地址。插件加载后进入**元枢工作台**的**我的助理**页，仅显示工作台自己的导航和内容。收件页汇集岗位关注、本人任务和日程；**岗位工作台**用于查看图表和比较。通过工作台底部按钮返回 DSH 原始界面，当前会话保持选中。演示记录保存在当前浏览器 profile 中，页面刷新或插件重新加载后仍会保留；清除站点数据会删除这些记录。
 
 ### 可体验的功能
 
@@ -65,7 +64,7 @@ DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web
 | 文件 | 职责 |
 |---|---|
 | [清单](package.json) | 组合包与浏览器导出 |
-| [补丁](dsh/cordis.patch.yml) | 显式启用条目 |
+| [补丁](dsh/cordis.patch.yml) | 工作台启用条目 |
 | [浏览器入口](src/client/index.ts) | 生命周期托管的注册 |
 | [工作台](src/client/Workbench.tsx) | 岗位与公共页面 |
 | [状态](src/client/model.ts) | 浏览器本地工作台状态与已保存快照 |
@@ -108,6 +107,6 @@ DSH_HOME=/tmp/dsh-yuanshu-plugin-preview pnpm dsh --profile web --patch apps/web
 <details>
 <summary>维护者工作上下文——点击展开</summary>
 
-此包是 `dev` 分支上的可选插件原型，用于在平台集成前评审界面。
+此包是 `dev` 分支上的实验性插件原型，用于在平台集成前评审界面。
 
 </details>

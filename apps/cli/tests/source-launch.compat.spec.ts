@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { describe, expect, it } from 'vitest'
@@ -23,6 +25,31 @@ describe('dsh SOURCE launcher (node --import tsx/esm)', () => {
     }
     expect(rootPackage.scripts?.dsh).toBe('node --import tsx/esm apps/cli/src/bin.ts')
   })
+
+  it('adds the workbench to an existing Web profile without saving it', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'dsh-source-web-'))
+    try {
+      const dir = join(home, 'profiles', 'web')
+      const manifest = JSON.stringify({
+        dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+      })
+      const patch = '- id: yuanshu-workbench\n  disabled: true\n'
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'package.json'), manifest)
+      await writeFile(join(dir, 'cordis.patch.yml'), patch)
+
+      const { stdout } = await execa(process.execPath, ['--import', 'tsx/esm', dshSourceBin, 'web', '--dump-config'], {
+        cwd: repoRoot,
+        env: { DSH_HOME: home },
+        timeout: 25_000,
+      })
+      expect(stdout).toMatch(/- id: yuanshu-workbench\n  name: '@deepseek-ai\/dsh-client-yuanshu-workbench'\n  disabled: true/)
+      expect(await readFile(join(dir, 'package.json'), 'utf8')).toBe(manifest)
+      expect(await readFile(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)
+    } finally {
+      await rm(home, { recursive: true, force: true })
+    }
+  }, 30_000)
 
   it('boots the source entry and requires a profile', async () => {
     const result = await execa(process.execPath, ['--import', 'tsx/esm', dshSourceBin], {

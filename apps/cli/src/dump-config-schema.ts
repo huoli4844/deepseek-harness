@@ -20,14 +20,16 @@ const NAME = 'dsh'
  * @param profile - the profile name.
  * @param patches - overlay paths, in argv order.
  * @param fromDefaultProfile - shipped template that replaces the profile before loading it.
+ * @param launchBundles - additional bundle layers for this source launch.
  * @returns after collection and output, with diagnostics also written to stderr.
  */
 export async function runDumpConfigSchema(
   profile: string,
   patches: readonly string[],
   fromDefaultProfile?: string,
+  launchBundles?: readonly string[],
 ): Promise<void> {
-  const loaded = prepareProfile(profile, true, fromDefaultProfile)
+  const loaded = prepareProfile(profile, true, fromDefaultProfile, launchBundles)
   const layers = collectConfigDumpLayers(loaded, false, patches)
   // oxlint-disable-next-line typescript/unbound-method -- Saved only for exact restoration, never called unbound.
   const stdoutWrite = process.stdout.write

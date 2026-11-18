@@ -598,6 +598,9 @@ importers:
       '@deepseek-ai/dsh-brand':
         specifier: workspace:*
         version: link:../../packages/util/brand
+      '@deepseek-ai/dsh-client-yuanshu-workbench':
+        specifier: workspace:*
+        version: link:../../packages/experimental/client-yuanshu-workbench
       '@deepseek-ai/dsh-credentials-local':
         specifier: workspace:*
         version: link:../../packages/credentials/credentials-local

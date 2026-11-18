@@ -96,6 +96,8 @@ export interface Profile {
   patches: PatchOptions[]
   /** Selected bundles that contributed no layer, in `dsh.profile.bundles` order, with why. */
   skippedBundles: SkippedBundle[]
+  /** Additional bundles selected by this launch without changing the saved profile. */
+  launchBundles?: readonly string[]
 }
 
 /** A selected bundle the profile could not load, or whose own DSH requirements the profile does not exempt. */
@@ -400,7 +402,9 @@ export async function createRuntimeResolution(
     : collectProfileScopePackages(profile, packageNames, profileDeclarers, profileVersions)
   const linkedRoots = profile === undefined ? [] : linkedProfileRoots(profile, profilesDir)
   // The Promise return type is the pre-stable API; construction has no asynchronous step.
-  return await Promise.resolve(new ProfileRuntimeResolution({ installAnchor, profileDir: profile?.dir, home }, {
+  return await Promise.resolve(new ProfileRuntimeResolution({
+    installAnchor, profileDir: profile?.dir, home, launchBundles: profile?.launchBundles,
+  }, {
     profilesDir,
     profileDir: profile?.dir,
     localPackageNames: Object.freeze(localPackageNames),
@@ -423,6 +427,7 @@ interface ResolutionSource {
   installAnchor: string
   home: string
   profileDir: string | undefined
+  launchBundles?: readonly string[] | undefined
 }
 
 /**
@@ -453,15 +458,15 @@ export class ProfileRuntimeResolution implements RuntimeResolution {
 
   /**
    * Compute the latest generation from the same installation, profile directory, and Harness home, rereading the
-   * profile's manifest, bundle selection, and installed packages from disk, without retaining synthetic layers.
+   * profile's manifest and installed packages while retaining launch-selected bundles.
    * With no profile directory, only installation packages are recomputed. This instance is unchanged.
    * @returns a new resolution for the latest generation.
    */
   computeLatestResolution(): Promise<ProfileRuntimeResolution> {
-    const { installAnchor, home, profileDir } = this.#source
+    const { installAnchor, home, profileDir, launchBundles } = this.#source
     return createRuntimeResolution({
       installAnchor, home,
-      ...profileDir === undefined ? {} : { profile: loadProfileDirectory('dsh', profileDir, installAnchor) },
+      ...profileDir === undefined ? {} : { profile: loadProfileDirectory('dsh', profileDir, installAnchor, { launchBundles }) },
     })
   }
 }
@@ -535,7 +540,9 @@ function collectProfileScopePackages(
     .filter(layer => !installationPackageNames.has(layer.packageName))
     .map(layer => join(layer.packageDir, 'package.json'))
   const bundleLinks = dependencyClosure(bundleAnchors, installationPackageNames, declarers, versions)
-  for (const layer of profile.layers) bundleLinks.delete(layer.packageName)
+  for (const layer of profile.layers) {
+    if (!profile.launchBundles?.includes(layer.packageName)) bundleLinks.delete(layer.packageName)
+  }
   return bundleLinks
 }
 
@@ -672,17 +679,19 @@ export function resolveBundleDir(
  * @param binName - the diagnostic prefix on thrown errors.
  * @param dir - absolute profile package directory.
  * @param installAnchor - absolute path of the owning dsh app's package.json.
- * @param options - `userLayer: false` skips reading `cordis.patch.yml`.
+ * @param options - user patch inclusion and launch-only bundle selection.
  * @returns the successfully loaded bundle layers and optional user patch layer.
  */
 export function loadProfileDirectory(
   binName: string,
   dir: string,
   installAnchor: string,
-  options: { userLayer?: boolean } = {},
+  options: ProfileLoadOptions = {},
 ): Profile {
   const manifest = dropRetiredBundles(dir, readProfileManifest(binName, dir))
-  const bundles = manifest.dsh?.profile?.bundles ?? []
+  const savedBundles = manifest.dsh?.profile?.bundles ?? []
+  const launchBundles = options.launchBundles ?? []
+  const bundles = [...savedBundles, ...new Set(launchBundles.filter(name => !savedBundles.includes(name)))]
   const layers: ProfileLayer[] = []
   const skippedBundles: SkippedBundle[] = []
   const exemptions = bundles.length === 0 ? {} : readProfileVersionExemptions(dir)
@@ -709,7 +718,18 @@ export function loadProfileDirectory(
   const patches = options.userLayer !== false && existsSync(patchPath)
     ? loadOverlayPatches(binName, patchPath)
     : []
-  return { name: basename(dir), dir, layers, patchPath, patches, skippedBundles }
+  return {
+    name: basename(dir), dir, layers, patchPath, patches, skippedBundles,
+    ...(launchBundles.length === 0 ? {} : { launchBundles }),
+  }
+}
+
+/** Profile layers selected by the caller. */
+interface ProfileLoadOptions {
+  /** False omits the saved user patch. */
+  userLayer?: boolean
+  /** Bundles appended in memory before the saved user patch. */
+  launchBundles?: readonly string[] | undefined
 }
 
 /**
@@ -722,12 +742,12 @@ export function loadProfileDirectory(
  * @param home - the Harness home; defaults to {@link resolveDshHome}.
  * @param options - `userLayer: false` skips reading `cordis.patch.yml`, so a
  * bundles-only consumer (`--dump-default-config`, a recovery diagnostic)
- * cannot fail on a broken user layer.
+ * cannot fail on a broken user layer. `launchBundles` adds layers for this invocation without saving them.
  * @returns the loaded profile (empty `patches` when the user layer is skipped).
  */
 export function loadProfile(
   binName: string, name: string, installAnchor: string, home: string = resolveDshHome(),
-  options: { userLayer?: boolean } = {},
+  options: ProfileLoadOptions = {},
 ): Profile {
   const dir = resolveProfileDir(name, home)
   if (!existsSync(join(dir, 'package.json'))) {
