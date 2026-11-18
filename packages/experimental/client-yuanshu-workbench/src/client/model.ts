@@ -78,6 +78,7 @@ export interface DemoFollowUp {
 export interface SceneCheckpoint {
   stage: 0 | 1 | 2 | 3
   note: string
+  kpiIndex?: 0 | 1 | 2 | 3
 }
 /** Browser-local prototype data; it is not a YuanShu business record. */
 export interface WorkbenchState {
@@ -144,6 +145,10 @@ const workbenchActions = {
   setSceneStage: (state: WorkbenchState, key: string, stage: SceneCheckpoint['stage']) => {
     const checkpoint = (state.sceneCheckpoints[key] ??= { stage: 0, note: '' })
     checkpoint.stage = stage
+  },
+  setSceneKpi: (state: WorkbenchState, key: string, kpiIndex: NonNullable<SceneCheckpoint['kpiIndex']>) => {
+    const checkpoint = (state.sceneCheckpoints[key] ??= { stage: 0, note: '' })
+    checkpoint.kpiIndex = kpiIndex
   },
   saveSceneNote: (state: WorkbenchState, key: string, note: string) => {
     const checkpoint = (state.sceneCheckpoints[key] ??= { stage: 0, note: '' })

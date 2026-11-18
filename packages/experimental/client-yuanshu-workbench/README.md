@@ -34,7 +34,7 @@ pnpm run build
 pnpm dsh web
 ```
 
-Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **My assistant**, with only its own navigation and content visible. The inbox surfaces role focus, assigned work, and schedule items; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
+Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **Today’s work**, with only its own navigation and content visible. The page surfaces the next action and its reason for the selected role; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
 ### What you can try
 
@@ -44,8 +44,8 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 - Run a local assistant-workflow simulation with a four-step plan, source and KPI evidence, cross-position review, an editable recommendation and a human approval step. Confirmation updates only the associated browser-local demo work item.
 - Save a position-specific assistant preference in the browser profile and review it beside the method, source evidence and proposed action for each run.
 - Open any KPI-led scenario for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also has three frequent work scenarios with visible four-step SOP flows and a direct assistant action.
-- Use My assistant as the position’s start page. Needs my action collects decisions, review work and incoming handoffs. The position directory shows when to start each routine, what to deliver, and an expandable SOP with inputs and acceptance criteria. Waiting and completed work and KPI scenarios remain available below the action list.
-- Resume saved work from the assistant inbox: the selected position, SOP step, draft materials and handoff note remain available after navigating away or reloading this browser profile.
+- Today’s work puts the assistant’s top recommendation and its reason first, then lists other decisions, reviews and incoming deliveries. Actions open the associated SOP, delivery request or exact project record. Open the common work scenes to see when to start and what to deliver. Waiting and completed work and KPI scenarios are available below.
+- Resume saved work from Today’s work: the selected position, SOP step, draft materials and handoff note remain available after navigating away or reloading this browser profile.
 - All 57 role-task pairs have a suggested method, task-specific inputs, deliverables and acceptance criteria. Materials, analysis, results and review include method guidance, editable evidence notes and self-checks; saved versions include execution snapshots. The method library opens the corresponding task.
 - Open a task, edit its recommendation, save a version, open its version history to compare snapshots, adopt a preset suggestion and simulate a review handoff.
 - Select a calendar date and add a local event; switch position views without losing that event or notification read state.

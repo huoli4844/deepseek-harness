@@ -127,11 +127,11 @@ export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team'
   { id: 'dashboard', label: 'nav.dashboard' },
   { id: 'project-operations', label: 'nav.projectOperations' },
   { id: 'position-operations', label: 'nav.positionOperations' },
-  { id: 'priorities', label: 'nav.priorities' },
   { id: 'tasks', label: 'nav.tasks' },
-  { id: 'calendar', label: 'nav.calendar' },
   { id: 'groups', label: 'nav.groups' },
+  { id: 'calendar', label: 'nav.calendar' },
   { id: 'notifications', label: 'nav.notifications' },
+  { id: 'priorities', label: 'nav.priorities' },
   { id: 'files', label: 'nav.files' },
   { id: 'methods', label: 'nav.methods' },
 ]

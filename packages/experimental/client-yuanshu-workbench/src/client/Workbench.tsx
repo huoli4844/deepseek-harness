@@ -1,5 +1,5 @@
 /** Role-adapted dashboards and shared workspace rendered in a native DSH panel. */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   Checkbox,
@@ -42,6 +42,15 @@ type WorkbenchProps = PropsRuntime<'main'> &
   WorkbenchStoreProps &
   InjectFace<WorkbenchInjected>
 
+interface WorkQueueEntry {
+  readonly id: string
+  readonly title: string
+  readonly detail: string
+  readonly action: string
+  readonly meta?: string
+  readonly open: () => void
+}
+
 /**
  * Reuse the existing layers icon in the DSH global panel list.
  * @param props - Host-owned icon size and selected state.
@@ -78,9 +87,9 @@ export function Workbench(props: WorkbenchProps) {
   const fixture = roleFixtures[role]
   const [navOpen, setNavOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [stage, setStage] = useState<MethodStage>(state.sceneCheckpoints[key]?.stage ?? 0)
+  const stage = state.sceneCheckpoints[key]?.stage ?? 0
   const [candidate, setCandidate] = useState(false)
-  const [activeScenario, setActiveScenario] = useState<number | null>(null)
+  const [sourceIndex, setSourceIndex] = useState(0)
   const [dialog, setDialog] = useState<'submit' | 'event' | 'source' | 'compare' | 'group' | null>(null)
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
@@ -102,10 +111,24 @@ export function Workbench(props: WorkbenchProps) {
   const [newGroupInviteRole, setNewGroupInviteRole] = useState<RoleId>(roleIds.find(id => id !== role) ?? role)
   const [selectedProjectId, setSelectedProjectId] = useState('controller')
   const [projectChangeId, setProjectChangeId] = useState<string>()
+  const [projectFocusId, setProjectFocusId] = useState<string>()
+  const [groupFocusId, setGroupFocusId] = useState<number>()
   const [decisionChoice, setDecisionChoice] = useState<Record<string, string>>({})
   const [acceptanceEvidence, setAcceptanceEvidence] = useState<Record<string, string>>({})
   const contentRef = useRef<HTMLDivElement>(null)
-  const workDirectoryRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (view !== 'project-operations' || projectFocusId === undefined) return
+    const record = document.getElementById(projectFocusId)
+    if (record === null || !contentRef.current?.contains(record)) return
+    record.focus({ preventScroll: true })
+    record.scrollIntoView?.({ block: 'start' })
+  }, [view, projectFocusId])
+  useEffect(() => {
+    if (view !== 'groups' || groupFocusId === undefined) return
+    const record = contentRef.current?.querySelector<HTMLElement>(`#delivery-${groupFocusId}`)
+    record?.focus({ preventScroll: true })
+    record?.scrollIntoView?.({ block: 'nearest' })
+  }, [view, groupFocusId])
   const draft = state.drafts[key]
   const practice = methodFor(role, state.task)
   const method = practice.method
@@ -141,6 +164,10 @@ export function Workbench(props: WorkbenchProps) {
   const agentScenario = activeAssignment === undefined ? undefined : positionScenarios[activeAssignment.role][activeAssignment.kpiIndex]
   const currentWorkItem = workItems.find(item => item.task === state.task)
   const currentWorkStatus = currentWorkItem === undefined ? undefined : workStatus(currentWorkItem.id, currentWorkItem.status)
+  const taskDeliveries = view === 'work' ? state.followUps.filter(item =>
+    item.workItemId === key && item.groupId !== undefined && item.projectActionId === undefined && item.positionCase === undefined) : []
+  const currentCheckpoint = state.sceneCheckpoints[key]
+  const sourceMetric = currentCheckpoint?.kpiIndex ?? currentWorkItem?.sourceMetricIndex
   const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
   const statusLabel = (status: WorkStatus) => t(({
     attention: 'status.attention', inProgress: 'status.inProgress', waiting: 'status.waiting',
@@ -159,6 +186,8 @@ export function Workbench(props: WorkbenchProps) {
         : t(view === 'team' ? 'nav.groups' : navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
   const selectView = (next: typeof view) => {
     actions.navigate(next)
+    setProjectFocusId(undefined)
+    setGroupFocusId(undefined)
     setNavOpen(false)
     setFeedback('')
     if (contentRef.current !== null) contentRef.current.scrollTop = 0
@@ -168,34 +197,37 @@ export function Workbench(props: WorkbenchProps) {
     selectView('assistant')
     setQuery('')
     setCandidate(false)
-    setActiveScenario(null)
     setSelectedVersion(0)
   }
-  const openWorkgroup = (id: string) => {
+  const openWorkgroup = (id: string, deliveryId?: number) => {
     actions.selectWorkgroup(id)
     selectView('groups')
+    setGroupFocusId(deliveryId)
+  }
+  const openProjectRecord = (projectId: string, recordId: string, expandChange = false) => {
+    setSelectedProjectId(projectId)
+    setProjectChangeId(expandChange ? recordId : undefined)
+    selectView('project-operations')
+    setProjectFocusId(recordId)
   }
   const openTask = (id: TaskId, targetStage?: MethodStage) => {
     const taskKey = `${role}:${id}`
     actions.openTask(id)
     if (targetStage !== undefined) actions.setSceneStage(taskKey, targetStage)
-    setStage(targetStage ?? state.sceneCheckpoints[taskKey]?.stage ?? 0)
     setCandidate(false)
-    setActiveScenario(null)
     setFeedback('')
     setNavOpen(false)
     if (contentRef.current !== null) contentRef.current.scrollTop = 0
   }
   const setWorkStage = (next: MethodStage) => {
-    setStage(next)
     actions.setSceneStage(key, next)
   }
-  const openScenario = (kpiIndex: number, id: TaskId) => {
+  const openScenario = (kpiIndex: 0 | 1 | 2 | 3, id: TaskId) => {
     const item = workItems.find(entry => entry.task === id)
     if (item !== undefined && workStatus(item.id, item.status) === 'attention') actions.setWorkStatus(item.id, 'inProgress')
     openTask(id)
-    setActiveScenario(kpiIndex)
-    setCandidate(true)
+    actions.setSceneKpi(`${role}:${id}`, kpiIndex)
+    setCandidate(state.drafts[`${role}:${id}`] === undefined)
   }
   const openPriority = (item: typeof priorityItems[number]) => {
     const assignment = priorityAssignment(item, role) ?? item.assignments[0]
@@ -593,10 +625,7 @@ export function Workbench(props: WorkbenchProps) {
           <button
             key={item.id}
             className={css.taskRow}
-            onClick={() => {
-              if (workStatus(item.id, item.status) === 'attention') actions.setWorkStatus(item.id, 'inProgress')
-              openTask(item.task)
-            }}
+            onClick={() => { openTask(item.task, workStatus(item.id, item.status) === 'review' ? 3 : undefined) }}
           >
             <span className={css.taskIcon}>
               <IconChecklistOutlineRegular size={18} />
@@ -715,22 +744,21 @@ export function Workbench(props: WorkbenchProps) {
       accepted: 'position.queueAccepted',
     } as const
     const status = positionCase?.status ?? 'attention'
-    return (
-      <section className={css.card} aria-label={t('position.inbox')}>
-        <div className={css.positionAlert}>
-          <div>
-            <p className={css.eyebrow}>{t('position.inbox')} · {t(signal.metric)}</p>
-            <h2>{t(`position.${role}.title`)}</h2>
-            <p>{t(description[status])}</p>
-            <small>{t(`position.${role}.source`)}</small>
-          </div>
-          <div className={css.assistantActions}>
-            <Tag>{t(`position.status.${status}`)}</Tag>
-            <Button variant="outline" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
-          </div>
+    const content = (
+      <div className={css.positionAlert}>
+        <div>
+          <p className={css.eyebrow}>{t('position.inbox')} · {t(signal.metric)}</p>
+          <h2>{t(`position.${role}.title`)}</h2>
+          <p>{t(description[status])}</p>
+          <small>{t(`position.${role}.source`)}</small>
         </div>
-      </section>
+        <div className={css.assistantActions}>
+          <Tag>{t(`position.status.${status}`)}</Tag>
+          <Button variant="outline" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
+        </div>
+      </div>
     )
+    return <section className={css.card} aria-label={t('position.inbox')}>{content}</section>
   }
   const assistant = () => {
     const active = openWorkItems.filter(item => workStatus(item.id, item.status) !== 'waiting')
@@ -748,11 +776,6 @@ export function Workbench(props: WorkbenchProps) {
       && item.requiredActionIds.every(id => projectRecordStatus(id) === 'done'))
     const projectWaiting = projectActions.filter(item =>
       state.followUps.some(delivery => delivery.projectActionId === item.id && !delivery.done))
-    const openProject = (id: string, change?: string) => {
-      setSelectedProjectId(id)
-      setProjectChangeId(change)
-      selectView('project-operations')
-    }
     const queueRow = (key: string, title: string, description: string, action: string, onClick: () => void, meta?: string) => (
       <article className={css.homeRow} key={key}>
         <div>
@@ -765,98 +788,133 @@ export function Workbench(props: WorkbenchProps) {
     )
     const status = positionCase?.status ?? 'attention'
     const positionNeedsAction = role !== 'project' && (status === 'attention' || status === 'review')
-    const actionCount = active.length + incomingPositionDeliveries.length
-      + (role === 'project' ? changes.length + projectReviews.length + acceptanceReviews.length : Number(positionNeedsAction))
+    const decisions: readonly WorkQueueEntry[] = role === 'project' ? [
+      ...projectReviews.map(item => ({
+        id: item.id, title: t(item.title), detail: t(item.evidence), action: t('home.review'),
+        open: () => { openProjectRecord(item.projectId, item.id) },
+      })),
+      ...acceptanceReviews.map(item => ({
+        id: item.id, title: t(item.title), detail: t(item.evidence), action: t('home.review'),
+        open: () => { openProjectRecord(item.projectId, item.id) },
+      })),
+      ...changes.map(item => ({
+        id: item.id, title: t(item.title), detail: t(item.scheduleImpact), action: t('project.operations.runImpact'),
+        meta: t(item.source), open: () => { openProjectRecord(item.projectId, item.id, true) },
+      })),
+    ] : positionNeedsAction ? [{
+      id: `position-${role}`, title: t(`position.${role}.title`),
+      detail: t(status === 'review' ? 'position.queueReview' : `position.${role}.impact`),
+      meta: t(`position.${role}.source`), action: t(status === 'review' ? 'home.review' : 'position.open'),
+      open: () => { selectView('position-operations') },
+    }] : []
+    const queue: readonly WorkQueueEntry[] = [
+      ...decisions,
+      ...incomingPositionDeliveries.flatMap((item) => {
+        const { positionCase: origin, groupId } = item
+        if (groupId === undefined) return []
+        const group = groups.find(entry => entry.id === groupId)
+        const groupTitle = group?.nameKey === undefined ? group?.name ?? t('nav.groups') : t(group.nameKey)
+        return [{
+          id: `delivery-${item.id}`, title: origin === undefined ? groupTitle : t(`position.${origin}.title`),
+          detail: item.text, meta: origin === undefined ? groupTitle : t(`role.${origin}`),
+          action: t('home.openDelivery'), open: () => { openWorkgroup(groupId, item.id) },
+        }]
+      }),
+      ...[...active].sort((left, right) => (
+        Number(right.priority === 'high') - Number(left.priority === 'high')
+        || Number(workStatus(right.id, right.status) === 'review') - Number(workStatus(left.id, left.status) === 'review')
+      )).map((item) => {
+        const checkpoint = state.sceneCheckpoints[item.id]
+        const assignment = methodFor(role, item.task)
+        const workState = workStatus(item.id, item.status)
+        return {
+          id: item.id, title: t(taskTitles[item.task]),
+          detail: checkpoint?.note.trim() || (workState === 'review' ? t(assignment.output)
+            : workState === 'attention' ? t(`home.${role}.trigger${item.metricIndex}`)
+              : t(assignment.method.steps[checkpoint?.stage ?? 0].title)),
+          meta: `${statusLabel(workState)} · ${t(item.dueKey)}`,
+          action: t(workState === 'review' ? 'home.review' : workState === 'attention' ? 'home.do' : 'home.next'),
+          open: () => {
+            if (workState === 'attention') openScenario(item.sourceMetricIndex, item.task)
+            else openTask(item.task, workState === 'review' ? 3 : undefined)
+          },
+        }
+      }),
+    ]
+    const [first, ...remaining] = queue
     const trackCount = waiting.length + (role === 'project' ? projectWaiting.length : Number(!positionNeedsAction))
     return (
-      <div className={css.workHome}>
+      <div className={css.workHome} key={role}>
         <div className={css.pageHeading}>
           <div>
-            <p className={css.eyebrow}>{t('tenant')} / {t('nav.assistant')}</p>
             <h1>{t('home.title', { role: t(`role.${role}`) })}</h1>
             <p>{t(`${role}.focus`)}</p>
           </div>
           <Button variant="outline" onClick={() => { selectView('dashboard') }}>{t('assistant.positionData')}</Button>
         </div>
-        <div className={css.homeDirectoryJump}>
-          <Button size="sm" variant="outline" onClick={() => {
-            workDirectoryRef.current?.focus({ preventScroll: true })
-            workDirectoryRef.current?.scrollIntoView({ block: 'start' })
-          }}>{t('home.directory')}</Button>
-        </div>
-        <div className={css.homeColumns}>
-          <section className={css.homeLane} aria-label={t('home.action')}>
-            <div className={css.homeSectionHeading}>
-              <h2>{t('home.action')}</h2>
-              <Tag>{t('count', { count: actionCount })}</Tag>
+        {first !== undefined && (
+          <section className={css.homeBrief} aria-label={t('home.briefTitle')}>
+            <div className={css.homeBriefHeading}>
+              <div>
+                <p className={css.eyebrow}>{t('home.briefTitle')}</p>
+                <h2>{first.title}</h2>
+                <p>{first.detail}</p>
+                {first.meta && <small>{first.meta}</small>}
+              </div>
+              <Button variant="primary" onClick={first.open} aria-label={`${first.action} · ${first.title}`}>{first.action}</Button>
             </div>
-            {positionNeedsAction && positionAlert()}
-            {role === 'project' && (changes.length > 0 || projectReviews.length > 0 || acceptanceReviews.length > 0) && (
-              <section aria-label={t('project.operations.changes')}>
-                {projectReviews.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.review'),
-                  () => { openProject(item.projectId) }))}
-                {acceptanceReviews.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.review'),
-                  () => { openProject(item.projectId) }))}
-                {changes.map(item => queueRow(item.id, t(item.title), t(item.scheduleImpact), t('project.operations.runImpact'),
-                  () => { openProject(item.projectId, item.id) }, t(item.source)))}
-              </section>
-            )}
-            {incomingPositionDeliveries.length > 0 && (
-              <section aria-label={t('position.incoming')}>
-                {incomingPositionDeliveries.map((item) => {
-                  const { positionCase: origin, groupId } = item
-                  if (groupId === undefined) return null
-                  if (origin === undefined) {
-                    const group = groups.find(entry => entry.id === groupId)
-                    const title = group?.nameKey === undefined ? group?.name ?? t('nav.groups') : t(group.nameKey)
-                    return queueRow(`delivery-${item.id}`, title, item.text, t('position.openWorkgroup'),
-                      () => { openWorkgroup(groupId) })
-                  }
-                  const caseStatus = state.positionCases?.[origin]?.status ?? 'waiting'
-                  return queueRow(`delivery-${item.id}`, t(`position.${origin}.title`), item.text, t('position.openWorkgroup'),
-                    () => { openWorkgroup(groupId) }, `${t(`role.${origin}`)} · ${t(`position.status.${caseStatus}`)}`)
-                })}
-              </section>
-            )}
-            {active.length > 0 && (
-              <section aria-label={t('assistant.resume')}>
-                {[...active].sort((left, right) => {
-                  const order = { review: 0, inProgress: 1, attention: 2, waiting: 3, done: 4 }
-                  return order[workStatus(left.id, left.status)] - order[workStatus(right.id, right.status)]
-                }).map((item) => {
-                  const checkpoint = state.sceneCheckpoints[item.id]
-                  const assignment = methodFor(role, item.task)
-                  const workState = workStatus(item.id, item.status)
-                  const action = workState === 'review' ? 'home.review'
-                    : workState === 'inProgress' || checkpoint !== undefined ? 'home.next' : 'home.do'
-                  const detail = checkpoint?.note.trim() || (workState === 'review'
-                    ? t(assignment.output)
-                    : t(assignment.method.steps[checkpoint?.stage ?? 0].title))
-                  return queueRow(item.id, t(taskTitles[item.task]), detail, t(action), () => {
-                    if (workState === 'attention') actions.setWorkStatus(item.id, 'inProgress')
-                    openTask(item.task, workState === 'review' ? 3 : undefined)
-                  }, `${statusLabel(workState)} · ${t(item.dueKey)}`)
-                })}
-              </section>
-            )}
-            {actionCount === 0 && <p className={css.homeEmpty}>{t('home.noActions')}</p>}
           </section>
-          <section className={css.homeLane} aria-labelledby="position-work-directory-title" ref={workDirectoryRef} tabIndex={-1}>
-            <div className={css.homeSectionHeading}>
-              <h2 id="position-work-directory-title">{t('home.directory')}</h2>
-              <Tag>{t('count', { count: workItems.length })}</Tag>
-            </div>
+        )}
+        <section className={css.homeLane} aria-label={t('home.action')}>
+          <div className={css.homeSectionHeading}>
+            <h2>{t('home.action')}</h2>
+            <Tag>{t('count', { count: remaining.length })}</Tag>
+          </div>
+          {remaining.map(item => queueRow(item.id, item.title, item.detail, item.action, item.open, item.meta))}
+          {remaining.length === 0 && <p className={css.homeEmpty}>{t(first === undefined ? 'home.noActions' : 'home.noOtherActions')}</p>}
+        </section>
+        <details className={css.homeDisclosure}>
+          <summary>{t('home.tracking')} <Tag>{t('count', { count: trackCount })}</Tag></summary>
+          <section aria-label={t('home.tracking')}>
+            {trackCount === 0 && <p className={css.homeEmpty}>{t('home.noTracking')}</p>}
+            {!positionNeedsAction && positionAlert()}
+            {role === 'project' && projectWaiting.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.wait'),
+              () => { openProjectRecord(item.projectId, item.id) }))}
+            {waiting.map((item) => {
+              const workState = workStatus(item.id, item.status)
+              const isDone = workState === 'done'
+              return queueRow(item.id, t(taskTitles[item.task]), state.verifications[item.id] || t(methodFor(role, item.task).output),
+                t(isDone ? 'home.viewResult' : 'home.wait'), () => {
+                  openTask(item.task, isDone ? 3 : undefined)
+                }, statusLabel(workState))
+            })}
+          </section>
+        </details>
+        <details className={css.homeDisclosure}>
+          <summary>{t('home.directory')} <Tag>{t('count', { count: workItems.length })}</Tag></summary>
+          <section aria-label={t('home.directory')}>
+            <p className={css.homeDirectoryHint}>{t('home.directoryHint')}</p>
             {workItems.map((item) => {
               const assignment = methodFor(role, item.task)
               const label = t(taskTitles[item.task])
               const workState = workStatus(item.id, item.status)
-              const action = workState === 'attention' ? 'home.do' : 'home.openWork'
+              const action = {
+                attention: 'home.do', inProgress: 'home.next', waiting: 'home.wait',
+                review: 'home.review', done: 'home.viewResult',
+              } as const
+              const openRoutine = () => {
+                if (workState === 'attention') openScenario(item.metricIndex, item.task)
+                else openTask(item.task, workState === 'done' || workState === 'review' ? 3 : undefined)
+              }
               return (
                 <article className={css.homeWork} key={item.id}>
                   <div className={css.homeWorkTitle}>
-                    <h3>{label}</h3>
-                    <Button size="sm" onClick={() => { openScenario(item.metricIndex, item.task) }} aria-label={`${t(action)} · ${label}`}>
-                      {t(action)}
+                    <div className={css.homeWorkIdentity}>
+                      <h3>{label}</h3>
+                      <Tag>{statusLabel(workState)}</Tag>
+                    </div>
+                    <Button size="sm" onClick={openRoutine} aria-label={`${t(action[workState])} · ${label}`}>
+                      {t(action[workState])}
                     </Button>
                   </div>
                   <dl>
@@ -875,21 +933,6 @@ export function Workbench(props: WorkbenchProps) {
               )
             })}
           </section>
-        </div>
-        <details className={css.homeDisclosure}>
-          <summary>{t('home.tracking')} <Tag>{t('count', { count: trackCount })}</Tag></summary>
-          {trackCount === 0 && <p className={css.homeEmpty}>{t('home.noTracking')}</p>}
-          {!positionNeedsAction && positionAlert()}
-          {role === 'project' && projectWaiting.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.wait'),
-            () => { openProject(item.projectId) }))}
-          {waiting.map((item) => {
-            const workState = workStatus(item.id, item.status)
-            const isDone = workState === 'done'
-            return queueRow(item.id, t(taskTitles[item.task]), state.verifications[item.id] || t(methodFor(role, item.task).output),
-              t(isDone ? 'home.viewResult' : 'home.wait'), () => {
-                openTask(item.task, isDone ? 3 : undefined)
-              }, statusLabel(workState))
-          })}
         </details>
         <details className={css.homeDisclosure}>
           <summary>{t('assistant.kpiScenes')}</summary>
@@ -990,7 +1033,7 @@ export function Workbench(props: WorkbenchProps) {
             <div className={css.sectionHeading}><h2>{t('project.operations.changes')}</h2><Tag>{t('project.operations.aiSuggested')}</Tag></div>
             {selectedChanges.length === 0 && <p className={css.empty}>{t('project.operations.empty')}</p>}
             {selectedChanges.map(item => (
-              <article className={css.projectOpsItem} key={item.id}>
+              <article className={css.projectOpsItem} key={item.id} id={item.id} tabIndex={-1} aria-label={t(item.title)}>
                 <h3>{t(item.title)}</h3>
                 <small>{t(item.source)}</small>
                 <p>{t(item.scheduleImpact)}</p>
@@ -1053,7 +1096,7 @@ export function Workbench(props: WorkbenchProps) {
               const delivery = state.followUps.find(entry => entry.projectActionId === item.id)
               const verified = projectRecordStatus(item.id) === 'done'
               return (
-                <article className={css.projectOpsItem} key={item.id} aria-label={t(item.title)}>
+                <article className={css.projectOpsItem} key={item.id} id={item.id} tabIndex={-1} aria-label={t(item.title)}>
                   <div className={css.sectionHeading}><h3>{t(item.title)}</h3><Tag>{projectRecordStatusLabel(item.id)}</Tag></div>
                   <p>{t('project.operations.ownerDue', { owner: t(`role.${item.owner}`), due: item.due })}</p>
                   <small>{t(item.evidence)}</small>
@@ -1079,7 +1122,7 @@ export function Workbench(props: WorkbenchProps) {
               const approved = projectRecordStatus(item.id) === 'approved'
               const evidence = acceptanceEvidence[item.id] ?? ''
               return (
-                <article className={css.projectOpsItem} key={item.id}>
+                <article className={css.projectOpsItem} key={item.id} id={item.id} tabIndex={-1} aria-label={t(item.title)}>
                   <h3>{t(item.title)}</h3>
                   <ul className={css.projectCriteria}>
                     {item.criteria.map(criteria => <li key={criteria}>{t(criteria)}</li>)}
@@ -1547,15 +1590,21 @@ export function Workbench(props: WorkbenchProps) {
               {activeGroupFollowUps.map((item) => {
                 const origin = item.positionCase
                 const status = origin === undefined ? undefined : state.positionCases?.[origin]?.status
-                const canDeliver = origin === undefined || role === item.role
+                const projectAction = projectActions.find(record => record.id === item.projectActionId)
+                const linkedWork = roleIds.flatMap(workItemsForRole).find(record => record.id === item.workItemId)
+                const canDeliver = role === item.role
+                const canReviewWork = item.done && linkedWork?.owner === role
+                const reviewed = projectAction !== undefined ? projectRecordStatus(projectAction.id) === 'done'
+                  : linkedWork !== undefined && workStatus(linkedWork.id, linkedWork.status) === 'done'
                 return (
-                  <div className={css.followUpRow} key={item.id}>
+                  <div className={css.followUpRow} key={item.id} id={`delivery-${item.id}`} tabIndex={-1}>
                     <div className={css.grow}>
                       <strong>{item.text}</strong>
                       <small>
-                        {origin === undefined
-                          ? t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])
-                          : t(`position.${origin}.title`)} · {t(`role.${item.role}`)}
+                        {origin !== undefined ? `${t(`position.${origin}.title`)} · `
+                          : projectAction !== undefined ? `${t(projectAction.title)} · `
+                            : linkedWork !== undefined ? `${t(taskTitles[linkedWork.task])} · ` : ''}
+                        {t(`role.${item.role}`)}
                       </small>
                       {item.response !== undefined && <p className={css.followUpResponse}><strong>{t('groups.responseRecorded')}:</strong> {item.response}</p>}
                       {!item.done && canDeliver && (
@@ -1571,13 +1620,16 @@ export function Workbench(props: WorkbenchProps) {
                       )}
                     </div>
                     <div className={css.followUpActions}>
-                      <Tag>{t(status === undefined ? (item.done ? 'groups.reviewPending' : 'status.waiting') : `position.status.${status}`)}</Tag>
+                      <Tag>{t(status === undefined
+                        ? (reviewed ? 'status.done' : item.done ? 'groups.reviewPending' : 'status.waiting')
+                        : `position.status.${status}`)}</Tag>
                       {origin !== undefined && role === origin ? (
                         <Button size="sm" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
-                      ) : item.done && origin === undefined ? (
-                        <Button size="sm" onClick={() => { openTask(workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]) }}>
-                          {t('groups.openReview')}
-                        </Button>
+                      ) : canReviewWork && origin === undefined && linkedWork !== undefined ? (
+                        <Button size="sm" onClick={() => {
+                          if (projectAction !== undefined) openProjectRecord(projectAction.projectId, projectAction.id)
+                          else openTask(linkedWork.task, 3)
+                        }}>{t(reviewed ? 'home.viewResult' : 'groups.openReview')}</Button>
                       ) : !item.done && canDeliver ? (
                         <Button size="sm" disabled={!item.responseDraft?.trim()} onClick={() => {
                           if (origin !== undefined) {
@@ -1588,14 +1640,14 @@ export function Workbench(props: WorkbenchProps) {
                           if (response === undefined || response === '') return
                           actions.submitFollowUpResponse(item.id)
                           actions.addWorkgroupMessage(activeGroup.id, item.role, response, 'message', false)
-                          actions.setWorkStatus(item.workItemId, 'review')
+                          if (projectAction === undefined) actions.setWorkStatus(item.workItemId, 'review')
                         }}>{t('groups.submitResponse')}</Button>
                       ) : null}
                     </div>
                     {origin !== undefined && role !== origin && role !== item.role && (
                       <small>{t('position.otherGroup', { role: t(`role.${origin}`) })}</small>
                     )}
-                    {!item.done && origin !== undefined && !canDeliver && <small>{t('position.recipientOnly')}</small>}
+                    {!item.done && !canDeliver && <small>{t('position.recipientOnly')}</small>}
                   </div>
                 )
               })}
@@ -1694,71 +1746,38 @@ export function Workbench(props: WorkbenchProps) {
           </p>
           <h1>{currentTitle}</h1>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => {
-            setDialog('submit')
-          }}
-        >
-          {t(draft?.submitted ? 'work.submitted' : 'work.submit')}
-        </Button>
+        {currentWorkStatus !== undefined && <Tag>{statusLabel(currentWorkStatus)}</Tag>}
       </div>
-      <div className={`${css.card} ${css.methodBanner}`}>
+      <section className={css.workContext} aria-label={t('home.workContext')}>
+        <dl className={css.methodFacts}>
+          {currentWorkItem !== undefined && (
+            <><dt>{t('home.trigger')}</dt><dd>{t(`home.${role}.trigger${currentWorkItem.metricIndex}`)}</dd></>
+          )}
+          {sourceMetric !== undefined && (
+            <><dt>{t('home.relatedMetric')}</dt><dd>{t(`${role}.metric${sourceMetric + 1}` as WorkbenchKey)} · {fixture.metrics[sourceMetric]}</dd></>
+          )}
+          <dt>{t('guide.output')}</dt><dd>{t(practice.output)}</dd>
+          <dt>{t('guide.acceptance')}</dt><dd>{t(practice.acceptance)}</dd>
+        </dl>
+      </section>
+      <nav className={css.workFlow} aria-label={t('assistant.sopFlow', { task: currentTitle })}>
         <div className={css.sectionHeading}>
-          <div><small>{t('guide.applied')}</small><h2>{t(method.title)}</h2></div>
+          <h2>{t(method.title)}</h2>
           <Tag>{t('guide.progress', { done: execution.checked.length })}</Tag>
         </div>
-        <p>{t(method.why)}</p>
-      </div>
-      {activeScenario !== null && (
-        <section className={`${css.card} ${css.scenarioLead}`} aria-label={t('assistant.leadPanel')}>
-          <div className={css.sectionHeading}>
-            <div>
-              <p className={css.eyebrow}>{t('assistant.leadPanel')}</p>
-              <h2>{t(`${role}.metric${activeScenario + 1}` as WorkbenchKey)} · {fixture.metrics[activeScenario]}</h2>
-            </div>
-            <Tag>{t('assistant.aiLead')}</Tag>
-          </div>
-          <p>{t('assistant.leadPlan', { method: t(method.title), work: currentTitle })}</p>
-          <p>{t('assistant.assistantAction')}: {t('assistant.actionPrepare')}</p>
-          <p className={css.intro}>{t('assistant.humanReview')}</p>
-        </section>
-      )}
-      <section className={css.sceneCheckpoint} aria-label={t('scene.resume')}>
-        <div className={css.sceneCheckpointHeader}>
-          <div>
-            <h2>{t('scene.resume')}</h2>
-            <p className={css.intro}>{t('scene.saved')}</p>
-          </div>
-          <Tag>{t((['stage.materials', 'stage.analysis', 'stage.result', 'stage.review'] as const)[stage])}</Tag>
-        </div>
-        <div className={css.sceneCheckpointStep}>
-          <small>{t('scene.currentStep')}</small>
-          <strong>{t(method.steps[stage].title)}</strong>
-          <span>{t(method.steps[stage].prompt)}</span>
-        </div>
-        <label className={css.sceneHandoffField}>
-          {t('scene.handoff')}
-          <textarea
-            value={state.sceneCheckpoints[key]?.note ?? ''}
-            placeholder={t('scene.handoffPlaceholder')}
-            onChange={(event) => { actions.saveSceneNote(key, event.target.value) }}
-          />
-        </label>
-      </section>
-      <nav className={css.stages} aria-label={t('work.title')}>
-        {([0, 1, 2, 3] as const).map(i => (
-          <Button
-            key={i}
-            aria-current={stage === i ? 'step' : undefined}
-            variant={stage === i ? 'outline' : 'ghost'}
-            onClick={() => {
-              setWorkStage(i)
-            }}
-          >
-            {i + 1} · {t((['stage.materials', 'stage.analysis', 'stage.result', 'stage.review'] as const)[i])}
-          </Button>
-        ))}
+        <ol className={css.stages}>
+          {([0, 1, 2, 3] as const).map(index => (
+            <li key={index}>
+              <Button
+                aria-current={stage === index ? 'step' : undefined}
+                variant={stage === index ? 'outline' : 'ghost'}
+                onClick={() => { setWorkStage(index) }}
+              >
+                {index + 1} · {t((['stage.materials', 'stage.analysis', 'stage.result', 'stage.review'] as const)[index])}
+              </Button>
+            </li>
+          ))}
+        </ol>
       </nav>
       <div className={css.workLayout}>
         <section className={css.card}>
@@ -1779,6 +1798,7 @@ export function Workbench(props: WorkbenchProps) {
                   className={css.source}
                   key={id}
                   onClick={() => {
+                    setSourceIndex(id)
                     setDialog('source')
                   }}
                 >
@@ -1815,10 +1835,26 @@ export function Workbench(props: WorkbenchProps) {
                   <div><h2>{t('assistant.verification')}</h2><p className={css.intro}>{t('assistant.verificationHint')}</p></div>
                   {currentWorkStatus !== undefined && <Tag>{statusLabel(currentWorkStatus)}</Tag>}
                 </div>
+                {taskDeliveries.map((item) => {
+                  if (item.groupId === undefined || !item.done || item.response === undefined) return null
+                  const groupId = item.groupId
+                  return (
+                    <article className={css.homeRow} key={item.id}>
+                      <div>
+                        <h3>{t('groups.responseRecorded')} · {t(`role.${item.role}`)}</h3>
+                        <p>{item.response}</p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => { openWorkgroup(groupId, item.id) }}>
+                        {t('nav.groups')}
+                      </Button>
+                    </article>
+                  )
+                })}
                 <label className={css.field}>
                   {t('assistant.resultStatus')}
                   <textarea
                     placeholder={t('assistant.verificationPlaceholder')}
+                    readOnly={currentWorkStatus === 'done'}
                     value={state.verifications[currentWorkItem?.id ?? ''] ?? ''}
                     onChange={(event) => {
                       if (currentWorkItem !== undefined) actions.saveVerification(currentWorkItem.id, event.target.value)
@@ -1830,7 +1866,8 @@ export function Workbench(props: WorkbenchProps) {
                 {currentWorkItem !== undefined && currentWorkStatus !== 'done' && (
                   <Button
                     variant="primary"
-                    disabled={!(state.verifications[currentWorkItem.id] ?? '').trim()}
+                    disabled={currentWorkStatus !== 'review' || !(state.verifications[currentWorkItem.id] ?? '').trim()
+                      || taskDeliveries.some(item => !item.done)}
                     onClick={() => {
                       actions.setWorkStatus(currentWorkItem.id, 'done')
                       setFeedback(t('assistant.completedAt'))
@@ -1885,15 +1922,16 @@ export function Workbench(props: WorkbenchProps) {
               </label>
               <div className={css.sectionHeading}>
                 <small>{t('draftOnly')}</small>
-                <Button
-                  variant="outline"
-                  onClick={() => {
+                <div className={css.assistantActions}>
+                  <Button variant="outline" onClick={() => {
                     actions.saveDraft(key, initial)
                     setFeedback(t('work.saved'))
-                  }}
-                >
-                  {t('work.save')}
-                </Button>
+                  }}>{t('work.save')}</Button>
+                  {currentWorkStatus !== 'done' && (
+                    <Button variant="primary" disabled={!text.trim() || draft?.submitted}
+                      onClick={() => { setDialog('submit') }}>{t(draft?.submitted ? 'work.submitted' : 'work.submit')}</Button>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -1907,61 +1945,49 @@ export function Workbench(props: WorkbenchProps) {
           </div>}
           <p className={css.intro}>{t('guide.recordHint')}</p>
         </section>
-        <aside className={css.card}>
-          <h2>{t('guide.title')}</h2>
-          <ol className={css.methodSteps}>
-            {([0, 1, 2, 3] as const).map(index => (
-              <li key={index}>
-                <Button variant={stage === index ? 'outline' : 'ghost'} aria-current={stage === index ? 'step' : undefined}
-                  onClick={() => { setWorkStage(index) }}>{t(method.steps[index].title)}</Button>
-              </li>
-            ))}
-          </ol>
-          <dl className={css.methodFacts}>
-            <dt>{t('guide.output')}</dt><dd>{t(practice.output)}</dd>
-            <dt>{t('guide.acceptance')}</dt><dd>{t(practice.acceptance)}</dd>
-          </dl>
-          <p className={css.intro}>{t('guide.prototype')}</p>
-          <details className={css.methodSnapshot} open={activeScenario !== null}>
-            <summary>{t('work.ai')}</summary>
-            <div className={css.sectionHeading}>
-              <h2>{t('work.ai')}</h2>
-              <IconLayersOutlineRegular size={18} />
+        <aside className={css.card} aria-label={t('work.ai')}>
+          <div className={css.sectionHeading}>
+            <h2>{t('work.ai')}</h2>
+            <IconLayersOutlineRegular size={18} />
+          </div>
+          <p className={css.intro}>{t('work.aiHint')}</p>
+          <p>{t(method.why)}</p>
+          {!candidate && currentWorkStatus !== 'done' && (
+            <Button variant="outline" onClick={() => { setCandidate(true) }}>{t('work.aiAsk')}</Button>
+          )}
+          {candidate && currentWorkStatus !== 'done' && (
+            <div className={css.candidate}>
+              <h3>{t('work.aiCandidate')}</h3>
+              <p>{suggestedStructure}</p>
+              <Button
+                variant="primary"
+                disabled={text !== initial && text.trim() !== ''}
+                onClick={() => {
+                  actions.editDraft(key, suggestedStructure, initial)
+                  setCandidate(false)
+                  setWorkStage(2)
+                }}
+              >
+                {t('work.adopt')}
+              </Button>
+              <Button
+                onClick={() => {
+                  setCandidate(false)
+                }}
+              >
+                {t('work.dismiss')}
+              </Button>
+              {text !== initial && text.trim() !== '' && <p>{t('home.draftProtected')}</p>}
             </div>
-            <p className={css.intro}>{t('work.aiHint')}</p>
-            <p>{t('work.aiEmpty')}</p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCandidate(true)
-              }}
-            >
-              {t('work.aiAsk')}
-            </Button>
-            {candidate && (
-              <div className={css.candidate}>
-                <h3>{t('work.aiCandidate')}</h3>
-                <p>{suggestedStructure}</p>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    actions.editDraft(key, suggestedStructure, initial)
-                    setCandidate(false)
-                    setWorkStage(2)
-                  }}
-                >
-                  {t('work.adopt')}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setCandidate(false)
-                  }}
-                >
-                  {t('work.dismiss')}
-                </Button>
-              </div>
-            )}
-          </details>
+          )}
+          <label className={css.sceneHandoffField}>
+            {t('scene.handoff')}
+            <textarea
+              value={currentCheckpoint?.note ?? ''}
+              placeholder={t('scene.handoffPlaceholder')}
+              onChange={(event) => { actions.saveSceneNote(key, event.target.value) }}
+            />
+          </label>
         </aside>
       </div>
     </>
@@ -2010,9 +2036,9 @@ export function Workbench(props: WorkbenchProps) {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
-                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('companyFocus')}</p>}
+                  {n.id === 'assistant' && <p className={css.groupLabel}>{t('workGroup')}</p>}
                   {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
-                  {n.id === 'files' && <p className={css.groupLabel}>{t('resources')}</p>}
+                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('resources')}</p>}
                   <button
                     className={view === n.id || (view === 'team' && n.id === 'groups') ? css.activeNav : ''}
                     onClick={() => {
@@ -2066,9 +2092,7 @@ export function Workbench(props: WorkbenchProps) {
             {!['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent'].includes(view) && (
               <div className={css.pageHeading}>
                 <div>
-                  <p className={css.eyebrow}>
-                    {t(`role.${role}`)} / {t('public')}
-                  </p>
+                  <p className={css.eyebrow}>{t(`role.${role}`)}</p>
                   <h1>{title}</h1>
                 </div>
                 {view === 'tasks' && (
@@ -2142,6 +2166,7 @@ export function Workbench(props: WorkbenchProps) {
                       key={id}
                       className={css.source}
                       onClick={() => {
+                        setSourceIndex(id)
                         setDialog('source')
                       }}
                     >
@@ -2184,16 +2209,14 @@ export function Workbench(props: WorkbenchProps) {
             setDialog(null)
           }}
           closeLabel={t('close')}
-          title={t(
+          title={dialog === 'source' ? t(`${role}.source${sourceIndex}` as WorkbenchKey) : t(
             dialog === 'group'
               ? 'groups.createTitle'
               : dialog === 'event'
                 ? 'calendar.add'
                 : dialog === 'compare'
                   ? 'versions.compare'
-                  : dialog === 'source'
-                    ? 'files.preview'
-                    : 'work.submit',
+                  : 'work.submit',
           )}
         >
           {dialog === 'group' ? (
@@ -2296,7 +2319,7 @@ export function Workbench(props: WorkbenchProps) {
               </section>
             </div>
           ) : (
-            <p>{t(`${role}.focus`)}</p>
+            <p>{t('files.intro')}</p>
           )}
         </Modal>
       </div>

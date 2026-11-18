@@ -96,14 +96,15 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px 14px 18px;
+  gap: 16px;
+  padding: 28px 14px 16px;
   padding-top: max(28px, var(--dsh-frame-top-clearance, 0px));
   border-right: 0.5px solid var(--work-line);
   overflow-y: auto;
   background: var(--dsw-alias-bg-layer-1);
 }
 .brand {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -117,6 +118,7 @@
   letter-spacing: 0.4px;
 }
 .roleSelect {
+  flex: none;
   display: block;
   font-size: 11px;
   color: var(--work-muted);
@@ -138,6 +140,9 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .navigation nav button {
   display: flex;
@@ -170,8 +175,9 @@
   letter-spacing: 0.8px;
 }
 .return {
+  flex: none;
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 8px;
   border-top: 0.5px solid var(--work-line);
 }
 .return > button {
@@ -1557,52 +1563,42 @@
 .workHeading h1 {
   font-size: 22px;
 }
-.stages {
-  display: flex;
-  gap: 12px;
-  border-bottom: 0.5px solid var(--work-line);
-  padding-block: 0 16px;
-  margin-bottom: 24px;
-  overflow-x: auto;
-}
-.sceneCheckpoint {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  column-gap: 24px;
-  row-gap: 12px;
-  margin-block: 20px;
-  padding: 14px 0;
+.workContext {
   border-block: 0.5px solid var(--work-line);
+  padding-block: 8px;
+  margin-bottom: 20px;
 }
-.sceneCheckpointHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+.workContext dd {
+  overflow-wrap: anywhere;
 }
-.sceneCheckpointHeader h2 {
-  font-size: 14px;
+.workFlow {
+  margin-bottom: 20px;
 }
-.sceneCheckpointHeader .intro {
-  margin-top: 3px !important;
-}
-.sceneCheckpointStep {
+.stages {
   display: grid;
-  gap: 4px;
-  min-width: 0;
-  align-content: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
 }
-.sceneCheckpointStep small {
-  color: var(--work-muted);
+.stages button {
+  width: 100%;
+  min-height: 40px;
+  height: auto;
+  padding-block: 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.sceneCheckpointStep span {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+@container (max-width: 560px) {
+  .stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .sceneHandoffField {
   display: grid;
-  grid-column: 1 / -1;
   gap: 6px;
+  margin-top: 16px;
   color: var(--work-muted);
   font-size: 11px;
 }
@@ -1617,9 +1613,6 @@
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-base);
   font: inherit;
-}
-.methodBanner {
-  margin-bottom: 24px;
 }
 .detailDialog {
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
@@ -1638,7 +1631,6 @@
   font-size: 13px;
   font-weight: 500;
 }
-.methodBanner > p,
 .methodStep > p {
   color: var(--dsw-alias-label-secondary);
   margin-top: 12px;
@@ -1736,9 +1728,6 @@
     font-size: 16px;
   }
 }
-.stages > button {
-  flex: none;
-}
 .workLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 270px;
@@ -1833,14 +1822,31 @@
 .workHome .pageHeading h1 {
   letter-spacing: 0;
 }
-.homeColumns {
-  display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 32px;
+.homeBrief {
+  border-radius: var(--dsw-radius-sm);
+  margin-bottom: 28px;
+  padding: 16px 18px;
+  border: 0.5px solid var(--work-line);
+  border-inline-start: 3px solid var(--work-accent);
+  background: var(--dsw-alias-bg-layer-1);
 }
-.homeDirectoryJump {
-  display: none;
+.homeBriefHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.homeBriefHeading > div {
+  min-width: 0;
+}
+.homeBriefHeading h2 + p {
+  margin: 4px 0 0;
+  color: var(--dsw-alias-label-secondary);
+}
+.homeBriefHeading small {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
 }
 .homeLane {
   min-width: 0;
@@ -1852,11 +1858,6 @@
   gap: 12px;
   padding-bottom: 12px;
   border-bottom: 0.5px solid var(--work-line);
-}
-.homeLane > .card {
-  margin-top: 12px;
-  margin-bottom: 4px;
-  border-color: var(--dsw-alias-border-l2);
 }
 .homeRow,
 .homeWork {
@@ -1871,6 +1872,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px 12px;
+}
+.homeWorkIdentity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 .homeRow > div {
   flex: 1 1 220px;
@@ -1903,6 +1911,12 @@
 .homeWork dd {
   margin: 0;
 }
+.homeDirectoryHint {
+  margin: 12px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
 .homeSop summary,
 .homeDisclosure summary {
   cursor: pointer;
@@ -1918,16 +1932,23 @@
 }
 .homeSop ol {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 12px;
-  padding-inline-start: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
   margin-block: 8px;
+  list-style-position: inside;
+}
+.homeSop li {
+  padding: 8px 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  overflow-wrap: anywhere;
 }
 .homeSop p {
   margin-block: 4px;
 }
 .homeDisclosure {
-  margin-top: 24px;
+  margin-top: 20px;
   border-block: 0.5px solid var(--work-line);
 }
 .homeDisclosure + .homeDisclosure {
@@ -1944,17 +1965,6 @@
   padding-block: 12px;
   color: var(--dsw-alias-label-secondary);
 }
-@container (max-width: 900px) {
-  .homeDirectoryJump {
-    display: inline-block;
-    margin-bottom: 16px;
-    color: var(--dsw-alias-label-primary);
-  }
-  .homeColumns {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-  }
-}
 @container (max-width: 560px) {
   .workHome .pageHeading {
     align-items: flex-start;
@@ -1963,6 +1973,12 @@
   }
   .homeRow > div {
     flex-basis: 100%;
+  }
+  .homeBriefHeading {
+    flex-direction: column;
+  }
+  .homeSop ol {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .positionAlert {
@@ -2400,13 +2416,6 @@
   }
   .workLayout {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .sceneCheckpoint {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-  .sceneHandoffField {
-    grid-column: 1;
   }
   .workLayout > aside {
     min-height: 180px;
