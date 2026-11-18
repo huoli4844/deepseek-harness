@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
+Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; the project position also has a project operations console that links portfolio health, changes, dependencies, risks, decisions, actions and acceptance gates. 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
 
 ## Table of Contents
 
@@ -44,11 +44,14 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 - Run a local assistant-workflow simulation with a four-step plan, source and KPI evidence, cross-position review, an editable recommendation and a human approval step. Confirmation updates only the associated browser-local demo work item.
 - Save a position-specific assistant preference in the browser profile and review it beside the method, source evidence and proposed action for each run.
 - Open any KPI-led scenario for a position; the assistant opens its typical task, applies that role's method, and prepares a draft for review. Each position also has three frequent work scenarios with visible four-step SOP flows and a direct assistant action.
+- Use My assistant as the position’s start page. Needs my action collects decisions, review work and incoming handoffs. The position directory shows when to start each routine, what to deliver, and an expandable SOP with inputs and acceptance criteria. Waiting and completed work and KPI scenarios remain available below the action list.
 - Resume saved work from the assistant inbox: the selected position, SOP step, draft materials and handoff note remain available after navigating away or reloading this browser profile.
 - All 57 role-task pairs have a suggested method, task-specific inputs, deliverables and acceptance criteria. Materials, analysis, results and review include method guidance, editable evidence notes and self-checks; saved versions include execution snapshots. The method library opens the corresponding task.
 - Open a task, edit its recommendation, save a version, open its version history to compare snapshots, adopt a preset suggestion and simulate a review handoff.
 - Select a calendar date and add a local event; switch position views without losing that event or notification read state.
 - Create project, supervision or topic workgroups; invite position assistants, post work arrangements, exchange local messages and revisit each group's history. Assigned positions submit a delivery record before the work owner reviews the linked task. Assistant replies are scripted demonstrations.
+- Open the project operations console to select a project, inspect linked milestones and dependencies, review detected changes and risk evidence, record a decision option, complete accountable actions and pass acceptance only after required actions are verified.
+- Open Position operations from an assistant alert or the role dashboard. Each of the 17 other positions and company management has a source record, a metric comparison, two response options and a linked SOP. Confirm a plan to create a workgroup assignment. Switch to the delivering position to submit evidence from its inbox, then return to the initiating position to request revision or record acceptance against the scenario criteria. The group retains the assignment, submissions and review history.
 - Review demonstration materials in Files; track group assignment, position delivery and owner review as separate steps.
 
 -----

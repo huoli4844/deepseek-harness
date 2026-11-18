@@ -9,7 +9,7 @@ export type WorkStatus = 'attention' | 'inProgress' | 'waiting' | 'review' | 'do
 export interface WorkItem {
   readonly id: string
   readonly task: TaskId
-  readonly metricIndex: 0 | 1 | 2 | 3
+  readonly metricIndex: 0 | 1 | 2
   readonly status: WorkStatus
   readonly priority: 'high' | 'normal'
   readonly dueKey: 'task.today' | 'task.tomorrow' | 'task.friday'

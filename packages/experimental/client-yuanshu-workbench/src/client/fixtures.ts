@@ -125,6 +125,8 @@ export const roleFixtures: Record<RoleId, RoleFixture> = {
 export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team' | 'agent' | 'versions'>; readonly label: WorkbenchKey }[] = [
   { id: 'assistant', label: 'nav.assistant' },
   { id: 'dashboard', label: 'nav.dashboard' },
+  { id: 'project-operations', label: 'nav.projectOperations' },
+  { id: 'position-operations', label: 'nav.positionOperations' },
   { id: 'priorities', label: 'nav.priorities' },
   { id: 'tasks', label: 'nav.tasks' },
   { id: 'calendar', label: 'nav.calendar' },

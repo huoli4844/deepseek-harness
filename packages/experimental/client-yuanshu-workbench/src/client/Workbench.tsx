@@ -27,9 +27,12 @@ import css from './Workbench.module.css'
 import { DashboardCharts } from './DashboardCharts.tsx'
 import { dashboardCharts } from './dashboard-data.ts'
 import { methodFor, roleMethods, type MethodStage } from './methodology-data.ts'
-import { dailyWorkForRole, positionScenarios, workItemsForRole, workItemForScenario, type WorkStatus } from './scenario-data.ts'
+import { positionScenarios, workItemsForRole, workItemForScenario, type WorkStatus } from './scenario-data.ts'
 import { prioritiesForRole, priorityAssignment, priorityItems } from './priorities-data.ts'
 import { createDemoWorkgroups } from './workgroup-data.ts'
+import { projectAcceptances, projectActions, projectById, projectChanges, projectDecisions, projectDependencies, projectMilestones, projectRecords, projectRisks, projectSchedule } from './project-operations.ts'
+import { PositionOperations } from './PositionOperations.tsx'
+import { positionSignals } from './position-operations.ts'
 
 interface WorkbenchInjected {
   readonly onReturn: () => void
@@ -58,6 +61,8 @@ const navIcons = {
   notifications: IconArchiveOutlineRegular,
   files: IconPaperclipOutlineRegular,
   methods: IconLayersOutlineRegular,
+  'project-operations': IconChecklistOutlineRegular,
+  'position-operations': IconChecklistOutlineRegular,
 }
 
 /**
@@ -86,7 +91,6 @@ export function Workbench(props: WorkbenchProps) {
   const [agentProgress, setAgentProgress] = useState(0)
   const [agentStatus, setAgentStatus] = useState<'ready' | 'running' | 'awaitingApproval' | 'approved'>('ready')
   const [agentDraft, setAgentDraft] = useState('')
-  const [activeGroupId, setActiveGroupId] = useState('project-validation')
   const [groupMessageDraft, setGroupMessageDraft] = useState('')
   const [groupAssignmentDraft, setGroupAssignmentDraft] = useState('')
   const [groupAssignmentRole, setGroupAssignmentRole] = useState<RoleId>(role)
@@ -96,7 +100,12 @@ export function Workbench(props: WorkbenchProps) {
   const [newGroupKind, setNewGroupKind] = useState<WorkgroupKind>('project')
   const [newGroupMembers, setNewGroupMembers] = useState<RoleId[]>([role])
   const [newGroupInviteRole, setNewGroupInviteRole] = useState<RoleId>(roleIds.find(id => id !== role) ?? role)
+  const [selectedProjectId, setSelectedProjectId] = useState('controller')
+  const [projectChangeId, setProjectChangeId] = useState<string>()
+  const [decisionChoice, setDecisionChoice] = useState<Record<string, string>>({})
+  const [acceptanceEvidence, setAcceptanceEvidence] = useState<Record<string, string>>({})
   const contentRef = useRef<HTMLDivElement>(null)
+  const workDirectoryRef = useRef<HTMLElement>(null)
   const draft = state.drafts[key]
   const practice = methodFor(role, state.task)
   const method = practice.method
@@ -114,20 +123,13 @@ export function Workbench(props: WorkbenchProps) {
   const workItems = workItemsForRole(role)
   const workStatus = (id: string, fallback: WorkStatus) => state.workStatuses[id] ?? fallback
   const openWorkItems = workItems.filter(item => workStatus(item.id, item.status) !== 'done')
-  const resumeWorkItems = workItems.filter((item) => {
-    const checkpoint = state.sceneCheckpoints[item.id]
-    return checkpoint !== undefined
-      && (checkpoint.stage > 0 || checkpoint.note.trim() !== '' || state.drafts[`${role}:${item.task}`] !== undefined)
-  })
-  const resumedWorkItemIds = new Set(resumeWorkItems.map(item => item.id))
-  const incomingWorkItems = openWorkItems.slice(1).filter(item => !resumedWorkItemIds.has(item.id))
-  const priorityCount = workItems.filter(item => item.priority === 'high' && workStatus(item.id, item.status) !== 'done').length
-  const confirmationCount = workItems.filter(item => workStatus(item.id, item.status) === 'waiting').length
-  const reviewCount = workItems.filter(item => workStatus(item.id, item.status) === 'review').length
-  const leadPriority = prioritiesForRole(role)[0]
   const groups = state.workgroups ?? createDemoWorkgroups()
-  const activeGroup = groups.find(group => group.id === activeGroupId) ?? groups[0]
+  const activeGroup = groups.find(group => group.id === state.activeGroupId) ?? groups[0]
   const activeGroupFollowUps = state.followUps.filter(item => item.groupId === activeGroup?.id)
+  const positionCase = role === 'project' ? undefined : state.positionCases?.[role]
+  const positionDelivery = state.followUps.find(item => item.positionCase !== undefined && item.positionCase === role)
+  const incomingPositionDeliveries = state.followUps.filter(item =>
+    item.groupId !== undefined && item.role === role && !item.done)
   const legacyFollowUps = state.followUps.filter(item => item.groupId === undefined)
   const groupAssignmentWorkItem = workItems.find(item => item.task === groupAssignmentTask) ?? workItems[0]
   const groupInviteChoices = activeGroup?.members === undefined ? roleIds : roleIds.filter(id => !activeGroup.members.includes(id))
@@ -144,6 +146,10 @@ export function Workbench(props: WorkbenchProps) {
     attention: 'status.attention', inProgress: 'status.inProgress', waiting: 'status.waiting',
     review: 'status.review', done: 'status.done',
   } as const)[status])
+  const projectStatusLabel = (status: 'healthy' | 'watch' | 'critical') => t(`project.status.${status}`)
+  const projectRecordStatus = (id: string) => state.projectOps?.[id] ?? 'open'
+  const projectRecordStatusLabel = (id: string) => t(`project.recordStatus.${projectRecordStatus(id)}`)
+  const activeProjectChange = projectChanges.find(item => item.id === projectChangeId)
   const title = view === 'work'
     ? currentTitle
     : view === 'agent'
@@ -165,9 +171,15 @@ export function Workbench(props: WorkbenchProps) {
     setActiveScenario(null)
     setSelectedVersion(0)
   }
-  const openTask = (id: TaskId) => {
+  const openWorkgroup = (id: string) => {
+    actions.selectWorkgroup(id)
+    selectView('groups')
+  }
+  const openTask = (id: TaskId, targetStage?: MethodStage) => {
+    const taskKey = `${role}:${id}`
     actions.openTask(id)
-    setStage(state.sceneCheckpoints[`${role}:${id}`]?.stage ?? 0)
+    if (targetStage !== undefined) actions.setSceneStage(taskKey, targetStage)
+    setStage(targetStage ?? state.sceneCheckpoints[taskKey]?.stage ?? 0)
     setCandidate(false)
     setActiveScenario(null)
     setFeedback('')
@@ -179,6 +191,8 @@ export function Workbench(props: WorkbenchProps) {
     actions.setSceneStage(key, next)
   }
   const openScenario = (kpiIndex: number, id: TaskId) => {
+    const item = workItems.find(entry => entry.task === id)
+    if (item !== undefined && workStatus(item.id, item.status) === 'attention') actions.setWorkStatus(item.id, 'inProgress')
     openTask(id)
     setActiveScenario(kpiIndex)
     setCandidate(true)
@@ -224,8 +238,20 @@ export function Workbench(props: WorkbenchProps) {
     if (name === '' || newGroupMembers.length === 0) return
     const nextId = (state.workgroups ?? []).filter(group => group.id.startsWith('local-')).length + 1
     actions.createWorkgroup(name, newGroupKind, newGroupMembers)
-    setActiveGroupId(`local-${nextId}`)
+    actions.selectWorkgroup(`local-${nextId}`)
     setDialog(null)
+  }
+  const assignProjectAction = (item: typeof projectActions[number]) => {
+    const groupId = item.projectId === 'controller' ? 'project-validation' : `project-${item.projectId}`
+    const workItemId = `project:${roleFixtures.project.tasks[1]}`
+    const text = t(item.title)
+    actions.ensureProjectGroup(groupId, t(projectById(item.projectId).name), item.owner)
+    if (!state.followUps.some(followUp => followUp.projectActionId === item.id)) {
+      actions.addFollowUp(workItemId, item.owner, text, groupId, item.id)
+      actions.addWorkgroupMessage(groupId, 'human', text, 'assignment', false, item.owner)
+    }
+    actions.selectWorkgroup(groupId)
+    selectView('groups')
   }
   const sendGroupMessage = () => {
     if (activeGroup === undefined || groupMessageDraft.trim() === '') return
@@ -678,237 +704,411 @@ export function Workbench(props: WorkbenchProps) {
       </button>
     )
   }
-  const assistant = () => (
-    <>
-      <div className={css.pageHeading}>
-        <div>
-          <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
-          <h1>{t('assistant.title')}</h1>
-          <p>{t('assistant.subtitle')}</p>
-        </div>
-        <Button
-          variant="primary"
-          icon={<IconPlusOutlineRegular size={16} />}
-          onClick={() => { selectView('methods') }}
-        >
-          {t('new')}
-        </Button>
-      </div>
-      <section className={`${css.assistantBrief} ${css.assistantPriority}`} aria-label={t('assistant.dailyBrief')}>
-        <div>
-          <p className={css.eyebrow}>{t('assistant.dailyBrief')}</p>
-          <strong>{t('assistant.briefBody', {
-            priority: priorityCount,
-            confirmations: confirmationCount,
-            reviews: reviewCount,
-          })}</strong>
-        </div>
-        <div className={css.assistantCadence}>
-          <span><b>09:00</b>{t('assistant.cadenceMorning')}</span>
-          <span><b>13:00</b>{t('assistant.cadenceMidday')}</span>
-          <span><b>17:00</b>{t('assistant.cadenceClose')}</span>
-        </div>
-      </section>
-      <div className={css.assistantLayout}>
-        <section className={css.assistantPriority} aria-labelledby="assistant-priority-title">
-          <div className={css.sectionHeading}>
-            <h2 id="assistant-priority-title">{t('assistant.priority')}</h2>
-            <Tag>{t('demoSample')}</Tag>
-          </div>
-          <p className={css.eyebrow}>{t('assistant.roleFocus')}</p>
-          <p className={css.intro}>{t(`${role}.focus`)}</p>
-          {leadPriority !== undefined && (() => {
-            const assignment = priorityAssignment(leadPriority, role)
-            if (assignment === undefined) return null
-            const scenario = positionScenarios[role][assignment.kpiIndex]
-            if (scenario === undefined) return null
-            const item = workItemForScenario(role, assignment.kpiIndex)
-            return (
-              <div key={leadPriority.id}>
-                <h2 className={css.assistantTaskTitle}>{t(leadPriority.title)}</h2>
-                <p className={css.assistantReason}>{t('assistant.whyNow')}: {t(leadPriority.reason)}</p>
-                <p className={css.assistantReason}>{t('assistant.nextAction')}: {t(leadPriority.action)}</p>
-                <div className={css.assistantItemMeta}>
-                  <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
-                  <span>{t('assistant.due')}: {t(leadPriority.dueKey)}</span>
-                  <span>{t('assistant.owner')}: {t(`role.${role}`)}</span>
-                </div>
-                <small>{t(`${role}.metric${assignment.kpiIndex + 1}` as WorkbenchKey)} · {leadPriority.current}{leadPriority.unit === '%' ? '%' : ` ${leadPriority.unit}`} / {leadPriority.target}{leadPriority.unit === '%' ? '%' : ` ${leadPriority.unit}`}</small>
-                <div className={css.assistantSource}>
-                  <small>{t('priorities.source')}</small>
-                  <strong>{t(leadPriority.source)}</strong>
-                </div>
-                <Button
-                  variant="primary"
-                  icon={<IconChevronRightOutlineRegular size={16} />}
-                  onClick={() => { openPriority(leadPriority) }}
-                >
-                  {t('assistant.continue')}
-                </Button>
-              </div>
-            )
-          })()}
-          {leadPriority === undefined && <p className={css.empty}>{t('assistant.queueEmpty')}</p>}
-          <div className={css.assistantSource}>
-            <small>{t('assistant.dataPath')}</small>
-            <strong>{t('assistant.dataTrace')} · {t('assistant.dataFreshness')}</strong>
+  const positionAlert = () => {
+    if (role === 'project') return null
+    const signal = positionSignals[role]
+    const description = {
+      attention: `position.${role}.impact`,
+      waiting: 'position.queueWaiting',
+      review: 'position.queueReview',
+      rework: 'position.queueRework',
+      accepted: 'position.queueAccepted',
+    } as const
+    const status = positionCase?.status ?? 'attention'
+    return (
+      <section className={css.card} aria-label={t('position.inbox')}>
+        <div className={css.positionAlert}>
+          <div>
+            <p className={css.eyebrow}>{t('position.inbox')} · {t(signal.metric)}</p>
+            <h2>{t(`position.${role}.title`)}</h2>
+            <p>{t(description[status])}</p>
+            <small>{t(`position.${role}.source`)}</small>
           </div>
           <div className={css.assistantActions}>
-            <Button variant="outline" onClick={() => { selectView('dashboard') }}>
-              {t('assistant.positionData')}
-            </Button>
+            <Tag>{t(`position.status.${status}`)}</Tag>
+            <Button variant="outline" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
           </div>
-        </section>
-        <section className={css.assistantInbox} aria-labelledby="assistant-inbox-title">
-          <div className={css.sectionHeading}>
-            <h2 id="assistant-inbox-title">{t('assistant.incoming')}</h2>
-            <Tag>{t('count', { count: incomingWorkItems.length + resumeWorkItems.length + 1 })}</Tag>
-          </div>
-          <p className={css.intro}>{t('assistant.incomingHint')}</p>
-          {resumeWorkItems.length > 0 && (
-            <section className={css.resumeList} aria-label={t('assistant.resume')}>
-              <div className={css.sectionHeading}>
-                <h3>{t('assistant.resume')}</h3>
-                <Tag>{t('assistant.resumeCount', { count: resumeWorkItems.length })}</Tag>
-              </div>
-              <p className={css.intro}>{t('assistant.resumeHint')}</p>
-              {resumeWorkItems.map((item) => {
-                const checkpoint = state.sceneCheckpoints[item.id]
-                return (
-                  <button className={css.assistantSignal} key={item.id} onClick={() => { openTask(item.task) }}>
-                    <span className={css.assistantSignalMarker} aria-hidden="true" />
-                    <span className={css.grow}>
-                      <strong>{t(taskTitles[item.task])}</strong>
-                      <small>{t('scene.currentStep')}: {t(methodFor(role, item.task).method.steps[checkpoint?.stage ?? 0].title)}</small>
-                      {checkpoint?.note.trim() && <small>{checkpoint.note}</small>}
-                    </span>
-                    <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
-                    <IconChevronRightOutlineRegular size={14} />
-                  </button>
-                )
-              })}
-            </section>
-          )}
-          {incomingWorkItems.map(item => (
-            <button className={css.assistantSignal} key={item.id} onClick={() => { openTask(item.task) }}>
-              <span className={css.assistantSignalMarker} aria-hidden="true" />
-              <span className={css.grow}>
-                <strong>{t(taskTitles[item.task])}</strong>
-                <small>{t(`${role}.metric${item.sourceMetricIndex + 1}` as WorkbenchKey)} · {t('assistant.nextReview')}</small>
-              </span>
-              <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
-              <IconChevronRightOutlineRegular size={14} />
-            </button>
-          ))}
-          <button className={css.assistantSignal} onClick={() => { selectView('calendar') }}>
-            <span className={css.assistantSignalMarker} aria-hidden="true" />
-            <span className={css.grow}>
-              <strong>{t('calendar.0')}</strong>
-              <small>{t('assistant.calendarSource')}</small>
-            </span>
-            <Tag>{t('task.today')}</Tag>
-            <IconChevronRightOutlineRegular size={14} />
-          </button>
-          <Button variant="outline" onClick={() => { selectView('tasks') }}>
-            {t('allTasks')}
-          </Button>
-        </section>
-      </div>
-      <section className={css.scenarioSection} aria-label={t('assistant.kpiScenes')}>
-        <div className={css.sectionHeading}>
-          <div>
-            <h2>{t('assistant.kpiScenes')}</h2>
-            <p className={css.intro}>{t('assistant.kpiScenesHint')}</p>
-          </div>
-          <Tag>{t('count', { count: 4 })}</Tag>
-        </div>
-        <div className={css.scenarioGrid}>
-          {positionScenarios[role].map(({ kpiIndex, task, workItemId }) => {
-            const assignment = methodFor(role, task)
-            const item = workItemForScenario(role, kpiIndex)
-            return (
-              <article className={css.scenarioItem} key={kpiIndex}>
-                <div className={css.scenarioKpi}>
-                  <span>{t(`${role}.metric${kpiIndex + 1}` as WorkbenchKey)}</span>
-                  <strong>{fixture.metrics[kpiIndex]}</strong>
-                </div>
-                <p className={css.eyebrow}>{t('assistant.typicalWork')}</p>
-                <h3>{t(taskTitles[task])}</h3>
-                <p className={css.intro}>{t(assignment.method.why)}</p>
-                <dl className={css.scenarioFacts}>
-                  <dt>{t('guide.inputs')}</dt><dd>{t(assignment.inputs)}</dd>
-                  <dt>{t('guide.output')}</dt><dd>{t(assignment.output)}</dd>
-                </dl>
-                <div className={css.scenarioMethod}>
-                  <small>{t('assistant.method')}</small>
-                  <strong>{t(assignment.method.title)}</strong>
-                </div>
-                <div className={css.scenarioActions}>
-                  <Tag>{statusLabel(workStatus(workItemId, item.status))}</Tag>
-                  <small>{t('assistant.nextAction')}: {t('assistant.nextReview')}</small>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    actions.setWorkStatus(workItemId, 'inProgress')
-                    openScenario(kpiIndex, task)
-                  }}
-                >
-                  {t('assistant.leadScenario')}
-                </Button>
-              </article>
-            )
-          })}
         </div>
       </section>
-      <section className={css.dailySection} aria-label={t('assistant.dailyWork')}>
-        <div className={css.sectionHeading}>
-          <div>
-            <h2>{t('assistant.dailyWork')}</h2>
-            <p className={css.intro}>{t('assistant.dailySopHint')}</p>
-          </div>
-          <Tag>{t('count', { count: dailyWorkForRole(role).length })}</Tag>
-        </div>
-        <div className={css.dailyRows}>
-          {roleMethods[role].map((assignment, index) => (
-            <article className={css.dailyRow} key={assignment.task}>
-              <span className={css.dailyNumber}>{index + 1}</span>
-              <div className={css.dailyTitle}>
-                <strong>{t(taskTitles[assignment.task])}</strong>
-                <small>{t('assistant.dailyMethod', { method: t(assignment.method.title) })}</small>
-              </div>
-              <Tag className={css.dailyTag}>{t('assistant.sopSuggested')}</Tag>
-              <ol className={css.dailySopFlow} aria-label={t('assistant.sopFlow', { task: t(taskTitles[assignment.task]) })}>
-                {assignment.method.steps.map((step, stepIndex) => (
-                  <li key={step.title}>
-                    <span>{String(stepIndex + 1).padStart(2, '0')}</span>
-                    <strong>{t(step.title)}</strong>
-                    <small>{t(step.prompt)}</small>
-                  </li>
-                ))}
-              </ol>
-              <Button onClick={() => {
-                const item = workItems.find(candidate => candidate.task === assignment.task)
-                if (item !== undefined) actions.setWorkStatus(item.id, 'inProgress')
-                openScenario(item?.metricIndex ?? 0, assignment.task)
-              }}>{t('assistant.openDaily')}</Button>
-            </article>
-          ))}
-        </div>
-      </section>
-      <div className={css.assistantFooter}>
+    )
+  }
+  const assistant = () => {
+    const active = openWorkItems.filter(item => workStatus(item.id, item.status) !== 'waiting')
+    const waiting = workItems.filter((item) => {
+      const status = workStatus(item.id, item.status)
+      return status === 'waiting' || status === 'done'
+    })
+    const changes = projectChanges.filter((item) => {
+      const decision = projectDecisions.find(entry => entry.changeId === item.id)
+      return decision === undefined || projectRecordStatus(decision.id) !== 'approved'
+    })
+    const projectReviews = projectActions.filter(item => projectRecordStatus(item.id) !== 'done'
+      && state.followUps.some(delivery => delivery.projectActionId === item.id && delivery.done))
+    const acceptanceReviews = projectAcceptances.filter(item => projectRecordStatus(item.id) !== 'approved'
+      && item.requiredActionIds.every(id => projectRecordStatus(id) === 'done'))
+    const projectWaiting = projectActions.filter(item =>
+      state.followUps.some(delivery => delivery.projectActionId === item.id && !delivery.done))
+    const openProject = (id: string, change?: string) => {
+      setSelectedProjectId(id)
+      setProjectChangeId(change)
+      selectView('project-operations')
+    }
+    const queueRow = (key: string, title: string, description: string, action: string, onClick: () => void, meta?: string) => (
+      <article className={css.homeRow} key={key}>
         <div>
-          <p className={css.eyebrow}>{t('assistant.scope')}</p>
-          <p>{t('assistant.scopeHint')}</p>
+          <h3>{title}</h3>
+          <p>{description}</p>
+          {meta && <small>{meta}</small>}
         </div>
-        <div className={css.assistantFooterActions}>
-          <Button onClick={() => { selectView('notifications') }}>{t('nav.notifications')}</Button>
-          <Button onClick={() => { selectView('calendar') }}>{t('goCalendar')}</Button>
-          <Button onClick={() => { selectView('groups') }}>{t('nav.groups')}</Button>
+        <Button size="sm" variant="outline" onClick={onClick} aria-label={`${action} · ${title}`}>{action}</Button>
+      </article>
+    )
+    const status = positionCase?.status ?? 'attention'
+    const positionNeedsAction = role !== 'project' && (status === 'attention' || status === 'review')
+    const actionCount = active.length + incomingPositionDeliveries.length
+      + (role === 'project' ? changes.length + projectReviews.length + acceptanceReviews.length : Number(positionNeedsAction))
+    const trackCount = waiting.length + (role === 'project' ? projectWaiting.length : Number(!positionNeedsAction))
+    return (
+      <div className={css.workHome}>
+        <div className={css.pageHeading}>
+          <div>
+            <p className={css.eyebrow}>{t('tenant')} / {t('nav.assistant')}</p>
+            <h1>{t('home.title', { role: t(`role.${role}`) })}</h1>
+            <p>{t(`${role}.focus`)}</p>
+          </div>
+          <Button variant="outline" onClick={() => { selectView('dashboard') }}>{t('assistant.positionData')}</Button>
         </div>
+        <div className={css.homeDirectoryJump}>
+          <Button size="sm" variant="outline" onClick={() => {
+            workDirectoryRef.current?.focus({ preventScroll: true })
+            workDirectoryRef.current?.scrollIntoView({ block: 'start' })
+          }}>{t('home.directory')}</Button>
+        </div>
+        <div className={css.homeColumns}>
+          <section className={css.homeLane} aria-label={t('home.action')}>
+            <div className={css.homeSectionHeading}>
+              <h2>{t('home.action')}</h2>
+              <Tag>{t('count', { count: actionCount })}</Tag>
+            </div>
+            {positionNeedsAction && positionAlert()}
+            {role === 'project' && (changes.length > 0 || projectReviews.length > 0 || acceptanceReviews.length > 0) && (
+              <section aria-label={t('project.operations.changes')}>
+                {projectReviews.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.review'),
+                  () => { openProject(item.projectId) }))}
+                {acceptanceReviews.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.review'),
+                  () => { openProject(item.projectId) }))}
+                {changes.map(item => queueRow(item.id, t(item.title), t(item.scheduleImpact), t('project.operations.runImpact'),
+                  () => { openProject(item.projectId, item.id) }, t(item.source)))}
+              </section>
+            )}
+            {incomingPositionDeliveries.length > 0 && (
+              <section aria-label={t('position.incoming')}>
+                {incomingPositionDeliveries.map((item) => {
+                  const { positionCase: origin, groupId } = item
+                  if (groupId === undefined) return null
+                  if (origin === undefined) {
+                    const group = groups.find(entry => entry.id === groupId)
+                    const title = group?.nameKey === undefined ? group?.name ?? t('nav.groups') : t(group.nameKey)
+                    return queueRow(`delivery-${item.id}`, title, item.text, t('position.openWorkgroup'),
+                      () => { openWorkgroup(groupId) })
+                  }
+                  const caseStatus = state.positionCases?.[origin]?.status ?? 'waiting'
+                  return queueRow(`delivery-${item.id}`, t(`position.${origin}.title`), item.text, t('position.openWorkgroup'),
+                    () => { openWorkgroup(groupId) }, `${t(`role.${origin}`)} · ${t(`position.status.${caseStatus}`)}`)
+                })}
+              </section>
+            )}
+            {active.length > 0 && (
+              <section aria-label={t('assistant.resume')}>
+                {[...active].sort((left, right) => {
+                  const order = { review: 0, inProgress: 1, attention: 2, waiting: 3, done: 4 }
+                  return order[workStatus(left.id, left.status)] - order[workStatus(right.id, right.status)]
+                }).map((item) => {
+                  const checkpoint = state.sceneCheckpoints[item.id]
+                  const assignment = methodFor(role, item.task)
+                  const workState = workStatus(item.id, item.status)
+                  const action = workState === 'review' ? 'home.review'
+                    : workState === 'inProgress' || checkpoint !== undefined ? 'home.next' : 'home.do'
+                  const detail = checkpoint?.note.trim() || (workState === 'review'
+                    ? t(assignment.output)
+                    : t(assignment.method.steps[checkpoint?.stage ?? 0].title))
+                  return queueRow(item.id, t(taskTitles[item.task]), detail, t(action), () => {
+                    if (workState === 'attention') actions.setWorkStatus(item.id, 'inProgress')
+                    openTask(item.task, workState === 'review' ? 3 : undefined)
+                  }, `${statusLabel(workState)} · ${t(item.dueKey)}`)
+                })}
+              </section>
+            )}
+            {actionCount === 0 && <p className={css.homeEmpty}>{t('home.noActions')}</p>}
+          </section>
+          <section className={css.homeLane} aria-labelledby="position-work-directory-title" ref={workDirectoryRef} tabIndex={-1}>
+            <div className={css.homeSectionHeading}>
+              <h2 id="position-work-directory-title">{t('home.directory')}</h2>
+              <Tag>{t('count', { count: workItems.length })}</Tag>
+            </div>
+            {workItems.map((item) => {
+              const assignment = methodFor(role, item.task)
+              const label = t(taskTitles[item.task])
+              const workState = workStatus(item.id, item.status)
+              const action = workState === 'attention' ? 'home.do' : 'home.openWork'
+              return (
+                <article className={css.homeWork} key={item.id}>
+                  <div className={css.homeWorkTitle}>
+                    <h3>{label}</h3>
+                    <Button size="sm" onClick={() => { openScenario(item.metricIndex, item.task) }} aria-label={`${t(action)} · ${label}`}>
+                      {t(action)}
+                    </Button>
+                  </div>
+                  <dl>
+                    <dt>{t('home.trigger')}</dt><dd>{t(`home.${role}.trigger${item.metricIndex}`)}</dd>
+                    <dt>{t('guide.output')}</dt><dd>{t(assignment.output)}</dd>
+                  </dl>
+                  <details className={css.homeSop}>
+                    <summary>{t('home.flow')} · {t(assignment.method.title)}</summary>
+                    <ol aria-label={t('assistant.sopFlow', { task: label })}>
+                      {assignment.method.steps.map(step => <li key={step.title}>{t(step.title)}</li>)}
+                    </ol>
+                    <p>{t('guide.inputs')} · {t(assignment.inputs)}</p>
+                    <p>{t('guide.acceptance')} · {t(assignment.acceptance)}</p>
+                  </details>
+                </article>
+              )
+            })}
+          </section>
+        </div>
+        <details className={css.homeDisclosure}>
+          <summary>{t('home.tracking')} <Tag>{t('count', { count: trackCount })}</Tag></summary>
+          {trackCount === 0 && <p className={css.homeEmpty}>{t('home.noTracking')}</p>}
+          {!positionNeedsAction && positionAlert()}
+          {role === 'project' && projectWaiting.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.wait'),
+            () => { openProject(item.projectId) }))}
+          {waiting.map((item) => {
+            const workState = workStatus(item.id, item.status)
+            const isDone = workState === 'done'
+            return queueRow(item.id, t(taskTitles[item.task]), state.verifications[item.id] || t(methodFor(role, item.task).output),
+              t(isDone ? 'home.viewResult' : 'home.wait'), () => {
+                openTask(item.task, isDone ? 3 : undefined)
+              }, statusLabel(workState))
+          })}
+        </details>
+        <details className={css.homeDisclosure}>
+          <summary>{t('assistant.kpiScenes')}</summary>
+          <section aria-label={t('assistant.kpiScenes')}>
+            {positionScenarios[role].map(({ kpiIndex, task }) => (
+              queueRow(`kpi-${kpiIndex}`, `${t(`${role}.metric${kpiIndex + 1}` as WorkbenchKey)} · ${fixture.metrics[kpiIndex]}`,
+                t(taskTitles[task]), t('assistant.leadScenario'), () => { openScenario(kpiIndex, task) })
+            ))}
+          </section>
+        </details>
       </div>
-    </>
-  )
+    )
+  }
+  const projectOperations = () => {
+    const selectedProject = projectById(selectedProjectId)
+    const schedule = projectSchedule(selectedProject.id)
+    const selectedMilestones = projectMilestones.filter(item => item.projectId === selectedProject.id)
+    const selectedDependencies = projectDependencies.filter(item => item.projectId === selectedProject.id)
+    const selectedChanges = projectChanges.filter(item => item.projectId === selectedProject.id)
+    const selectedRisks = projectRisks.filter(item => item.projectId === selectedProject.id)
+    const selectedDecisions = projectDecisions.filter(item => item.projectId === selectedProject.id)
+    const selectedActions = projectActions.filter(item => item.projectId === selectedProject.id)
+    const selectedAcceptances = projectAcceptances.filter(item => item.projectId === selectedProject.id)
+    const doneActions = selectedActions.filter(item => projectRecordStatus(item.id) === 'done').length
+    const acceptanceReady = (item: typeof projectAcceptances[number]) => item.requiredActionIds.every(id => projectRecordStatus(id) === 'done')
+    return (
+      <>
+        <div className={css.pageHeading}>
+          <div>
+            <p className={css.eyebrow}>{t('tenant')} / {t('role.project')}</p>
+            <h1>{t('project.operations.title')}</h1>
+            <p>{t('project.operations.subtitle')}</p>
+          </div>
+          <Tag>{t('demoSample')}</Tag>
+        </div>
+        <section className={css.projectOpsBanner} aria-label={t('project.operations.loop')}>
+          <div>
+            <p className={css.eyebrow}>{t('project.operations.loop')}</p>
+            <strong>{t('project.operations.banner')}</strong>
+          </div>
+          <span>{t('project.operations.aiBoundary')}</span>
+        </section>
+        <div className={css.projectOpsMetrics}>
+          <div className={css.projectOpsMetric}><small>{t('project.operations.portfolio')}</small><strong>{projectRecords.length}</strong><span>{t('project.operations.portfolioHint')}</span></div>
+          <div className={css.projectOpsMetric}><small>{t('project.operations.changes')}</small><strong>{projectChanges.length}</strong><span>{t('project.operations.changesHint')}</span></div>
+          <div className={css.projectOpsMetric}><small>{t('project.operations.blockers')}</small><strong>{projectDependencies.filter(item => item.status === 'blocked').length}</strong><span>{t('project.operations.blockersHint')}</span></div>
+          <div className={css.projectOpsMetric}><small>{t('project.operations.decisions')}</small><strong>{projectDecisions.filter(item => projectRecordStatus(item.id) !== 'approved').length}</strong><span>{t('project.operations.decisionsHint')}</span></div>
+        </div>
+        <div className={css.projectOpsLayout}>
+          <section className={css.card} aria-label={t('project.operations.portfolio')}>
+            <div className={css.sectionHeading}><h2>{t('project.operations.portfolio')}</h2><Tag>{t('count', { count: projectRecords.length })}</Tag></div>
+            <div className={css.projectList}>
+              {projectRecords.map(project => (
+                <button
+                  key={project.id}
+                  className={`${css.projectRow} ${selectedProject.id === project.id ? css.projectRowActive : ''}`}
+                  aria-pressed={selectedProject.id === project.id}
+                  onClick={() => { setSelectedProjectId(project.id) }}
+                >
+                  <span className={css.grow}>
+                    <strong>{t(project.name)}</strong>
+                    <small>{t(project.customer)} · {t(project.stage)}</small>
+                  </span>
+                  <span className={css.projectProgress}><b>{project.progress}%</b><span className={css.barTrack}><span style={{ width: `${project.progress}%` }} /></span></span>
+                  <Tag>{projectStatusLabel(project.status)}</Tag>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className={css.card} aria-label={t('project.operations.selectedProject')}>
+            <div className={css.sectionHeading}><div><p className={css.eyebrow}>{t('project.operations.selectedProject')}</p><h2>{t(selectedProject.name)}</h2></div><Tag>{t(selectedProject.status === 'critical' ? 'project.severity.critical' : selectedProject.status === 'watch' ? 'project.severity.watch' : 'project.severity.healthy')}</Tag></div>
+            <div className={css.projectSummaryGrid}>
+              <div>
+                <small>{t('project.operations.baseline')}</small>
+                <strong>{selectedProject.baseline}</strong>
+                <span>{t('project.operations.forecast')}: {selectedProject.forecast}</span></div>
+              <div>
+                <small>{t('project.operations.budget')}</small>
+                <strong>{selectedProject.budget}</strong>
+                <span>{t('project.operations.spent')}: {selectedProject.spent}</span></div>
+            </div>
+            <div className={css.projectOpsSection}><div className={css.sectionHeading}><h3>{t('project.operations.milestones')}</h3><Tag>{t('count', { count: selectedMilestones.length })}</Tag></div>{selectedMilestones.map(item => <div className={css.projectDetailRow} key={item.id}><span className={css.grow}><strong>{t(item.name)}</strong><small>{t(`role.${item.owner}`)} · {t(item.deliverable)}</small></span><span>{item.progress}%</span><span className={item.critical ? css.projectCritical : ''}>{item.baseline} → {item.forecast}</span></div>)}</div>
+            <div className={css.projectOpsSection}><div className={css.sectionHeading}><h3>{t('project.operations.dependencies')}</h3><Tag>{t('count', { count: selectedDependencies.length })}</Tag></div>{selectedDependencies.map(item => <div className={css.projectDetailRow} key={item.id}><span className={css.grow}><strong>{t(item.predecessor)} → {t(item.successor)}</strong><small>{t(`role.${item.owner}`)} · {t(item.evidence)}</small></span><Tag>{t(`project.dependencyStatus.${item.status}`)}</Tag><span>{item.impactDays ? `+${item.impactDays} ${t('project.operations.days')}` : t('project.operations.noImpact')}</span></div>)}</div>
+            <details className={css.projectOpsSection}>
+              <summary>{t('project.operations.scheduleComparison', { baseline: schedule.baseline, forecast: schedule.forecast })}</summary>
+              {schedule.rows.map(task => (
+                <div className={css.projectDetailRow} key={task.id}>
+                  <strong>{t(task.id)}</strong>
+                  <span>{t('project.operations.durationDays', { days: task.days })}</span>
+                  <Tag>{task.float === 0 ? t('project.operations.criticalTask') : t('project.operations.float', { days: task.float })}</Tag>
+                </div>
+              ))}
+            </details>
+          </section>
+        </div>
+        <div className={css.projectOpsGrid}>
+          <section className={css.card} aria-label={t('project.operations.changes')}>
+            <div className={css.sectionHeading}><h2>{t('project.operations.changes')}</h2><Tag>{t('project.operations.aiSuggested')}</Tag></div>
+            {selectedChanges.length === 0 && <p className={css.empty}>{t('project.operations.empty')}</p>}
+            {selectedChanges.map(item => (
+              <article className={css.projectOpsItem} key={item.id}>
+                <h3>{t(item.title)}</h3>
+                <small>{t(item.source)}</small>
+                <p>{t(item.scheduleImpact)}</p>
+                <Button size="sm" aria-expanded={activeProjectChange === item} onClick={() => {
+                  setProjectChangeId(activeProjectChange === item ? undefined : item.id)
+                }}>{t('project.operations.runImpact')}</Button>
+                {activeProjectChange === item && (
+                  <div className={css.projectOpsItem}>
+                    <p>{t(item.scopeImpact)}</p>
+                    <p>{t(item.costImpact)}</p>
+                    <p>{t(item.qualityImpact)}</p>
+                    <small>{t(item.evidence)}</small>
+                    <strong>{t('project.operations.affected')}</strong>
+                    <ul className={css.projectCriteria}>
+                      {selectedMilestones.filter(milestone => item.affectedMilestones.includes(milestone.id)).map(milestone => (
+                        <li key={milestone.id}>{t(milestone.name)} · {t(`role.${milestone.owner}`)}</li>
+                      ))}
+                    </ul>
+                    <Button size="sm" onClick={() => { openScenario(1, 'project.1') }}>{t('project.operations.openSop')}</Button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </section>
+          <section className={css.card} aria-label={t('project.operations.risks')}><div className={css.sectionHeading}><h2>{t('project.operations.risks')}</h2><Tag>{t('count', { count: selectedRisks.length })}</Tag></div>{selectedRisks.map(item => <article className={css.projectOpsItem} key={item.id}><div className={css.sectionHeading}><strong>{t(item.title)}</strong><Tag>{t(`project.impact.${item.impact}`)}</Tag></div><p>{t(item.mitigation)}</p><small>{t('project.operations.ownerDue', { owner: t(`role.${item.owner}`), due: item.due })} · {t(item.evidence)}</small><button className={css.textAction} onClick={() => { actions.setProjectRecordStatus(item.id, projectRecordStatus(item.id) === 'done' ? 'open' : 'done'); setFeedback(t('project.operations.statusSaved')) }}>{projectRecordStatus(item.id) === 'done' ? t('project.recordStatus.done') : t('project.operations.markMitigated')}</button></article>)}</section>
+          <section className={css.card} aria-label={t('project.operations.decisions')}>
+            <div className={css.sectionHeading}><h2>{t('project.operations.decisions')}</h2><Tag>{t('project.operations.humanApproval')}</Tag></div>
+            {selectedDecisions.length === 0 && <p className={css.empty}>{t('project.operations.empty')}</p>}
+            {selectedDecisions.map((item) => {
+              const approved = projectRecordStatus(item.id) === 'approved'
+              const choice = approved ? state.projectDecisionOptions?.[item.id] : decisionChoice[item.id]
+              return (
+                <article className={css.projectOpsItem} key={item.id}>
+                  <h3>{t(item.title)}</h3>
+                  <p>{t(item.question)}</p>
+                  <small>{t('project.operations.ownerDue', { owner: t(`role.${item.owner}`), due: item.due })}</small>
+                  <label className={css.projectDecisionSelect}>
+                    {t('project.operations.decisionOption')}
+                    <select value={choice ?? ''} disabled={approved} onChange={(event) => {
+                      setDecisionChoice(previous => ({ ...previous, [item.id]: event.target.value }))
+                    }}>
+                      <option value="">{t('project.operations.chooseOption')}</option>
+                      {item.options.map(option => <option key={option} value={option}>{t(option)}</option>)}
+                    </select>
+                  </label>
+                  {approved ? <Tag>{t('project.recordStatus.approved')}</Tag> : (
+                    <Button size="sm" disabled={!choice} onClick={() => {
+                      if (!choice) return
+                      actions.recordProjectDecision(item.id, choice)
+                      setFeedback(t('project.operations.decisionSaved'))
+                    }}>{t('project.operations.recordDecision')}</Button>
+                  )}
+                </article>
+              )
+            })}
+          </section>
+          <section className={css.card} aria-label={t('project.operations.actions')}>
+            <div className={css.sectionHeading}><h2>{t('project.operations.actions')}</h2><Tag>{doneActions}/{selectedActions.length}</Tag></div>
+            {selectedActions.map((item) => {
+              const delivery = state.followUps.find(entry => entry.projectActionId === item.id)
+              const verified = projectRecordStatus(item.id) === 'done'
+              return (
+                <article className={css.projectOpsItem} key={item.id} aria-label={t(item.title)}>
+                  <div className={css.sectionHeading}><h3>{t(item.title)}</h3><Tag>{projectRecordStatusLabel(item.id)}</Tag></div>
+                  <p>{t('project.operations.ownerDue', { owner: t(`role.${item.owner}`), due: item.due })}</p>
+                  <small>{t(item.evidence)}</small>
+                  {delivery?.response && <p>{t('groups.responseRecorded')}: {delivery.response}</p>}
+                  <div className={css.assistantActions}>
+                    <Button size="sm" onClick={() => { assignProjectAction(item) }}>
+                      {t(delivery === undefined ? 'project.operations.assignToGroup' : 'project.operations.openGroup')}
+                    </Button>
+                    <Button size="sm" disabled={verified || !delivery?.response?.trim()} onClick={() => {
+                      actions.setProjectRecordStatus(item.id, 'done')
+                      setFeedback(t('project.operations.statusSaved'))
+                    }}>{t('project.operations.markDone')}</Button>
+                  </div>
+                </article>
+              )
+            })}
+          </section>
+          <section className={css.card} aria-label={t('project.operations.acceptance')}>
+            <div className={css.sectionHeading}><h2>{t('project.operations.acceptance')}</h2><Tag>{t('project.operations.evidenceGate')}</Tag></div>
+            {selectedAcceptances.length === 0 && <p className={css.empty}>{t('project.operations.empty')}</p>}
+            {selectedAcceptances.map((item) => {
+              const ready = acceptanceReady(item)
+              const approved = projectRecordStatus(item.id) === 'approved'
+              const evidence = acceptanceEvidence[item.id] ?? ''
+              return (
+                <article className={css.projectOpsItem} key={item.id}>
+                  <h3>{t(item.title)}</h3>
+                  <ul className={css.projectCriteria}>
+                    {item.criteria.map(criteria => <li key={criteria}>{t(criteria)}</li>)}
+                  </ul>
+                  <small>
+                    {t('project.operations.receiver', { role: t(`role.${item.receiver}`) })} · {t(item.evidence)}
+                  </small>
+                  {approved ? <p>{t('project.recordStatus.approved')} · {state.projectEvidence?.[item.id]}</p> : (
+                    <>
+                      <label className={css.projectDecisionSelect}>
+                        {t('project.operations.acceptanceEvidence')}
+                        <Input value={evidence} disabled={!ready} onChange={(event) => {
+                          setAcceptanceEvidence(previous => ({ ...previous, [item.id]: event.target.value }))
+                        }} />
+                      </label>
+                      <Button size="sm" disabled={!ready || !evidence.trim()} onClick={() => {
+                        actions.recordProjectAcceptance(item.id, evidence)
+                        setFeedback(t('project.operations.acceptanceSaved'))
+                      }}>{t(ready ? 'project.operations.acceptanceAction' : 'project.operations.acceptanceBlocked')}</Button>
+                    </>
+                  )}
+                </article>
+              )
+            })}
+          </section>
+        </div>
+      </>
+    )
+  }
   const dashboard = () => (
     <>
       <div className={css.pageHeading}>
@@ -929,6 +1129,7 @@ export function Workbench(props: WorkbenchProps) {
           {t('new')}
         </Button>
       </div>
+      {positionAlert()}
       <div className={css.metrics}>
         {fixture.metrics.map((value, i) => (
           <button
@@ -937,7 +1138,6 @@ export function Workbench(props: WorkbenchProps) {
             onClick={() => {
               const scene = positionScenarios[role][i]
               if (scene !== undefined) {
-                actions.setWorkStatus(scene.workItemId, 'inProgress')
                 openScenario(scene.kpiIndex, scene.task)
               }
             }}
@@ -1237,7 +1437,7 @@ export function Workbench(props: WorkbenchProps) {
               className={`${css.groupListItem} ${activeGroup?.id === group.id ? css.groupListItemActive : ''}`}
               key={group.id}
               aria-current={activeGroup?.id === group.id ? 'page' : undefined}
-              onClick={() => { setActiveGroupId(group.id) }}
+              onClick={() => { actions.selectWorkgroup(group.id) }}
             >
               <strong>{group.nameKey === undefined ? group.name : t(group.nameKey)}</strong>
               <span>{t(`groups.kind.${group.kind}`)} · {t('groups.memberCount', { count: group.members.length })}</span>
@@ -1344,42 +1544,61 @@ export function Workbench(props: WorkbenchProps) {
                 <h3>{t('groups.confirmations')}</h3>
                 <Tag>{t('count', { count: activeGroupFollowUps.length })}</Tag>
               </div>
-              {activeGroupFollowUps.map(item => (
-                <div className={css.followUpRow} key={item.id}>
-                  <div className={css.grow}>
-                    <strong>{item.text}</strong>
-                    <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
-                    {item.response !== undefined && <p className={css.followUpResponse}><strong>{t('groups.responseRecorded')}:</strong> {item.response}</p>}
-                    {!item.done && (
-                      <label className={css.followUpResultField}>
-                        {t('groups.response')}
-                        <textarea
-                          aria-label={t('groups.response')}
-                          placeholder={t('groups.responsePlaceholder')}
-                          value={item.responseDraft ?? ''}
-                          onChange={(event) => { actions.saveFollowUpResponseDraft(item.id, event.target.value) }}
-                        />
-                      </label>
+              {activeGroupFollowUps.map((item) => {
+                const origin = item.positionCase
+                const status = origin === undefined ? undefined : state.positionCases?.[origin]?.status
+                const canDeliver = origin === undefined || role === item.role
+                return (
+                  <div className={css.followUpRow} key={item.id}>
+                    <div className={css.grow}>
+                      <strong>{item.text}</strong>
+                      <small>
+                        {origin === undefined
+                          ? t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])
+                          : t(`position.${origin}.title`)} · {t(`role.${item.role}`)}
+                      </small>
+                      {item.response !== undefined && <p className={css.followUpResponse}><strong>{t('groups.responseRecorded')}:</strong> {item.response}</p>}
+                      {!item.done && canDeliver && (
+                        <label className={css.followUpResultField}>
+                          {t('groups.response')}
+                          <textarea
+                            aria-label={t('groups.response')}
+                            placeholder={t('groups.responsePlaceholder')}
+                            value={item.responseDraft ?? ''}
+                            onChange={(event) => { actions.saveFollowUpResponseDraft(item.id, event.target.value) }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <div className={css.followUpActions}>
+                      <Tag>{t(status === undefined ? (item.done ? 'groups.reviewPending' : 'status.waiting') : `position.status.${status}`)}</Tag>
+                      {origin !== undefined && role === origin ? (
+                        <Button size="sm" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
+                      ) : item.done && origin === undefined ? (
+                        <Button size="sm" onClick={() => { openTask(workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]) }}>
+                          {t('groups.openReview')}
+                        </Button>
+                      ) : !item.done && canDeliver ? (
+                        <Button size="sm" disabled={!item.responseDraft?.trim()} onClick={() => {
+                          if (origin !== undefined) {
+                            actions.submitPositionEvidence(origin)
+                            return
+                          }
+                          const response = item.responseDraft?.trim()
+                          if (response === undefined || response === '') return
+                          actions.submitFollowUpResponse(item.id)
+                          actions.addWorkgroupMessage(activeGroup.id, item.role, response, 'message', false)
+                          actions.setWorkStatus(item.workItemId, 'review')
+                        }}>{t('groups.submitResponse')}</Button>
+                      ) : null}
+                    </div>
+                    {origin !== undefined && role !== origin && role !== item.role && (
+                      <small>{t('position.otherGroup', { role: t(`role.${origin}`) })}</small>
                     )}
+                    {!item.done && origin !== undefined && !canDeliver && <small>{t('position.recipientOnly')}</small>}
                   </div>
-                  <div className={css.followUpActions}>
-                    <Tag>{t(item.done ? 'groups.reviewPending' : 'status.waiting')}</Tag>
-                    {item.done ? (
-                      <Button size="sm" onClick={() => { openTask(workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]) }}>
-                        {t('groups.openReview')}
-                      </Button>
-                    ) : (
-                      <Button size="sm" disabled={!item.responseDraft?.trim()} onClick={() => {
-                        const response = item.responseDraft?.trim()
-                        if (response === undefined || response === '') return
-                        actions.submitFollowUpResponse(item.id)
-                        actions.addWorkgroupMessage(activeGroup.id, item.role, response, 'message', true)
-                        actions.setWorkStatus(item.workItemId, 'review')
-                      }}>{t('groups.submitResponse')}</Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {activeGroupFollowUps.length === 0 && <p className={css.empty}>{t('groups.noConfirmations')}</p>}
             </section>
             {legacyFollowUps.length > 0 && (
@@ -1467,6 +1686,7 @@ export function Workbench(props: WorkbenchProps) {
   )
   const workPage = () => (
     <>
+      <Button size="sm" variant="ghost" onClick={() => { selectView('assistant') }}>{t('home.back')}</Button>
       <div className={css.workHeading}>
         <div>
           <p className={css.eyebrow}>
@@ -1782,7 +2002,11 @@ export function Workbench(props: WorkbenchProps) {
           </label>
           <small className={css.positionCount}>{t('roleCount')}</small>
           <nav>
-            {navigation.map((n) => {
+            {navigation.filter((n) => {
+              if (n.id === 'project-operations') return role === 'project'
+              if (n.id === 'position-operations') return role !== 'project'
+              return true
+            }).map((n) => {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
@@ -1839,7 +2063,7 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {view !== 'dashboard' && view !== 'assistant' && view !== 'work' && view !== 'priorities' && view !== 'agent' && (
+            {!['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent'].includes(view) && (
               <div className={css.pageHeading}>
                 <div>
                   <p className={css.eyebrow}>
@@ -1863,6 +2087,25 @@ export function Workbench(props: WorkbenchProps) {
               assistant()
             ) : view === 'dashboard' ? (
               dashboard()
+            ) : view === 'project-operations' ? (
+              projectOperations()
+            ) : view === 'position-operations' && role !== 'project' ? (
+              <PositionOperations
+                key={role}
+                t={t}
+                role={role}
+                record={positionCase}
+                delivery={positionDelivery}
+                onMethod={() => { openTask(fixture.tasks[positionSignals[role].taskIndex]) }}
+                onGroup={openWorkgroup}
+                onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
+                onReview={(note, outcome, checks) => {
+                  const text = outcome === 'rework'
+                    ? t('position.returned', { note })
+                    : `${t('position.status.accepted')} · ${note}`
+                  actions.reviewPositionCase(role, note, outcome, checks, text)
+                }}
+              />
             ) : view === 'priorities' ? (
               prioritiesPage()
             ) : view === 'agent' ? (

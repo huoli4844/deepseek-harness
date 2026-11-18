@@ -5,8 +5,17 @@ import { dailyWorkForRole, positionScenarios, workItemForScenario, workItemsForR
 import { roleIds, roleFixtures } from '../src/client/fixtures.ts'
 import { roleMethods } from '../src/client/methodology-data.ts'
 import { prioritiesForRole, priorityItems } from '../src/client/priorities-data.ts'
+import { projectSchedule } from '../src/client/project-operations.ts'
 
 describe('workbench demonstration state', () => {
+  it('calculates delivery delay along the longest dependency chain and preserves parallel float', () => {
+    const schedule = projectSchedule('controller')
+    expect(schedule.forecast - schedule.baseline).toBe(5)
+    expect(schedule.rows.filter(task => task.float === 0).map(task => task.id)).toEqual([
+      'project.dependency.bench', 'project.dependency.firmware', 'project.dependency.integration',
+    ])
+    expect(schedule.rows.find(task => task.id === 'project.deliverable.bench')?.float).toBe(5)
+  })
   it('maps every position KPI to a typical task and its position method', () => {
     for (const role of roleIds) {
       expect(positionScenarios[role]).toHaveLength(roleFixtures[role].metrics.length)

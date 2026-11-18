@@ -4,6 +4,8 @@ import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { roleFixtures } from './fixtures.ts'
 import type { WorkStatus } from './scenario-data.ts'
 import { createDemoWorkgroups, type Workgroup, type WorkgroupKind } from './workgroup-data.ts'
+import { projectAcceptances, projectDecisions, type ProjectRecordStatus } from './project-operations.ts'
+import { positionSignals, type OperatingRole, type PositionCaseRecord } from './position-operations.ts'
 
 /** Demonstrated positions; the selector changes focus, never authorization. */
 export type RoleId =
@@ -31,7 +33,8 @@ export type TaskId =
   0 | 1 | 2 | 3 | 4 | 5 | 6 | `${Exclude<RoleId, 'procurement' | 'quality' | 'director'>}.${0 | 1 | 2}`
 /** Workbench routes; agent and versions open from source work; `team` is a persisted alias. */
 export type ViewId =
-  'assistant' | 'dashboard' | 'priorities' | 'agent' | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
+  'assistant' | 'dashboard' | 'project-operations' | 'position-operations' | 'priorities' | 'agent'
+  | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
 /** A saved demo draft snapshot owned by one task and position. */
 export interface DraftVersion {
   readonly number: number
@@ -66,6 +69,8 @@ export interface DemoFollowUp {
   readonly text: string
   readonly done: boolean
   readonly groupId?: string
+  readonly projectActionId?: string
+  readonly positionCase?: OperatingRole
   response?: string
   responseDraft?: string
 }
@@ -89,6 +94,15 @@ export interface WorkbenchState {
   sceneCheckpoints: Record<string, SceneCheckpoint | undefined>
   rolePreferences?: Partial<Record<RoleId, string>>
   workgroups?: Workgroup[]
+  activeGroupId?: string
+  projectOps?: Record<string, ProjectRecordStatus | undefined>
+  projectDecisionOptions?: Record<string, string | undefined>
+  projectEvidence?: Record<string, string | undefined>
+  positionCases?: Partial<Record<OperatingRole, PositionCaseRecord>>
+}
+
+function positionFollowUp(state: WorkbenchState, role: OperatingRole) {
+  return state.followUps.find(item => item.positionCase === role)
 }
 
 function editableDraft(state: WorkbenchState, key: string, initial: string): WorkDraft {
@@ -185,6 +199,91 @@ const workbenchActions = {
   setWorkStatus: (state: WorkbenchState, id: string, status: WorkStatus) => {
     state.workStatuses[id] = status
   },
+  setProjectRecordStatus: (state: WorkbenchState, id: string, status: ProjectRecordStatus) => {
+    if (status === 'done' && id.startsWith('action:') && !state.followUps.some(item => item.projectActionId === id && item.done && item.response?.trim())) return
+    state.projectOps ??= {}
+    state.projectOps[id] = status
+  },
+  recordProjectDecision: (state: WorkbenchState, id: string, option: string) => {
+    if (state.projectOps?.[id] === 'approved' || !projectDecisions.find(item => item.id === id)?.options.some(candidate => candidate === option)) return
+    state.projectDecisionOptions ??= {}
+    state.projectDecisionOptions[id] = option
+    state.projectOps ??= {}
+    state.projectOps[id] = 'approved'
+  },
+  recordProjectAcceptance: (state: WorkbenchState, id: string, evidence: string) => {
+    const gate = projectAcceptances.find(item => item.id === id)
+    if (gate === undefined || !evidence.trim() || state.projectOps?.[id] === 'approved'
+      || !gate.requiredActionIds.every(actionId => state.projectOps?.[actionId] === 'done')) return
+    state.projectEvidence ??= {}
+    state.projectEvidence[id] = evidence.trim()
+    state.projectOps ??= {}
+    state.projectOps[id] = 'approved'
+  },
+  dispatchPositionCase: (state: WorkbenchState, role: OperatingRole, option: 0 | 1, assignment: string) => {
+    if (state.role !== role || state.positionCases?.[role] !== undefined) return
+    const recipient = positionSignals[role].recipient
+    const groupId = `position-${role}`
+    const groups = state.workgroups ??= createDemoWorkgroups()
+    groups.push({
+      id: groupId,
+      name: '',
+      nameKey: `position.${role}.title`,
+      kind: 'topic',
+      members: [role, recipient],
+      messages: [{ id: 1, author: role, body: assignment, kind: 'assignment', simulated: false, owner: recipient }],
+    })
+    state.followUps.push({
+      id: state.followUps.length + 1,
+      workItemId: `${role}:${roleFixtures[role].tasks[positionSignals[role].taskIndex]}`,
+      role: recipient,
+      text: assignment,
+      groupId,
+      positionCase: role,
+      done: false,
+    })
+    const cases = state.positionCases ??= {}
+    cases[role] = { option, status: 'waiting' }
+  },
+  submitPositionEvidence: (state: WorkbenchState, role: OperatingRole) => {
+    const record = state.positionCases?.[role]
+    const delivery = positionFollowUp(state, role)
+    const response = delivery?.responseDraft?.trim()
+    const group = state.workgroups?.find(item => item.id === delivery?.groupId)
+    if (state.role !== positionSignals[role].recipient || record === undefined || delivery === undefined
+      || response === undefined || response === '' || group === undefined
+      || (record.status !== 'waiting' && record.status !== 'rework')) return
+    state.followUps = state.followUps.map(item => item.id === delivery.id
+      ? { ...item, response, responseDraft: '', done: true }
+      : item)
+    group.messages.push({
+      id: group.messages.length + 1, author: delivery.role, body: response, kind: 'message', simulated: false,
+    })
+    const cases = state.positionCases ??= {}
+    cases[role] = { option: record.option, status: 'review' }
+  },
+  reviewPositionCase: (
+    state: WorkbenchState,
+    role: OperatingRole,
+    note: string,
+    outcome: 'accepted' | 'rework',
+    checks: readonly [boolean, boolean],
+    historyText: string,
+  ) => {
+    const record = state.positionCases?.[role]
+    const delivery = positionFollowUp(state, role)
+    const group = state.workgroups?.find(item => item.id === delivery?.groupId)
+    if (state.role !== role || record?.status !== 'review' || !delivery?.done || !delivery.response?.trim()
+      || !note.trim() || group === undefined || (outcome === 'accepted' && !checks.every(Boolean))) return
+    const cases = state.positionCases ??= {}
+    cases[role] = { option: record.option, status: outcome, note: note.trim() }
+    if (outcome === 'rework') {
+      state.followUps = state.followUps.map(item => item.id === delivery.id ? { ...item, done: false } : item)
+    }
+    group.messages.push({
+      id: group.messages.length + 1, author: role, body: historyText, kind: 'message', simulated: false,
+    })
+  },
   saveRolePreference: (state: WorkbenchState, role: RoleId, text: string) => {
     state.rolePreferences ??= {}
     if (text.trim() === '') {
@@ -203,6 +302,18 @@ const workbenchActions = {
       members: [...new Set(members)],
       messages: [],
     })
+  },
+  selectWorkgroup: (state: WorkbenchState, id: string) => {
+    state.activeGroupId = id
+  },
+  ensureProjectGroup: (state: WorkbenchState, id: string, name: string, role: RoleId) => {
+    state.workgroups ??= createDemoWorkgroups()
+    const group = state.workgroups.find(item => item.id === id)
+    if (group === undefined) {
+      state.workgroups.push({ id, name, kind: 'project', members: [...new Set<RoleId>(['project', role])], messages: [] })
+    } else if (!group.members.includes(role)) {
+      group.members.push(role)
+    }
   },
   addWorkgroupMember: (state: WorkbenchState, id: string, role: RoleId) => {
     const group = (state.workgroups ??= createDemoWorkgroups()).find(candidate => candidate.id === id)
@@ -235,7 +346,7 @@ const workbenchActions = {
   saveVerification: (state: WorkbenchState, id: string, text: string) => {
     state.verifications[id] = text
   },
-  addFollowUp: (state: WorkbenchState, workItemId: string, role: RoleId, text: string, groupId?: string) => {
+  addFollowUp: (state: WorkbenchState, workItemId: string, role: RoleId, text: string, groupId?: string, projectActionId?: string) => {
     state.followUps.push({
       id: state.followUps.length + 1,
       workItemId,
@@ -243,6 +354,7 @@ const workbenchActions = {
       text,
       done: false,
       ...(groupId === undefined ? {} : { groupId }),
+      ...(projectActionId === undefined ? {} : { projectActionId }),
     })
   },
   completeFollowUp: (state: WorkbenchState, id: number) => {
@@ -252,6 +364,11 @@ const workbenchActions = {
     state.followUps = state.followUps.map(item => item.id === id ? { ...item, responseDraft } : item)
   },
   submitFollowUpResponse: (state: WorkbenchState, id: number) => {
+    const item = state.followUps.find(entry => entry.id === id)
+    if (item?.projectActionId !== undefined && item.responseDraft?.trim()) {
+      state.projectOps ??= {}
+      state.projectOps[item.projectActionId] = 'inProgress'
+    }
     state.followUps = state.followUps.map(item => item.id === id
       ? { ...item, response: item.responseDraft?.trim() ?? '', done: true }
       : item)

@@ -1826,6 +1826,536 @@
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+
+.workHome .pageHeading {
+  margin-bottom: 24px;
+}
+.workHome .pageHeading h1 {
+  letter-spacing: 0;
+}
+.homeColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 32px;
+}
+.homeDirectoryJump {
+  display: none;
+}
+.homeLane {
+  min-width: 0;
+}
+.homeSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.homeLane > .card {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  border-color: var(--dsw-alias-border-l2);
+}
+.homeRow,
+.homeWork {
+  min-width: 0;
+  padding-block: 12px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.homeRow,
+.homeWorkTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.homeRow > div {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.homeRow h3,
+.homeWork h3 {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.homeRow p,
+.homeWork dd,
+.homeSop p {
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+.homeRow small {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.homeWork dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin-block: 8px;
+}
+.homeWork dt {
+  color: var(--work-muted);
+}
+.homeWork dd {
+  margin: 0;
+}
+.homeSop summary,
+.homeDisclosure summary {
+  cursor: pointer;
+}
+.homeSop summary {
+  color: var(--dsw-alias-label-secondary);
+  width: fit-content;
+}
+.homeSop summary:focus-visible,
+.homeDisclosure summary:focus-visible {
+  outline: 2px solid var(--work-accent);
+  outline-offset: 3px;
+}
+.homeSop ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  padding-inline-start: 20px;
+  margin-block: 8px;
+}
+.homeSop p {
+  margin-block: 4px;
+}
+.homeDisclosure {
+  margin-top: 24px;
+  border-block: 0.5px solid var(--work-line);
+}
+.homeDisclosure + .homeDisclosure {
+  margin-top: 12px;
+}
+.homeDisclosure > summary {
+  padding-block: 12px;
+  font-weight: 500;
+}
+.homeDisclosure .card {
+  margin-bottom: 8px;
+}
+.homeEmpty {
+  padding-block: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+@container (max-width: 900px) {
+  .homeDirectoryJump {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--dsw-alias-label-primary);
+  }
+  .homeColumns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+@container (max-width: 560px) {
+  .workHome .pageHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .homeRow > div {
+    flex-basis: 100%;
+  }
+}
+.positionAlert {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 18px;
+}
+.positionAlert + .positionAlert {
+  border-top: 0.5px solid var(--work-line);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+.positionAlert > div:first-child {
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.content > .card:has(> .positionAlert) {
+  margin-bottom: 16px;
+}
+.positionAlert h2,
+.positionAlert p,
+.positionAlert h3 {
+  margin-bottom: 6px;
+}
+.positionAlert small {
+  color: var(--work-muted);
+}
+.positionAlert .assistantActions {
+  align-items: center;
+  margin: 0;
+}
+.positionSop {
+  margin-bottom: 16px;
+}
+.positionSop .sectionHeading {
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.positionSop ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: position-step;
+}
+.positionSop li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  padding: 9px 10px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  counter-increment: position-step;
+}
+.positionSop li::before {
+  content: counter(position-step);
+  color: var(--work-muted);
+}
+.positionSop li[aria-current] {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.positionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+.positionComparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 16px;
+}
+.positionComparison dt,
+.positionPlan p {
+  color: var(--work-muted);
+  font-size: 12px;
+}
+.positionComparison dd {
+  margin: 4px 0 8px;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.positionOptions {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 10px 0 14px;
+}
+.positionOptions legend {
+  margin-bottom: 6px;
+  color: var(--work-muted);
+  font-size: 12px;
+}
+.positionOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  padding: 10px;
+  cursor: pointer;
+}
+.positionOption:has(:checked) {
+  border-color: var(--work-accent);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.positionOption input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--work-accent);
+}
+.positionOption span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.positionOption strong,
+.positionPlan strong {
+  font-weight: 500;
+}
+.positionOption small {
+  color: var(--dsw-alias-label-secondary);
+  line-height: 1.5;
+}
+.positionPlan,
+.positionReview {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 10px;
+}
+.positionReview .field {
+  width: 100%;
+  margin: 0;
+}
+.positionReview textarea {
+  min-height: 96px;
+}
+.positionReviewEvidence {
+  margin-block: 12px;
+  overflow-wrap: anywhere;
+}
+@container (max-width: 860px) {
+  .positionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container (max-width: 640px) {
+  .positionSop ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.projectOpsBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 0.5px solid var(--work-line);
+  border-inline-start: 3px solid var(--work-accent);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.projectOpsBanner > div {
+  display: grid;
+  gap: 5px;
+}
+.projectOpsBanner > span {
+  max-width: 360px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.projectOpsMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-block: 16px;
+}
+.projectOpsMetric {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 0.5px solid var(--work-line);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.projectOpsMetric strong {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.projectOpsMetric span {
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.projectOpsLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.65fr);
+  align-items: start;
+  gap: 14px;
+}
+.projectList {
+  display: grid;
+  margin-top: 10px;
+}
+.projectRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 66px;
+  padding: 10px 8px;
+  border: 0;
+  border-top: 0.5px solid var(--work-line);
+  background: transparent;
+  color: inherit;
+  text-align: start;
+}
+.projectRowActive {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+.projectRow .grow,
+.projectRow .projectProgress {
+  display: grid;
+  gap: 4px;
+}
+.projectProgress {
+  flex: 0 0 62px;
+  font-size: 11px;
+}
+.projectProgress .barTrack {
+  grid-column: auto;
+}
+.projectSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-block: 14px;
+}
+.projectSummaryGrid > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+.projectSummaryGrid strong {
+  font-size: 16px;
+}
+.projectSummaryGrid span {
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.projectOpsSection {
+  margin-top: 14px;
+}
+.projectOpsSection > .sectionHeading {
+  margin-bottom: 5px;
+}
+.projectDetailRow {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 45px minmax(110px, auto);
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding-block: 7px;
+  border-top: 0.5px solid var(--work-line);
+  font-size: 11px;
+}
+.projectDetailRow .grow {
+  display: grid;
+  gap: 2px;
+}
+.projectCritical {
+  color: var(--work-accent);
+}
+.projectOpsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+  margin-top: 14px;
+}
+.projectOpsGrid > .card:last-child {
+  grid-column: 1 / -1;
+}
+.projectOpsItem {
+  display: grid;
+  gap: 7px;
+  padding-block: 12px;
+  border-top: 0.5px solid var(--work-line);
+}
+.projectOpsItem p {
+  color: var(--dsw-alias-label-secondary);
+}
+.projectOpsItem .sectionHeading {
+  align-items: flex-start;
+}
+.projectOpsItem .sectionHeading > small {
+  flex: 0 0 auto;
+  text-align: end;
+}
+.projectDecisionSelect {
+  display: grid;
+  gap: 5px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.projectDecisionSelect select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  font: inherit;
+}
+.projectOptionList,
+.projectCriteria {
+  display: grid;
+  gap: 5px;
+  padding-inline-start: 20px;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+.textAction {
+  justify-self: start;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--work-accent);
+  text-align: start;
+}
+.textAction:focus-visible {
+  outline: 2px solid var(--work-accent);
+  outline-offset: 3px;
+}
+.textAction:disabled {
+  color: var(--work-muted);
+  cursor: not-allowed;
+}
+@container (max-width: 900px) {
+  .projectOpsMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .projectOpsLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container (max-width: 640px) {
+  .projectOpsBanner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .projectOpsMetrics,
+  .projectOpsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .projectOpsGrid > .card:last-child {
+    grid-column: auto;
+  }
+  .projectDetailRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .projectDetailRow > :last-child {
+    grid-column: 1 / -1;
+  }
+  .projectRow {
+    flex-wrap: wrap;
+  }
+  .projectRow .grow {
+    flex-basis: 100%;
+  }
+  .projectOpsItem .sectionHeading {
+    flex-wrap: wrap;
+  }
+  .projectOpsItem .sectionHeading > small {
+    flex-basis: 100%;
+    text-align: start;
+  }
+}
 .compare h3 {
   font-size: 13px;
   font-weight: 500;

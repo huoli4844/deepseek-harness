@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-yuanshu-workbench",
-  "version": "0.2.2-rc.3",
+  "version": "0.2.2-rc.4",
   "description": "Opt-in Shaoshi role workbench with local demonstration data",
   "type": "module",
   "main": "lib/index.js",
