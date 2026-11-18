@@ -157,6 +157,30 @@ describe('workbench demonstration state', () => {
     })
   })
 
+  it('retains scene stages, handoff notes and pending owner review after a group delivery', () => {
+    const store = createWorkbenchStore().create()
+    store.actions.setSceneStage('procurement:1', 2)
+    store.actions.saveSceneNote('procurement:1', 'Supplier date is unconfirmed; request the revised shipment record.')
+    store.actions.addFollowUp('procurement:1', 'quality', 'Confirm incoming acceptance evidence', 'supplier-supervision')
+    store.actions.saveFollowUpResponseDraft(1, 'Inspection record IQ-24 confirms the affected lot; photos remain open.')
+
+    expect(store.getSnapshot().sceneCheckpoints['procurement:1']).toEqual({
+      stage: 2,
+      note: 'Supplier date is unconfirmed; request the revised shipment record.',
+    })
+    expect(store.getSnapshot().followUps[0]).toMatchObject({
+      responseDraft: 'Inspection record IQ-24 confirms the affected lot; photos remain open.',
+      done: false,
+    })
+    store.actions.submitFollowUpResponse(1)
+    store.actions.setWorkStatus('procurement:1', 'review')
+    expect(store.getSnapshot().followUps[0]).toMatchObject({
+      response: 'Inspection record IQ-24 confirms the affected lot; photos remain open.',
+      done: true,
+    })
+    expect(store.getSnapshot().workStatuses['procurement:1']).toBe('review')
+  })
+
   it('retains historical confirmations without assigning them to a workgroup', () => {
     const store = createWorkbenchStore().create()
     store.actions.addFollowUp('procurement:0', 'quality', 'Confirm the original acceptance criteria')

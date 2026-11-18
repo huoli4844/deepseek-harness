@@ -128,7 +128,12 @@ it('creates a workgroup, assigns work, invites position assistants and keeps a v
   expect(screen.getAllByText('请质量岗位复核试验接收标准').length).toBeGreaterThan(1)
   expect(screen.getByText('安排给：采购工程师')).toBeDefined()
   expect(screen.getByRole('region', { name: '待岗位确认' })).toBeDefined()
-  expect(screen.getByRole('button', { name: '记录已确认' })).toBeDefined()
+  expect(screen.getByRole('button', { name: '提交交付，等待复核' })).toHaveProperty('disabled', true)
+  fireEvent.change(screen.getByRole('textbox', { name: '岗位交付记录' }), {
+    target: { value: '已复核试验接收标准，记录 RV-12，剩余问题待补充。' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: '提交交付，等待复核' }))
+  expect(screen.getByText('已提交交付 · 等待工作负责人复核')).toBeDefined()
 
   fireEvent.change(screen.getByRole('textbox', { name: '发送消息' }), {
     target: { value: '请同步各自的评审结论' },
@@ -316,6 +321,7 @@ it('retains method records across navigation and includes them in saved version 
   fireEvent.click(within(comparison).getByRole('button', { name: '关闭' }))
   fireEvent.click(screen.getByRole('button', { name: '我的任务' }))
   fireEvent.click(screen.getByRole('button', { name: /供应商季度评价/ }))
+  fireEvent.click(screen.getByRole('button', { name: '1 · 材料' }))
   expect(screen.getByRole('textbox', { name: '材料核对记录' })).toHaveProperty('value', '核对本季度到货台账 v2，缺少两项响应记录。')
   expect(screen.getByRole('checkbox', { name: '已完成本阶段自查' })).toHaveProperty('checked', true)
   fireEvent.click(screen.getByRole('button', { name: '提交协同审阅' }))
@@ -345,6 +351,22 @@ it('requires a recorded result before completing a reviewed work item', async ()
   expect(screen.getByText('有 0 项重点工作、1 项跨岗位确认和 1 项待审成果可以继续推进。')).toBeDefined()
 })
 
+it('resumes a scene from its saved step and handoff note', async () => {
+  await bench()
+  const scenes = screen.getByRole('region', { name: '从岗位 KPI 进入典型场景' })
+  fireEvent.click(within(scenes).getAllByRole('button', { name: '让助理带我处理' })[0]!)
+  fireEvent.click(screen.getByRole('button', { name: '3 · 工作成果' }))
+  fireEvent.change(screen.getByRole('textbox', { name: '交接摘要' }), {
+    target: { value: '供应商交期仍未确认，下一步核对新版发运记录。' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: '我的助理' }))
+  const resume = screen.getByRole('region', { name: '接着处理上次的工作' })
+  expect(within(resume).getByText('供应商交期仍未确认，下一步核对新版发运记录。')).toBeDefined()
+  fireEvent.click(within(resume).getByRole('button', { name: /PCBA 来料异常处置/ }))
+  expect(screen.getByRole('button', { name: '3 · 工作成果' }).getAttribute('aria-current')).toBe('step')
+  expect(screen.getByRole('textbox', { name: '交接摘要' })).toHaveProperty('value', '供应商交期仍未确认，下一步核对新版发运记录。')
+})
+
 it('records a group work arrangement as a position confirmation', async () => {
   await bench()
   expect(screen.queryByRole('button', { name: '团队协作' })).toBeNull()
@@ -357,11 +379,21 @@ it('records a group work arrangement as a position confirmation', async () => {
   })
   fireEvent.click(screen.getByRole('button', { name: '发布安排' }))
   expect(screen.getAllByText('请确认缺陷批次的接收条件').length).toBeGreaterThan(1)
-  fireEvent.click(screen.getByRole('button', { name: '记录已确认' }))
-  expect(screen.getByText('已记录岗位确认')).toBeDefined()
+  expect(screen.getByRole('button', { name: '提交交付，等待复核' })).toHaveProperty('disabled', true)
+  fireEvent.change(screen.getByRole('textbox', { name: '岗位交付记录' }), {
+    target: { value: '已核对来料标准，记录 IQ-24 可追溯，照片证据待补。' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: '提交交付，等待复核' }))
+  expect(screen.getByText('已提交交付 · 等待工作负责人复核')).toBeDefined()
+  expect(screen.getAllByText('已核对来料标准，记录 IQ-24 可追溯，照片证据待补。').length).toBeGreaterThan(0)
   expect(createWorkbenchStore().create().getSnapshot().followUps).toMatchObject([
-    { workItemId: 'procurement:1', done: true },
+    { workItemId: 'procurement:1', done: true, response: '已核对来料标准，记录 IQ-24 可追溯，照片证据待补。' },
   ])
+  fireEvent.click(screen.getByRole('button', { name: '复核关联工作' }))
+  expect(screen.getByRole('heading', { name: '供应商季度评价', level: 1 })).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '4 · 协同审阅' }))
+  expect(screen.getByText('待审阅')).toBeDefined()
+  expect(screen.getByText('等待审阅人确认这项结果。')).toBeDefined()
 })
 
 it('restores position work status and result evidence from browser storage', () => {

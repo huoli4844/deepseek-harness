@@ -505,6 +505,15 @@
   flex: none;
   background: var(--dsw-alias-state-warn-primary);
 }
+.resumeList {
+  margin-block: 16px;
+}
+.resumeList > .intro {
+  margin-bottom: 6px !important;
+}
+.resumeList h3 {
+  font-size: 13px;
+}
 .priorityFilters {
   display: flex;
   flex-wrap: wrap;
@@ -1064,17 +1073,40 @@
 }
 .followUpRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  min-height: 58px;
   padding-block: 10px;
   border-bottom: 0.5px solid var(--work-line);
+}
+.followUpRow .grow {
+  flex: 1;
 }
 .followUpRow strong {
   display: block;
 }
 .followUpRow small {
   margin-top: 4px;
+}
+.followUpActions {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  flex: none;
+}
+.followUpResultField {
+  display: grid;
+  gap: 6px;
+  max-width: 680px;
+  margin-top: 12px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.followUpResponse {
+  margin-top: 10px !important;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .dashboardBottom {
   display: grid;
@@ -1533,6 +1565,59 @@
   margin-bottom: 24px;
   overflow-x: auto;
 }
+.sceneCheckpoint {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  column-gap: 24px;
+  row-gap: 12px;
+  margin-block: 20px;
+  padding: 14px 0;
+  border-block: 0.5px solid var(--work-line);
+}
+.sceneCheckpointHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sceneCheckpointHeader h2 {
+  font-size: 14px;
+}
+.sceneCheckpointHeader .intro {
+  margin-top: 3px !important;
+}
+.sceneCheckpointStep {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  align-content: start;
+}
+.sceneCheckpointStep small {
+  color: var(--work-muted);
+}
+.sceneCheckpointStep span {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.sceneHandoffField {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 6px;
+  color: var(--work-muted);
+  font-size: 11px;
+}
+.sceneHandoffField textarea,
+.followUpResultField textarea {
+  min-width: 0;
+  min-height: 72px;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font: inherit;
+}
 .methodBanner {
   margin-bottom: 24px;
 }
@@ -1645,7 +1730,9 @@
   }
 }
 @media (pointer: coarse) {
-  .field textarea {
+  .field textarea,
+  .sceneHandoffField textarea,
+  .followUpResultField textarea {
     font-size: 16px;
   }
 }
@@ -1783,6 +1870,13 @@
   }
   .workLayout {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .sceneCheckpoint {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .sceneHandoffField {
+    grid-column: 1;
   }
   .workLayout > aside {
     min-height: 180px;
@@ -2004,6 +2098,11 @@
   .followUpRow {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+  .followUpActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
   }
   .followUpRow .grow {
     flex-basis: 65%;

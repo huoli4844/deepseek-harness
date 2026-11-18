@@ -66,6 +66,13 @@ export interface DemoFollowUp {
   readonly text: string
   readonly done: boolean
   readonly groupId?: string
+  response?: string
+  responseDraft?: string
+}
+/** Position-scoped scene handoff retained for the next work session. */
+export interface SceneCheckpoint {
+  stage: 0 | 1 | 2 | 3
+  note: string
 }
 /** Browser-local prototype data; it is not a YuanShu business record. */
 export interface WorkbenchState {
@@ -79,6 +86,7 @@ export interface WorkbenchState {
   workStatuses: Record<string, WorkStatus | undefined>
   verifications: Record<string, string | undefined>
   followUps: DemoFollowUp[]
+  sceneCheckpoints: Record<string, SceneCheckpoint | undefined>
   rolePreferences?: Partial<Record<RoleId, string>>
   workgroups?: Workgroup[]
 }
@@ -118,6 +126,14 @@ const workbenchActions = {
   openTask: (state: WorkbenchState, task: TaskId) => {
     state.task = task
     state.view = 'work'
+  },
+  setSceneStage: (state: WorkbenchState, key: string, stage: SceneCheckpoint['stage']) => {
+    const checkpoint = (state.sceneCheckpoints[key] ??= { stage: 0, note: '' })
+    checkpoint.stage = stage
+  },
+  saveSceneNote: (state: WorkbenchState, key: string, note: string) => {
+    const checkpoint = (state.sceneCheckpoints[key] ??= { stage: 0, note: '' })
+    checkpoint.note = note
   },
   editDraft: (state: WorkbenchState, key: string, text: string, initial: string) => {
     const draft = editableDraft(state, key, initial)
@@ -232,6 +248,14 @@ const workbenchActions = {
   completeFollowUp: (state: WorkbenchState, id: number) => {
     state.followUps = state.followUps.map(item => item.id === id ? { ...item, done: true } : item)
   },
+  saveFollowUpResponseDraft: (state: WorkbenchState, id: number, responseDraft: string) => {
+    state.followUps = state.followUps.map(item => item.id === id ? { ...item, responseDraft } : item)
+  },
+  submitFollowUpResponse: (state: WorkbenchState, id: number) => {
+    state.followUps = state.followUps.map(item => item.id === id
+      ? { ...item, response: item.responseDraft?.trim() ?? '', done: true }
+      : item)
+  },
 }
 
 /**
@@ -252,6 +276,7 @@ export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof
       workStatuses: {},
       verifications: {},
       followUps: [],
+      sceneCheckpoints: {},
       rolePreferences: {},
       workgroups: createDemoWorkgroups(),
     }),

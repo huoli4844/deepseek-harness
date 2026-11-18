@@ -69,10 +69,11 @@ export function Workbench(props: WorkbenchProps) {
   const { t, actions, onReturn } = props
   const state = props.useStore(s => s)
   const { role, view } = state
+  const key = `${role}:${state.task}`
   const fixture = roleFixtures[role]
   const [navOpen, setNavOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [stage, setStage] = useState<MethodStage>(0)
+  const [stage, setStage] = useState<MethodStage>(state.sceneCheckpoints[key]?.stage ?? 0)
   const [candidate, setCandidate] = useState(false)
   const [activeScenario, setActiveScenario] = useState<number | null>(null)
   const [dialog, setDialog] = useState<'submit' | 'event' | 'source' | 'compare' | 'group' | null>(null)
@@ -96,7 +97,6 @@ export function Workbench(props: WorkbenchProps) {
   const [newGroupMembers, setNewGroupMembers] = useState<RoleId[]>([role])
   const [newGroupInviteRole, setNewGroupInviteRole] = useState<RoleId>(roleIds.find(id => id !== role) ?? role)
   const contentRef = useRef<HTMLDivElement>(null)
-  const key = `${role}:${state.task}`
   const draft = state.drafts[key]
   const practice = methodFor(role, state.task)
   const method = practice.method
@@ -114,7 +114,13 @@ export function Workbench(props: WorkbenchProps) {
   const workItems = workItemsForRole(role)
   const workStatus = (id: string, fallback: WorkStatus) => state.workStatuses[id] ?? fallback
   const openWorkItems = workItems.filter(item => workStatus(item.id, item.status) !== 'done')
-  const incomingWorkItems = openWorkItems.slice(1)
+  const resumeWorkItems = workItems.filter((item) => {
+    const checkpoint = state.sceneCheckpoints[item.id]
+    return checkpoint !== undefined
+      && (checkpoint.stage > 0 || checkpoint.note.trim() !== '' || state.drafts[`${role}:${item.task}`] !== undefined)
+  })
+  const resumedWorkItemIds = new Set(resumeWorkItems.map(item => item.id))
+  const incomingWorkItems = openWorkItems.slice(1).filter(item => !resumedWorkItemIds.has(item.id))
   const priorityCount = workItems.filter(item => item.priority === 'high' && workStatus(item.id, item.status) !== 'done').length
   const confirmationCount = workItems.filter(item => workStatus(item.id, item.status) === 'waiting').length
   const reviewCount = workItems.filter(item => workStatus(item.id, item.status) === 'review').length
@@ -161,12 +167,16 @@ export function Workbench(props: WorkbenchProps) {
   }
   const openTask = (id: TaskId) => {
     actions.openTask(id)
-    setStage(0)
+    setStage(state.sceneCheckpoints[`${role}:${id}`]?.stage ?? 0)
     setCandidate(false)
     setActiveScenario(null)
     setFeedback('')
     setNavOpen(false)
     if (contentRef.current !== null) contentRef.current.scrollTop = 0
+  }
+  const setWorkStage = (next: MethodStage) => {
+    setStage(next)
+    actions.setSceneStage(key, next)
   }
   const openScenario = (kpiIndex: number, id: TaskId) => {
     openTask(id)
@@ -612,8 +622,8 @@ export function Workbench(props: WorkbenchProps) {
         <dt>{t('guide.acceptance')}</dt><dd>{t(practice.acceptance)}</dd>
       </dl>
       <div className={css.methodRecords}>
-        <Button onClick={() => { setDialog(null); setStage(0) }}>{t('guide.evidence')} · {t(execution.evidence.trim() ? 'guide.recorded' : 'guide.unrecorded')}</Button>
-        <Button onClick={() => { setDialog(null); setStage(1) }}>{t('guide.analysis')} · {t(execution.analysis.trim() ? 'guide.recorded' : 'guide.unrecorded')}</Button>
+        <Button onClick={() => { setDialog(null); setWorkStage(0) }}>{t('guide.evidence')} · {t(execution.evidence.trim() ? 'guide.recorded' : 'guide.unrecorded')}</Button>
+        <Button onClick={() => { setDialog(null); setWorkStage(1) }}>{t('guide.analysis')} · {t(execution.analysis.trim() ? 'guide.recorded' : 'guide.unrecorded')}</Button>
       </div>
       {([0, 1, 2, 3] as const).map(step => (
         <Checkbox key={step} checked={execution.checked.includes(step)}
@@ -752,9 +762,33 @@ export function Workbench(props: WorkbenchProps) {
         <section className={css.assistantInbox} aria-labelledby="assistant-inbox-title">
           <div className={css.sectionHeading}>
             <h2 id="assistant-inbox-title">{t('assistant.incoming')}</h2>
-            <Tag>{t('count', { count: incomingWorkItems.length + 1 })}</Tag>
+            <Tag>{t('count', { count: incomingWorkItems.length + resumeWorkItems.length + 1 })}</Tag>
           </div>
           <p className={css.intro}>{t('assistant.incomingHint')}</p>
+          {resumeWorkItems.length > 0 && (
+            <section className={css.resumeList} aria-label={t('assistant.resume')}>
+              <div className={css.sectionHeading}>
+                <h3>{t('assistant.resume')}</h3>
+                <Tag>{t('assistant.resumeCount', { count: resumeWorkItems.length })}</Tag>
+              </div>
+              <p className={css.intro}>{t('assistant.resumeHint')}</p>
+              {resumeWorkItems.map((item) => {
+                const checkpoint = state.sceneCheckpoints[item.id]
+                return (
+                  <button className={css.assistantSignal} key={item.id} onClick={() => { openTask(item.task) }}>
+                    <span className={css.assistantSignalMarker} aria-hidden="true" />
+                    <span className={css.grow}>
+                      <strong>{t(taskTitles[item.task])}</strong>
+                      <small>{t('scene.currentStep')}: {t(methodFor(role, item.task).method.steps[checkpoint?.stage ?? 0].title)}</small>
+                      {checkpoint?.note.trim() && <small>{checkpoint.note}</small>}
+                    </span>
+                    <Tag>{statusLabel(workStatus(item.id, item.status))}</Tag>
+                    <IconChevronRightOutlineRegular size={14} />
+                  </button>
+                )
+              })}
+            </section>
+          )}
           {incomingWorkItems.map(item => (
             <button className={css.assistantSignal} key={item.id} onClick={() => { openTask(item.task) }}>
               <span className={css.assistantSignalMarker} aria-hidden="true" />
@@ -1315,12 +1349,35 @@ export function Workbench(props: WorkbenchProps) {
                   <div className={css.grow}>
                     <strong>{item.text}</strong>
                     <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
+                    {item.response !== undefined && <p className={css.followUpResponse}><strong>{t('groups.responseRecorded')}:</strong> {item.response}</p>}
+                    {!item.done && (
+                      <label className={css.followUpResultField}>
+                        {t('groups.response')}
+                        <textarea
+                          aria-label={t('groups.response')}
+                          placeholder={t('groups.responsePlaceholder')}
+                          value={item.responseDraft ?? ''}
+                          onChange={(event) => { actions.saveFollowUpResponseDraft(item.id, event.target.value) }}
+                        />
+                      </label>
+                    )}
                   </div>
-                  <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
-                  {!item.done && <Button size="sm" onClick={() => {
-                    actions.completeFollowUp(item.id)
-                    actions.setWorkStatus(item.workItemId, 'inProgress')
-                  }}>{t('groups.confirmed')}</Button>}
+                  <div className={css.followUpActions}>
+                    <Tag>{t(item.done ? 'groups.reviewPending' : 'status.waiting')}</Tag>
+                    {item.done ? (
+                      <Button size="sm" onClick={() => { openTask(workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]) }}>
+                        {t('groups.openReview')}
+                      </Button>
+                    ) : (
+                      <Button size="sm" disabled={!item.responseDraft?.trim()} onClick={() => {
+                        const response = item.responseDraft?.trim()
+                        if (response === undefined || response === '') return
+                        actions.submitFollowUpResponse(item.id)
+                        actions.addWorkgroupMessage(activeGroup.id, item.role, response, 'message', true)
+                        actions.setWorkStatus(item.workItemId, 'review')
+                      }}>{t('groups.submitResponse')}</Button>
+                    )}
+                  </div>
                 </div>
               ))}
               {activeGroupFollowUps.length === 0 && <p className={css.empty}>{t('groups.noConfirmations')}</p>}
@@ -1338,10 +1395,7 @@ export function Workbench(props: WorkbenchProps) {
                       <small>{t(taskTitles[workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]])} · {t(`role.${item.role}`)}</small>
                     </div>
                     <Tag>{t(item.done ? 'assistant.followUpDone' : 'status.waiting')}</Tag>
-                    {!item.done && <Button size="sm" onClick={() => {
-                      actions.completeFollowUp(item.id)
-                      actions.setWorkStatus(item.workItemId, 'inProgress')
-                    }}>{t('groups.confirmed')}</Button>}
+                    {!item.done && <Button size="sm" onClick={() => { openTask(workItems.find(candidate => candidate.id === item.workItemId)?.task ?? fixture.tasks[0]) }}>{t('groups.openReview')}</Button>}
                   </div>
                 ))}
               </section>
@@ -1450,6 +1504,28 @@ export function Workbench(props: WorkbenchProps) {
           <p className={css.intro}>{t('assistant.humanReview')}</p>
         </section>
       )}
+      <section className={css.sceneCheckpoint} aria-label={t('scene.resume')}>
+        <div className={css.sceneCheckpointHeader}>
+          <div>
+            <h2>{t('scene.resume')}</h2>
+            <p className={css.intro}>{t('scene.saved')}</p>
+          </div>
+          <Tag>{t((['stage.materials', 'stage.analysis', 'stage.result', 'stage.review'] as const)[stage])}</Tag>
+        </div>
+        <div className={css.sceneCheckpointStep}>
+          <small>{t('scene.currentStep')}</small>
+          <strong>{t(method.steps[stage].title)}</strong>
+          <span>{t(method.steps[stage].prompt)}</span>
+        </div>
+        <label className={css.sceneHandoffField}>
+          {t('scene.handoff')}
+          <textarea
+            value={state.sceneCheckpoints[key]?.note ?? ''}
+            placeholder={t('scene.handoffPlaceholder')}
+            onChange={(event) => { actions.saveSceneNote(key, event.target.value) }}
+          />
+        </label>
+      </section>
       <nav className={css.stages} aria-label={t('work.title')}>
         {([0, 1, 2, 3] as const).map(i => (
           <Button
@@ -1457,7 +1533,7 @@ export function Workbench(props: WorkbenchProps) {
             aria-current={stage === i ? 'step' : undefined}
             variant={stage === i ? 'outline' : 'ghost'}
             onClick={() => {
-              setStage(i)
+              setWorkStage(i)
             }}
           >
             {i + 1} · {t((['stage.materials', 'stage.analysis', 'stage.result', 'stage.review'] as const)[i])}
@@ -1604,7 +1680,7 @@ export function Workbench(props: WorkbenchProps) {
           {stage !== 3 && <div className={css.methodChecks}>
             <Checkbox checked={execution.checked.includes(stage)} label={t('guide.stageDone')}
               onChange={(checked) => { actions.checkMethod(key, stage, checked, initial) }} />
-            <Button variant="outline" onClick={() => { setStage(stage === 0 ? 1 : stage === 1 ? 2 : 3) }}>
+            <Button variant="outline" onClick={() => { setWorkStage(stage === 0 ? 1 : stage === 1 ? 2 : 3) }}>
               {t((['stage.analysis', 'stage.result', 'stage.review'] as const)[stage])}
               <IconChevronRightOutlineRegular size={14} />
             </Button>
@@ -1617,7 +1693,7 @@ export function Workbench(props: WorkbenchProps) {
             {([0, 1, 2, 3] as const).map(index => (
               <li key={index}>
                 <Button variant={stage === index ? 'outline' : 'ghost'} aria-current={stage === index ? 'step' : undefined}
-                  onClick={() => { setStage(index) }}>{t(method.steps[index].title)}</Button>
+                  onClick={() => { setWorkStage(index) }}>{t(method.steps[index].title)}</Button>
               </li>
             ))}
           </ol>
@@ -1651,7 +1727,7 @@ export function Workbench(props: WorkbenchProps) {
                   onClick={() => {
                     actions.editDraft(key, suggestedStructure, initial)
                     setCandidate(false)
-                    setStage(2)
+                    setWorkStage(2)
                   }}
                 >
                   {t('work.adopt')}
@@ -1857,7 +1933,7 @@ export function Workbench(props: WorkbenchProps) {
               actions.submitDraft(key, initial)
               if (currentWorkItem !== undefined) actions.setWorkStatus(currentWorkItem.id, 'review')
               setDialog(null)
-              setStage(3)
+              setWorkStage(3)
               setFeedback(t('work.submitted'))
             }}>{t('confirm')}</Button>
           ) : undefined}
