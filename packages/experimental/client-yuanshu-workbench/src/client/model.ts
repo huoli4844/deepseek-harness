@@ -1,4 +1,5 @@
 /** In-memory demo records and declared actions; nothing is a platform task. */
+import type { ChangeDemo } from './change-demo.ts'
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { roleFixtures } from './fixtures.ts'
@@ -98,6 +99,7 @@ export interface WorkbenchState {
   activeGroupId?: string
   projectOps?: Record<string, ProjectRecordStatus | undefined>
   projectDecisionOptions?: Record<string, string | undefined>
+  fixtureChangeDemo?: ChangeDemo
   projectEvidence?: Record<string, string | undefined>
   positionCases?: Partial<Record<OperatingRole, PositionCaseRecord>>
 }
@@ -208,6 +210,13 @@ const workbenchActions = {
     if (status === 'done' && id.startsWith('action:') && !state.followUps.some(item => item.projectActionId === id && item.done && item.response?.trim())) return
     state.projectOps ??= {}
     state.projectOps[id] = status
+  },
+  editFixtureChangeDemo: (state: WorkbenchState, input: Pick<ChangeDemo, 'constraint' | 'model'>) => {
+    state.fixtureChangeDemo = { ...state.fixtureChangeDemo, ...input }
+  },
+  runFixtureChangeDemo: (state: WorkbenchState) => {
+    const demo = state.fixtureChangeDemo ??= { constraint: '', model: 'fast' }
+    demo.report = { constraint: demo.constraint, model: demo.model }
   },
   recordProjectDecision: (state: WorkbenchState, id: string, option: string) => {
     if (state.projectOps?.[id] === 'approved' || !projectDecisions.find(item => item.id === id)?.options.some(candidate => candidate === option)) return

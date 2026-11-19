@@ -1,5 +1,6 @@
 /** Role-adapted dashboards and shared workspace rendered in a native DSH panel. */
 import { useEffect, useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   Button,
   Checkbox,
@@ -18,6 +19,8 @@ import {
   IconNewChatOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SidebarPanelIconOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { DraftVersion, RoleId, TaskId, WorkbenchStoreProps } from './model.ts'
 import type { WorkgroupKind } from './workgroup-data.ts'
@@ -31,16 +34,20 @@ import { positionScenarios, workItemsForRole, workItemForScenario, type WorkStat
 import { prioritiesForRole, priorityAssignment, priorityItems } from './priorities-data.ts'
 import { createDemoWorkgroups } from './workgroup-data.ts'
 import { projectAcceptances, projectActions, projectById, projectChanges, projectDecisions, projectDependencies, projectMilestones, projectRecords, projectRisks, projectSchedule } from './project-operations.ts'
+import { ChangeDemoPanel } from './ChangeDemoPanel.tsx'
+import { fixtureChangeId, fixtureDecisionId } from './change-demo.ts'
 import { PositionOperations } from './PositionOperations.tsx'
 import { positionSignals } from './position-operations.ts'
 
 interface WorkbenchInjected {
+  readonly openAssistant: (role: string, prompt?: string) => Promise<SessionReference>
   readonly onReturn: () => void
 }
 type WorkbenchProps = PropsRuntime<'main'> &
   PropsLocale<'yuanshu.workbench'> &
   WorkbenchStoreProps &
-  InjectFace<WorkbenchInjected>
+  InjectFace<WorkbenchInjected> &
+  PropsRenderSlots<'yuanshu.assistant.conversation'>
 
 interface WorkQueueEntry {
   readonly id: string
@@ -50,6 +57,15 @@ interface WorkQueueEntry {
   readonly meta?: string
   readonly open: () => void
 }
+
+interface AssistantFloatPosition {
+  readonly left: number
+  readonly top: number
+}
+
+const ASSISTANT_FLOAT_POSITION_KEY = 'dsh.yuanshu.workbench.assistant-float-position'
+const ASSISTANT_FLOAT_SIZE = 48
+const ASSISTANT_FLOAT_INSET = 12
 
 /**
  * Reuse the existing layers icon in the DSH global panel list.
@@ -80,7 +96,7 @@ const navIcons = {
  * @returns the workbench main-panel content.
  */
 export function Workbench(props: WorkbenchProps) {
-  const { t, actions, onReturn } = props
+  const { t, actions, onReturn, openAssistant, renderSlot, SessionProvider } = props
   const state = props.useStore(s => s)
   const { role, view } = state
   const key = `${role}:${state.task}`
@@ -94,6 +110,14 @@ export function Workbench(props: WorkbenchProps) {
   const [eventTitle, setEventTitle] = useState('')
   const [selectedVersion, setSelectedVersion] = useState(0)
   const [feedback, setFeedback] = useState('')
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantReference, setAssistantReference] = useState<SessionReference>()
+  const [assistantLoading, setAssistantLoading] = useState(false)
+  const [assistantError, setAssistantError] = useState(false)
+  const [assistantFloatPosition, setAssistantFloatPosition] = useState<AssistantFloatPosition>()
+  const workbenchRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ pointerX: number; pointerY: number; left: number; top: number; moved: boolean }>()
+  const suppressFloatClickRef = useRef(false)
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'role'>('role')
   const [activePriorityId, setActivePriorityId] = useState<string>()
   const [activePriorityRole, setActivePriorityRole] = useState<RoleId>(role)
@@ -184,6 +208,78 @@ export function Workbench(props: WorkbenchProps) {
       : view === 'versions'
         ? t('versions.pageTitle')
         : t(view === 'team' ? 'nav.groups' : navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
+  const openRoleConversation = (prompt?: string) => {
+    setAssistantOpen(true)
+    setAssistantLoading(true)
+    setAssistantError(false)
+    void openAssistant(role, prompt)
+      .then(setAssistantReference)
+      .catch(() => { setAssistantError(true) })
+      .finally(() => { setAssistantLoading(false) })
+  }
+  const clampAssistantFloatPosition = (position: AssistantFloatPosition): AssistantFloatPosition => {
+    const bounds = workbenchRef.current?.getBoundingClientRect()
+    if (bounds === undefined) return position
+    return {
+      left: Math.max(ASSISTANT_FLOAT_INSET, Math.min(position.left, bounds.width - ASSISTANT_FLOAT_SIZE - ASSISTANT_FLOAT_INSET)),
+      top: Math.max(ASSISTANT_FLOAT_INSET, Math.min(position.top, bounds.height - ASSISTANT_FLOAT_SIZE - ASSISTANT_FLOAT_INSET)),
+    }
+  }
+  const beginAssistantFloatDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    const bounds = workbenchRef.current?.getBoundingClientRect()
+    const button = event.currentTarget.getBoundingClientRect()
+    if (bounds === undefined) return
+    const left = assistantFloatPosition?.left ?? button.left - bounds.left
+    const top = assistantFloatPosition?.top ?? button.top - bounds.top
+    dragRef.current = { pointerX: event.clientX, pointerY: event.clientY, left, top, moved: false }
+  }
+  const moveAssistantFloat = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current
+    if (drag === undefined) return
+    const deltaX = event.clientX - drag.pointerX
+    const deltaY = event.clientY - drag.pointerY
+    if (Math.abs(deltaX) + Math.abs(deltaY) > 4) drag.moved = true
+    if (drag.moved) {
+      setAssistantFloatPosition(clampAssistantFloatPosition({ left: drag.left + deltaX, top: drag.top + deltaY }))
+    }
+  }
+  const endAssistantFloatDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current?.moved) suppressFloatClickRef.current = true
+    dragRef.current = undefined
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+  }
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(ASSISTANT_FLOAT_POSITION_KEY)
+      if (saved !== null) {
+        const parsed: unknown = JSON.parse(saved)
+        if (typeof parsed === 'object' && parsed !== null && 'left' in parsed && 'top' in parsed
+          && typeof parsed.left === 'number' && Number.isFinite(parsed.left)
+          && typeof parsed.top === 'number' && Number.isFinite(parsed.top)) {
+          setAssistantFloatPosition(clampAssistantFloatPosition({ left: parsed.left, top: parsed.top }))
+        }
+      }
+    } catch {
+      // Ignore unavailable or malformed browser preferences.
+    }
+  }, [])
+  useEffect(() => {
+    if (assistantFloatPosition === undefined) return
+    try {
+      localStorage.setItem(ASSISTANT_FLOAT_POSITION_KEY, JSON.stringify(assistantFloatPosition))
+    } catch {
+      // The control remains movable when browser storage is unavailable.
+    }
+  }, [assistantFloatPosition])
+  useEffect(() => {
+    const onResize = () => {
+      if (assistantFloatPosition !== undefined) setAssistantFloatPosition(clampAssistantFloatPosition(assistantFloatPosition))
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [assistantFloatPosition])
   const selectView = (next: typeof view) => {
     actions.navigate(next)
     setProjectFocusId(undefined)
@@ -1052,6 +1148,26 @@ export function Workbench(props: WorkbenchProps) {
                         <li key={milestone.id}>{t(milestone.name)} · {t(`role.${milestone.owner}`)}</li>
                       ))}
                     </ul>
+                    {item.id === fixtureChangeId && (
+                      <ChangeDemoPanel
+                        t={t}
+                        demo={state.fixtureChangeDemo}
+                        onEdit={actions.editFixtureChangeDemo}
+                        onRun={actions.runFixtureChangeDemo}
+                        onOpenAnalysis={() => {
+                          const prompt = [
+                            t('changeDemo.prompt'),
+                            t(item.scopeImpact),
+                            t(item.costImpact),
+                            t(item.qualityImpact),
+                            t(item.evidence),
+                            state.fixtureChangeDemo?.constraint.trim(),
+                          ].filter(Boolean).join('\n\n')
+                          openRoleConversation(prompt)
+                        }}
+                        onDecision={() => { setProjectFocusId(fixtureDecisionId) }}
+                      />
+                    )}
                     <Button size="sm" onClick={() => { openScenario(1, 'project.1') }}>{t('project.operations.openSop')}</Button>
                   </div>
                 )}
@@ -1066,7 +1182,7 @@ export function Workbench(props: WorkbenchProps) {
               const approved = projectRecordStatus(item.id) === 'approved'
               const choice = approved ? state.projectDecisionOptions?.[item.id] : decisionChoice[item.id]
               return (
-                <article className={css.projectOpsItem} key={item.id}>
+                <article className={css.projectOpsItem} key={item.id} id={item.id} tabIndex={-1}>
                   <h3>{t(item.title)}</h3>
                   <p>{t(item.question)}</p>
                   <small>{t('project.operations.ownerDue', { owner: t(`role.${item.owner}`), due: item.due })}</small>
@@ -1951,6 +2067,7 @@ export function Workbench(props: WorkbenchProps) {
             <IconLayersOutlineRegular size={18} />
           </div>
           <p className={css.intro}>{t('work.aiHint')}</p>
+          <Button variant="primary" onClick={() => { openRoleConversation() }}>{t('conversation.open')}</Button>
           <p>{t(method.why)}</p>
           {!candidate && currentWorkStatus !== 'done' && (
             <Button variant="outline" onClick={() => { setCandidate(true) }}>{t('work.aiAsk')}</Button>
@@ -1994,7 +2111,7 @@ export function Workbench(props: WorkbenchProps) {
   )
   return (
     <Modal open headless title={t('panel')} onClose={onReturn} className={`${css.surface}`} backdropBlur={false}>
-      <div className={css.root}>
+      <div ref={workbenchRef} className={css.root}>
         <aside className={`${css.navigation} ${navOpen ? css.openNavigation : ''}`} aria-label={t('navLabel')}>
           <div className={css.brand}>
             <IconLayersOutlineRegular size={22} />
@@ -2193,6 +2310,26 @@ export function Workbench(props: WorkbenchProps) {
           </div>
         </div>
         <Modal
+          open={assistantOpen}
+          title={t('conversation.title')}
+          onClose={() => { setAssistantOpen(false) }}
+          className={css.assistantModal ?? ''}
+          closeLabel={t('close')}
+        >
+          {assistantLoading ? <p className={css.assistantState}>{t('conversation.loading')}</p> : null}
+          {assistantError ? (
+            <div className={css.assistantState}>
+              <p>{t('conversation.error')}</p>
+              <Button variant="outline" onClick={() => { openRoleConversation() }}>{t('conversation.retry')}</Button>
+            </div>
+          ) : null}
+          {!assistantLoading && !assistantError && assistantReference !== undefined ? (
+            <SessionProvider session={assistantReference}>
+              {renderSlot('yuanshu.assistant.conversation', {})}
+            </SessionProvider>
+          ) : null}
+        </Modal>
+        <Modal
           open={dialog !== null}
           className={`${css.detailDialog}`}
           contentClassName={`${css.detailContent}`}
@@ -2322,6 +2459,26 @@ export function Workbench(props: WorkbenchProps) {
             <p>{t('files.intro')}</p>
           )}
         </Modal>
+        <button
+          type="button"
+          className={css.assistantFloat}
+          style={assistantFloatPosition === undefined ? undefined : { left: assistantFloatPosition.left, top: assistantFloatPosition.top, right: 'auto', bottom: 'auto' }}
+          aria-label={t('conversation.open')}
+          title={t('conversation.open')}
+          onPointerDown={beginAssistantFloatDrag}
+          onPointerMove={moveAssistantFloat}
+          onPointerUp={endAssistantFloatDrag}
+          onPointerCancel={endAssistantFloatDrag}
+          onClick={() => {
+            if (suppressFloatClickRef.current) {
+              suppressFloatClickRef.current = false
+              return
+            }
+            openRoleConversation()
+          }}
+        >
+          <IconNewChatOutlineRegular size={20} />
+        </button>
       </div>
     </Modal>
   )

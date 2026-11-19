@@ -38,6 +38,8 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 
 ### What you can try
 
+In the project operations view, expand ECN-204 and select **Prepare DSH analysis draft**. DSH adds the demo evidence and your constraints to the current or most recent workspace’s new conversation draft. Review it before sending. Once sent, the standard DSH session tracks any native Subagents it starts.
+
 - Positions have six charts; company management and the vehicle business president have eight: trends, progress, business mix, plan comparison, weekly completions and risk matrices, plus management collections and resource coverage. New charts open raw data details and a related task.
 - Switch all 19 position views: the assistant inbox and position dashboard adapt to the selected role, while shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
 - Review company priorities with synthetic values, sources, owners and next actions; the list opens on work assigned to the active position, with a switch to the full company list and its KPI workflows.

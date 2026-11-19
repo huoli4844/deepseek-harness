@@ -37,13 +37,15 @@ async function bench() {
   runtime.slots.installLocale(locale)
   const selectPanel = vi.fn()
   runtime.ctx.provide('layout', { selectPanel } as never)
+  const startSession = vi.fn()
+  runtime.ctx.provide('uiWorkspace', { startSession } as never)
   await runtime.declare({
     main: { kind: 'keyed', scope: 'root' },
     'sidebar.panellist': { kind: 'list', scope: 'root' },
   })
   await runtime.mount({ inject, apply })
   runtime.renderSlot('main', {}, { entryKey: 'yuanshu-workbench' })
-  return { selectPanel }
+  return { selectPanel, startSession }
 }
 
 it('presents all 18 positions and company management with shared navigation and distinct work', async () => {
@@ -118,6 +120,12 @@ it('presents all 18 positions and company management with shared navigation and 
     views.push({ position: option.textContent, dashboard, tasks })
   }
   expect(views).toMatchSnapshot()
+})
+
+it('shows a floating native assistant entry without rendering a fake chat', async () => {
+  await bench()
+  expect(screen.getAllByRole('button', { name: '打开助理对话' })).toHaveLength(1)
+  expect(screen.queryByRole('region', { name: '直接讨论今天的工作' })).toBeNull()
 })
 
 it('creates a workgroup, assigns work, invites position assistants and keeps a visible conversation history', async () => {
