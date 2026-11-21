@@ -1,4 +1,5 @@
 /** In-memory demo records and declared actions; nothing is a platform task. */
+import { milestoneDemo, type MilestonePhase } from './milestone-risk.ts'
 import type { ChangeDemo } from './change-demo.ts'
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
@@ -99,6 +100,7 @@ export interface WorkbenchState {
   activeGroupId?: string
   projectOps?: Record<string, ProjectRecordStatus | undefined>
   projectDecisionOptions?: Record<string, string | undefined>
+  milestonePhase?: MilestonePhase
   fixtureChangeDemo?: ChangeDemo
   projectEvidence?: Record<string, string | undefined>
   positionCases?: Partial<Record<OperatingRole, PositionCaseRecord>>
@@ -210,6 +212,11 @@ const workbenchActions = {
     if (status === 'done' && id.startsWith('action:') && !state.followUps.some(item => item.projectActionId === id && item.done && item.response?.trim())) return
     state.projectOps ??= {}
     state.projectOps[id] = status
+  },
+  advanceMilestone: (state: WorkbenchState, expected: MilestonePhase) => {
+    if (state.role !== 'project' || (state.milestonePhase ?? 'alert') !== expected) return
+    const next = milestoneDemo.next[expected]
+    if (next !== undefined) state.milestonePhase = next
   },
   editFixtureChangeDemo: (state: WorkbenchState, input: Pick<ChangeDemo, 'constraint' | 'model'>) => {
     state.fixtureChangeDemo = { ...state.fixtureChangeDemo, ...input }
@@ -394,7 +401,7 @@ const workbenchActions = {
  * @returns the store handle registered with the workbench main entry.
  */
 export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof workbenchActions> {
-  return defineStore({
+  const handle = defineStore({
     persist: 'yuanshu-workbench.v2',
     init: (): WorkbenchState => ({
       role: 'procurement',
@@ -413,6 +420,18 @@ export function createWorkbenchStore(): EngineStoreHandle<WorkbenchState, typeof
     }),
     actions: workbenchActions,
   })
+  return {
+    ...handle,
+    create(scopeKey) {
+      const instance = handle.create(scopeKey)
+      const saved = instance.store.getSnapshot()
+      const defaults = handle.spec.init()
+      if (Object.keys(defaults).some(key => !Object.hasOwn(saved, key))) {
+        instance.store.set({ ...defaults, ...saved })
+      }
+      return instance
+    },
+  }
 }
 
 /** Store selectors and actions synthesized by the DSH renderer. */

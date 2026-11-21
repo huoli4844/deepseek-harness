@@ -215,7 +215,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-action-cards` | no | Action cards below completed answers: the shared card frame, kind bodies and the layer that hides the answer blocks offering them |
 | `@deepseek-ai/dsh-client-ui-creation-recommendations` | no | Body of the personalized page card: location choice, creation progress, Undo and Restore |
 | `@deepseek-ai/dsh-client-ui-plugin-recommendations` | no | Official plugin card body with catalog text and enabling |
-| `@deepseek-ai/dsh-client-yuanshu-workbench` | no | Opt-in Shaoshi role workbench with local demonstration data |
+| `@deepseek-ai/dsh-client-yuanshu-workbench` | yes | Opt-in Shaoshi role workbench with local demonstration data |
 | `@deepseek-ai/dsh-creation-recommendations` | no | Create persistent removable interface plugins from explicit conversation needs |
 | `@deepseek-ai/dsh-cua` | no | Shared Computer Use application objects, authorization, and logged tool execution |
 | `@deepseek-ai/dsh-cua-macos` | yes | macOS native provider for shared Computer Use application and window objects |
@@ -567,3 +567,9 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | Package | Config | Description |
 |---|---|---|
 | `@deepseek-ai/dsh-workspace` | no | Workspace entity registry (ctx.workspaceRegistry): durable workspace records with validated session attachment over the domain data form for the DeepSeek Harness |
+
+## yuanshu
+
+| Package | Config | Description |
+|---|---|---|
+| `@deepseek-ai/dsh-yuanshu-login-server` | yes | Serve the YuanShu sign-in page and the /yuanshu-token handoff, publishing __DSH_EXTERNAL_IDENTITY__ for the Harness web app |

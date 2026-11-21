@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "YuanShu-Anmeldung",
+    "description": "Stellt die YuanShu-Anmeldeseite und die Übergabe über /yuanshu-token bereit und übermittelt das angemeldete Konto an die Web-App."
+  }
+}

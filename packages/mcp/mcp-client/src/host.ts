@@ -11,7 +11,7 @@ import * as McpClient from './index.ts'
 import type { Config, StreamableHttpConfig } from './index.ts'
 import { hasOAuthWithAuthorizationHeader, SERVER_NAME_PATTERN, StdioSchema, StreamableHttpSchema } from './config.ts'
 import type { ConfigInput } from './config.ts'
-import { resolveReconnectPolicy } from './connection.ts'
+import { connectionIn, resolveReconnectPolicy } from './connection.ts'
 import { templatedFields } from './credentials.ts'
 import { McpOAuthAuthorization } from './oauth.ts'
 import type { McpOAuthConfig } from './oauth-options.ts'
@@ -38,6 +38,11 @@ export interface McpServerInstance {
    * @returns the cleanup result of its latest connection generation, or `undefined` when activation never registered one.
    */
   dispose(): Promise<McpCloseResult | undefined>
+  /**
+   * Call an argument-free projection through the current generation.
+   * @returns A reader pinned to the current connection generation.
+   */
+  projectionReader(): (name: string, signal: AbortSignal) => Promise<unknown>
 }
 
 /** Validates, mounts, probes, and authorizes MCP servers for the plugin that manages them. */
@@ -98,6 +103,11 @@ export class McpClientHost extends Service {
         if (status === undefined) throw new Error(`mcp-client(${config.serverName}): activated without connection status`)
         return status
       }),
+      projectionReader: () => {
+        const connection = connectionIn(fiber)
+        if (connection === undefined) throw new Error('MCP server connection unavailable')
+        return connection.projectionReader()
+      },
       dispose: async () => {
         await fiber.dispose()
         return connectionStatusIn(fiber)?.closure()

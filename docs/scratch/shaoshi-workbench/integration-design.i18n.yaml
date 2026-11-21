@@ -9,11 +9,11 @@
   en: 0a860e815875ed77
   zh: b2bf00161b8b6139
 /shaoshi-yuanshu-workbench-integration-design/1-decisions:
-  en: ccf188935c186e56
-  zh: 5cc65e11a723ce80
+  en: 1dff47b7222f70c9
+  zh: de89dbd3e1e0d748
 /shaoshi-yuanshu-workbench-integration-design/2-evidence-scope-and-confidence:
-  en: 39e4def14f6abf76
-  zh: e64edbcb9cb66b45
+  en: 2caaed6086eb02c3
+  zh: 5ecdc34b28397b99
 /shaoshi-yuanshu-workbench-integration-design/3-architecture:
   en: 388afb5c5ce6922e
   zh: 368868aead8b2be6
@@ -32,6 +32,9 @@
 /shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-4-database-capabilities:
   en: da7bee6120658012
   zh: faf7574990043be5
+/shaoshi-yuanshu-workbench-integration-design/4-what-yuanshu-already-provides/4-5-tenant-business-databases-and-employee-visible-catalog:
+  en: 94dda164e6f1640f
+  zh: 229db37b147a41ef
 /shaoshi-yuanshu-workbench-integration-design/5-api-mcp-and-tool-allocation:
   en: b0e31f7e15ace94d
   zh: 5e4289323466bf30
@@ -60,17 +63,29 @@
   en: fa78fa8ff65841a6
   zh: e2404c43b18b9fe8
 /shaoshi-yuanshu-workbench-integration-design/8-login-and-oauth-sequence:
-  en: 065684f107178ee5
-  zh: 7947bdc1825e0493
+  en: 21b872ef0dfd6330
+  zh: 62a254b2aa98de5e
 /shaoshi-yuanshu-workbench-integration-design/9-task-execution-and-recovery:
   en: 8d9ead88c5c05253
   zh: fe09010f8cd3c53d
 /shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse:
-  en: 3884ad9a20ca0e86
-  zh: 175ecc2aa4888a01
+  en: d5c8f0d4e80619a8
+  zh: e869e44bcc8e6458
+/shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse/10-1-native-capabilities-and-integration-responsibilities:
+  en: 812c678948a21355
+  zh: 1f54b629d60731a8
+/shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse/10-2-project-delivery-risk-workflow:
+  en: efa93778e878422c
+  zh: f65b7b3f44ec2ea9
+/shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse/10-3-yuanshu-exposure-checklist-before-delivery:
+  en: f858e4eb3d07aeed
+  zh: a31e98747eaa342f
+/shaoshi-yuanshu-workbench-integration-design/10-dsh-plugin-conformance-and-reuse/10-4-first-release-integration-contract:
+  en: 828ab8fe4c07e809
+  zh: bf92f71355865300
 /shaoshi-yuanshu-workbench-integration-design/11-delivery-plan-and-acceptance:
-  en: 6991565e1c765779
-  zh: b73c31fb3726b922
+  en: 05ee0246b27ce8d6
+  zh: 409aa539291fd8fd
 /shaoshi-yuanshu-workbench-integration-design/12-source-and-tenant-evidence-index:
   en: 2c0981191c970409
   zh: 0e494dc8cd5b3cd4

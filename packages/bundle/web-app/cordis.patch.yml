@@ -210,6 +210,7 @@
         surfaceContext: true
         openBrowser: !!js ctx.webStartup.openBrowser
         printUrl: true
+        openLogin: true
 
     # Model context for an agent that inspects or extends the harness serving
     # this GUI: value-free prompt sections plus the current checkout and GUI
@@ -251,6 +252,14 @@
 
     - id: authentication-token
       name: '@deepseek-ai/dsh-host-authentication-token'
+
+    # YuanShu is the identity provider for the Shaoshi deployment. The Host
+    # serves /login and redirects unauthenticated root requests there.
+    - id: yuanshu-login-server
+      name: '@deepseek-ai/dsh-yuanshu-login-server'
+      inject: [webServer, connection, webApp]
+      config:
+        yuanshuApiUrl: http://localhost:8081
 
     # Raw Blob and ReadableStream uploads run independently of Connection's
     # RPC and generation service.

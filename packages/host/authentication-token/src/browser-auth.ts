@@ -306,6 +306,17 @@ export class BrowserAuth {
   }
 
   /**
+   * Expire the browser cookie for the current listener and authority.
+   * @param request - admitted browser request.
+   * @param secure - whether the listener serves TLS.
+   * @returns the expiration header, if the request has an authority.
+   */
+  clearBrowserCookie(request: ConnectionTrustRequest, secure: boolean): string | undefined {
+    const authority = requestAudience(request.headers, secure)
+    return authority === undefined ? undefined : sessionCookie(cookieName(authority), '', 0, 0, secure)
+  }
+
+  /**
    * Exchange the launch token for an independent API operator; omitted interactions default to none.
    * @param req - trusted GET request on /connect with at most one interactions declaration.
    * @param res - response owned to completion, redirecting to the API mux on success.

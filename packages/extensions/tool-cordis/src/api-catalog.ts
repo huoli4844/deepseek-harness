@@ -2620,6 +2620,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['when the name is taken, the entry is invalid, or the manager is disposed.'],
       },
       {
+        signature: 'projectionReader(server: string): (tool: string, signal: AbortSignal) => Promise<unknown>',
+        description: 'Obtain a generation-bound reader for argument-free projections. Host callers own the tool allowlist and employee authorization.',
+        parameters: [{ name: 'server', description: 'registered MCP server key.' }],
+        returns: 'A reader that rejects once its connection is replaced.',
+      },
+      {
         signature: '@Remote({ mode: \'stream\' }) async* watch(signal: AbortSignal): AsyncIterable<McpManagedServerView[]>',
         description: 'Stream server views for a management surface: the current list on subscription, then the complete list again after each status or entry change.',
         parameters: [{ name: 'signal', description: 'subscription lifetime; aborting ends only this stream.' }],
@@ -8529,7 +8535,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'McpServerInstance',
-    declaration: 'export interface McpServerInstance {\n    readonly ready: Promise<McpConnectionStatusHandle>;\n    dispose(): Promise<McpCloseResult | undefined>;\n}',
+    declaration: 'export interface McpServerInstance {\n    readonly ready: Promise<McpConnectionStatusHandle>;\n    dispose(): Promise<McpCloseResult | undefined>;\n    projectionReader(): (name: string, signal: AbortSignal) => Promise<unknown>;\n}',
   },
   {
     name: 'McpServerRegistration',

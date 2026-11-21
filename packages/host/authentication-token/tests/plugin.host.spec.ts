@@ -115,6 +115,26 @@ it('exchanges a root token, passes other routes on, and keeps browser authentica
   expect(dropped.state.status).toBeUndefined()
 })
 
+it('expires the current browser cookie only for a same-origin POST', async () => {
+  const { ctx, routes, auth } = await mounted()
+  const root = new URL(auth.authenticatedUrl('http://localhost:3080/'))
+  const exchange = response()
+  await ctx.waterfall('webserver/request', request(root.pathname + root.search), exchange.res, async () => {})
+  const cookieName = exchange.state.headers?.['set-cookie']?.split('=', 1)[0]
+  expect(cookieName).toBeDefined()
+  const signOut = routes.find(route => route.path === '/browser-sign-out')!
+  const rejected = response()
+  await signOut.handler(request('/browser-sign-out', 'POST'), rejected.res)
+  expect(rejected.state.status).toBe(403)
+  expect(rejected.state.headers?.['set-cookie']).toBeUndefined()
+  const admitted = request('/browser-sign-out', 'POST')
+  admitted.headers['sec-fetch-site'] = 'same-origin'
+  const cleared = response()
+  await signOut.handler(admitted, cleared.res)
+  expect(cleared.state.status).toBe(204)
+  expect(cleared.state.headers?.['set-cookie']).toContain(`${cookieName}=; Max-Age=0; Path=/`)
+})
+
 it('delegates synthetic Worker requests without a native socket', async () => {
   const { ctx, routes, auth } = await mounted()
   const synthetic = request('/plugins/??modules/client.js')

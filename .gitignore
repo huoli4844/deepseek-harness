@@ -38,6 +38,9 @@ python/**/__pycache__/
 python/**/.pytest_cache/
 packages/**/__pycache__/
 apps/web/dist/
+apps/yuanshu-login/dist/
+apps/yuanshu-login/.env.local
+website/.vitepress/.temp/
 apps/cli/docs/
 .artifacts/
 .dsh-build/

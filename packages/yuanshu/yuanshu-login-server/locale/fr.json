@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Connexion YuanShu",
+    "description": "Sert la page de connexion YuanShu et le transfert /yuanshu-token, et transmet le compte connecté à l’application web."
+  }
+}

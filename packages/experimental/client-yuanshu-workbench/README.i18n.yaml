@@ -9,20 +9,23 @@
   en: bd8c8cf5dc67746e
   zh: d7d858fcbaf55d8d
 /deepseek-ai-dsh-client-yuanshu-workbench/summary:
-  en: e63ff4608f6704b9
-  zh: 49832a11a2474227
+  en: 5863e4e6ed4f7f5c
+  zh: e69875bb1419a8f0
 /deepseek-ai-dsh-client-yuanshu-workbench/table-of-contents:
   en: d152484eb41ac6b4
   zh: 364c80ee00a374ff
 /deepseek-ai-dsh-client-yuanshu-workbench/use-this-package:
   en: bbff250eba0f1b89
   zh: b20a47f82d8ab6e0
+/deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/connect-an-employee-account:
+  en: ed025f3def1459e6
+  zh: d40ccb19e60382b2
 /deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/preview-from-this-checkout:
   en: 56133a0caa375dc6
   zh: 7b23c2e49f28e88e
 /deepseek-ai-dsh-client-yuanshu-workbench/use-this-package/what-you-can-try:
-  en: b80a7350650b6178
-  zh: 97aa562978c3a8c8
+  en: ee31c6a60b6e88c3
+  zh: a4ed11f1a023c514
 /deepseek-ai-dsh-client-yuanshu-workbench/understand-the-implementation:
   en: ecf59e9598314399
   zh: ed5145a1abd61440
@@ -39,5 +42,5 @@
   en: 1f36688efdc89152
   zh: 25ea1586b6d7fbc1
 /deepseek-ai-dsh-client-yuanshu-workbench/known-limitations-and-deferred-work/dev-note:
-  en: 46ae488f8b14003b
-  zh: 78a34cab858e7276
+  en: d62c3356c6c758e5
+  zh: 83d7132f4b38555b

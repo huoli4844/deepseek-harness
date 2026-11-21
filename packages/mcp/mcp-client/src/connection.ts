@@ -16,7 +16,7 @@
  */
 
 import { Client } from '@modelcontextprotocol/client'
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context, Fiber } from '@deepseek-ai/cordis'
 import type { ScopeKey } from '@deepseek-ai/dsh-scope'
 import { assertNever, deepEqualJson, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { ServerContext } from './server-context.ts'
@@ -103,8 +103,24 @@ export interface ConnectionOutcome {
   error?: unknown
 }
 
+const handles = new WeakMap<Fiber, ConnectionHandle>()
+
+/**
+ * Find the connection owned by a mounted MCP plugin.
+ * @param fiber - the instance Fiber.
+ * @returns its live connection handle, when registered.
+ */
+export function connectionIn(fiber: Fiber): ConnectionHandle | undefined {
+  return handles.get(fiber.ctx.fiber)
+}
+
 /** Handle for one plugin instance's supervised connection. */
 export interface ConnectionHandle extends ServerContext {
+  /**
+   * Call an argument-free tool from a trusted Host consumer.
+   * @returns A reader pinned to the current connection generation.
+   */
+  projectionReader(): (name: string, signal: AbortSignal) => Promise<unknown>
   /**
    * Settles when the first connection attempt completes or the instance is disposed.
    * The supervisor applies its retry or credential-wait policy; the caller
@@ -405,7 +421,29 @@ export function startConnection(
 
   settling = Promise.resolve().then(connectGeneration)
 
-  return {
+  const handle: ConnectionHandle = {
+    projectionReader() {
+      const record = current
+      if (record?.connectedAt === undefined) {
+        throw new McpToolError(`${label}: server is disconnected`, 'MCP_SERVER_UNAVAILABLE')
+      }
+      return async (name, signal) => {
+        signal.throwIfAborted()
+        if (!isCurrent(record)) throw new McpToolError(`${label}: server is disconnected`, 'MCP_SERVER_UNAVAILABLE')
+        try {
+          const result = await record.wire.run(lifetime => record.wire.client.callTool(
+            { name, arguments: {} },
+            { signal: AbortSignal.any([lifetime, signal]), timeout: config.toolCallTimeoutMs },
+          ))
+          signal.throwIfAborted()
+          if (!isCurrent(record)) throw new McpToolError(`${label}: server is disconnected`, 'MCP_SERVER_UNAVAILABLE')
+          return result
+        } catch (error) {
+          signal.throwIfAborted()
+          throw mcpRequestError(error, 'tools/call', binding.redacting ? text => binding.redact(text) : undefined)
+        }
+      }
+    },
     ready: readiness.promise,
     instructions: () => serverInstructions,
     ...loader === undefined ? {} : { catalog: (scope: ScopeKey | undefined) => loader.catalog(scope) },
@@ -464,4 +502,9 @@ export function startConnection(
       if (!result.closeConfirmed || result.cleanupError !== undefined) ctx.logger.error(`${label}: cleanup incomplete`)
     },
   }
+  ctx.effect(() => {
+    handles.set(ctx.fiber, handle)
+    return () => { handles.delete(ctx.fiber) }
+  }, 'mcp-client.host-projection')
+  return handle
 }

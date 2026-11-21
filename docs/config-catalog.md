@@ -822,6 +822,31 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-trajectory -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-yuanshu-workbench -->
+<a id="deepseek-aidsh-client-yuanshu-workbench"></a>
+
+## `@deepseek-ai/dsh-client-yuanshu-workbench`
+
+- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:13`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
+
+```ts config-catalog
+/** Optional employee MCP connection for a single-account DSH Host. */
+export interface Config {
+  /** Employee MCP authorization and request settings, or false to disable the connection. */
+  mcp: false | {
+    /** MCP endpoint. */
+    url: string
+    /** Registered OAuth client ID. */
+    clientId: string
+    /** YuanShu API base URL. */
+    apiUrl: string
+    /** Deadline for workbench and MCP requests, in milliseconds. */
+    requestTimeoutMs: number
+  }
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-yuanshu-workbench -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
 <a id="deepseek-aidsh-compaction-basic"></a>
 
@@ -5168,6 +5193,8 @@ export interface WebRuntimeConfig {
 export interface Config {
   /** Permit default-browser handoff after the Loader tree settles; an SSH launch suppresses it. */
   openBrowser: boolean
+  /** Open the local sign-in page before establishing a browser session. */
+  openLogin?: boolean
   /** Print the URL lines on activation; a non-interactive layer can turn them off. */
   printUrl: boolean
   /**
@@ -5388,6 +5415,25 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-workspace-changes -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
+<a id="deepseek-aidsh-yuanshu-login-server"></a>
+
+## `@deepseek-ai/dsh-yuanshu-login-server`
+
+- `inject`: `webServer` · `connection` · `connection.authentication` · `webApp`
+- `source`: [`packages/yuanshu/yuanshu-login-server/src/index.ts:35`](../packages/yuanshu/yuanshu-login-server/src/index.ts)
+
+```ts config-catalog
+/** Login asset directory and YuanShu authentication endpoint. */
+export interface Config {
+  /** Path to the built login dist directory. Resolved automatically if not set. */
+  readonly loginDist?: string
+  /** Base URL of the YuanShu backend for the login page to call. */
+  readonly yuanshuApiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
@@ -5464,7 +5510,6 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | — | [`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
-| `@deepseek-ai/dsh-client-yuanshu-workbench` | — | [`packages/experimental/client-yuanshu-workbench/src/index.ts`](../packages/experimental/client-yuanshu-workbench/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |
 | `@deepseek-ai/dsh-command-feedback` | `commands` | [`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts) |
 | `@deepseek-ai/dsh-command-goal` | `commands` · `goals` | [`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts) |

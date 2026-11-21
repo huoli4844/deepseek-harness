@@ -15,11 +15,13 @@ promotion-target: docs/developer/discussion/shaoshi-workbench
 
 ## 1. 设计决策
 
+首发优先打通项目经理的交付风险场景。元枢通过 HTTPS 提供身份、文件和事件投递，通过员工 MCP 提供工作台投影、语义查询、方法资料和受治理执行。DSH 使用原生 Session、MCP 和 Subagent 主持岗位工作，具体复用方式见第 10 节。
+
 1. DSH 是面向少仕员工的专用客户端。登录后默认进入当前员工的元枢工作台，同时通过明确的返回入口保留原始 DSH 界面。
 2. 正式数据路径是由 Host 持有、按用户隔离的 MCP 客户端，调用 `/api/v1/client/mcp`。浏览器不持有 MCP refresh token，插件不直接连接 PostgreSQL。
 3. 登录、租户初始化、文件传输、健康检查和现有通知通道继续使用 HTTP。受治理的业务上下文、工作台投影、知识、本体、专业能力和长任务使用 MCP。
 4. Tool 是一个操作；MCP 是发现和调用 Tools、Resources 的协议。DSH 原生 Tool 可以把本地状态和已授权的平台调用编排成面向工作的操作，但不为每个 MCP Tool 创建重复薄封装。
-5. 元枢是身份、权限、业务记录、审批、任务状态、执行结果和审计历史的权威来源。DSH 负责界面、草稿、模型协作和可恢复的 UI 状态。
+5. 元枢统一提供身份、权限、业务读取和执行入口；平台主库管理通用治理与运行记录，各租户业务库保存本租户业务事实。DSH 负责界面、草稿、模型协作和可恢复的 UI 状态。
 6. 岗位视角由平台有效角色和租户显式映射共同决定。岗位名称、KPI 标签或客户端菜单不能授予权限，也不能推断用户权限。
 7. 每个有影响的写操作都要有幂等键；异步操作要有不透明的 `task_ref`、明确结果和恢复路径。界面确认不等于审批，HTTP 200 不等于业务成功。
 
@@ -27,7 +29,7 @@ promotion-target: docs/developer/discussion/shaoshi-workbench
 
 本次检查了 `/Users/david/Documents/project/cp_project/cp_project` 下的元枢源码，包括 Go 服务端和 Vue 客户端。源码仓库处于 `main`，比 `origin/main` 多三个提交，并有与本任务无关的未提交修改。没有修改源码、迁移、环境文件、生产配置或数据库行；因此源码反映的是检查时的实现，不一定等于部署中的服务。
 
-提供的租户数据库使用事务级只读设置查询。业务数据库是 `go_admin_kit`，schema 是 `public`，租户为 `3`（`shaoshi`）。凭据和员工姓名没有写入本仓库。审计中运行的两个定向源码测试为：
+早先的只读审计记录将 `go_admin_kit.public` 用于少仕租户（`shaoshi`）的岗位和平台数据核对。该记录不是少仕业务库的验证。本版按用户确认的架构，将独立 PostgreSQL 库 `cp_shaoshi` 作为少仕业务库；平台源码仓库的职责分析与业务迁移文件也区分了两库。本版查阅源码和迁移，没有连接数据库或核实部署目录。以下为早先审计运行的定向源码测试：
 
 ```text
 go test ./internal/clientmcp ./internal/tenantaccess
@@ -50,7 +52,10 @@ flowchart LR
   MCP --> Auth[Grant and live membership checks]
   Auth --> Catalog[Workbench, ontology, knowledge, task and asset tools]
   Catalog --> YuanShu[YuanShu domain handlers and ledger]
-  YuanShu --> Records[Business records, approvals, runs and audit]
+  YuanShu --> Main[Platform DB: identity, policy, releases and run ledger]
+  YuanShu --> Resolver[Resolve authorized tenant data source]
+  Resolver --> Shaoshi[cp_shaoshi: Shaoshi business facts]
+  Resolver --> Others[Other tenants: separate business databases]
   UI[Role workbench and DSH Session] --> Host
   UI --> Session[Local drafts and collaboration transcript]
 ```
@@ -88,6 +93,27 @@ flowchart LR
 ### 4.4 数据库能力
 
 `server/internal/api/client_mcp_database.go` 只暴露 DAP 目录中启用且合法的数据库处理器。只读查询有 `limit <= 1000`、`max_rows <= 10000`、`timeout <= 120s` 等限制，调用者不能传入 user 或 tenant actor key。普通员工应优先使用本体和工作台投影，而不是原始 SQL 和 schema 工具。数据库目录条目是实现能力，不等于可以把全部业务数据交给模型。
+
+### 4.5 租户业务库与员工可见数据目录
+
+元枢主库保存身份、租户成员、岗位与权限、数据源注册与凭据引用、已发布本体及映射、知识和平台运行审计。少仕的项目、采购、研发、制造、质量、交付及财务事实留在 `cp_shaoshi`，少仕专用业务表和业务迁移由少仕应用维护。主库可保存受控业务引用、投影与证据版本，避免复制业务事实作为另一份权威数据。源码依据为 `server/docs/少仕数据库与元枢平台数据职责边界分析-20261109.md` 和 `server/sql/shaoshi/migrations/202610290001_shaoshi_business_tables.sql`；迁移清单不是已部署 MCP 目录。
+
+平台管理侧通过管理 API 登记租户数据源、测试连接、扫描结构、审核字段分类、绑定本体和发布目录。员工 grant 验证后，服务端根据已认证租户解析数据源注册，按租户和数据源隔离连接池，读取使用最小权限只读账号。员工请求只接受平台发放的逻辑引用；不接受数据库名、连接串、任意 schema 或租户覆盖值。没有绑定、绑定不唯一或数据源不可用时返回明确状态，禁止回退到主库或其他租户。业务写入经领域服务执行；它独立校验业务归属、记录版本和放行条件。
+
+员工 MCP 首期使用同一 `/api/v1/client/mcp`，不要求每租户部署一个 MCP 服务。以下逻辑名称是建议，须与现有 DAP Tool 和本体接口对齐后发布。普通员工可发现岗位允许的业务表或视图及安全字段信息；物理拓扑、全库扫描和高级查询仅面向经批准的数据岗位。
+
+| 建议的 MCP 能力 | 输入与输出 | 谁使用 |
+|---|---|---|
+| Tool `tenant_data_list_objects` | 领域、类型、分页游标 → 不透明 `object_ref`、表/视图逻辑名、业务说明、可用操作和目录版本 | 工作台数据导航；Agent 按工作需要定位来源 |
+| Tool `tenant_data_describe_object` / 版本化数据字典 Resource | `object_ref`、可选版本 → 授权列、类型、单位、空值语义、枚举、允许筛选项、业务键、可展示关系和本体绑定 | 图表、表格、SOP 取证；Resource 可引用，读取时重新授权 |
+| Tool `tenant_data_query_records` | `object_ref`、授权字段、类型化过滤和排序、游标 → 授权记录、记录引用、来源版本与数据时间 | 确定性页面、指标明细和 Agent 取证；聚合默认使用已发布指标 |
+| 已发布本体 Resource 与本体上下文/查询/证据 Tools | 本体发布引用、类、关系或业务对象引用 → 授权概念、关系路径、关联业务记录和证据定位 | Agent 解释依赖与影响；DSH 展示可以回查的业务引用 |
+
+先应用对象和字段策略，再返回目录、描述或本体字典；执行时重查当前权限，并把行范围落实到过滤、关联和聚合，禁止通过计数、外键、列注释或错误推断隐藏数据。服务端限制页大小、查询复杂度、执行时间和响应字节；不提供普通员工任意 SQL。没有权限的对象与不存在的对象统一响应；授权对象的数据源不可用或映射失效时，返回可区分的错误，不把空结果展示成无风险。游标绑定查询、租户、主体、权限和目录版本；版本变更后丢弃旧游标并重新发现。
+
+建议由平台维护 `本体发布版本 → 类/关系 → 对象与字段映射 → 记录/证据引用`，在目录登记稳定逻辑 ID 和数据负责人。先验证迁移与字段映射，再切换本体发布；发生不兼容漂移时停止相关调用并标为待修复。DSH 依授权主体、租户及目录版本缓存，租户切换、权限变化和撤销时清除可用缓存；会话历史、fork 与证据再读取继续执行第 10 节的权限和留存规则。审计记录主体、数据源逻辑标识、对象、映射版本、操作和结果摘要，避免把敏感行内容写入通用审计。
+
+少仕首发可从迁移中选 `prj_projects`、`prj_project_milestones` 和 `prj_project_risks` 做受控投影，发布“项目包含里程碑、风险影响里程碑”的语义映射；关系以已核实的键或显式映射为准。项目经理从风险通知打开工作台，Host 查询可见里程碑和证据，原生对话按需读取本体与记录。先在业务库提交风险变更和业务事件，再由平台按事件 ID 去重、筛选合法接收人并投递；跨库可靠投递需业务 outbox 或经验证的 CDC，主库通知不替代原业务提交。
 
 ## 5. API、MCP 与 Tool 的分工
 
@@ -249,6 +275,8 @@ sequenceDiagram
 
 平台 JWT 是同意流程的凭据和启动身份，不是 MCP access token。凭据由 Host credential service 按 issuer、resource、client、tenant、principal 和 Session 作用域保存。切换租户或主体时，先销毁旧 client、目录和任务句柄，再加载新作用域。MFA/验证码必须回到平台流程，不能静默使用无作用域客户端。
 
+元枢源码已有 `POST /api/v1/mcp/oauth/preauthorize`。Host 可在登录成功后用平台 JWT 发起预授权，但仅限租户已批准的客户端及 `enterprise:read`。成功返回授权码回调地址，Host 仍须校验 state 并用 PKCE 换取 MCP grant；返回 `consent_required` 时进入显式同意流程。部署配置尚未核实。平台 HTTP 会话、DSH 浏览器 Cookie 与 MCP grant 各自失效；退出验收须分别验证，浏览器登出不代表远端 grant 已撤销。
+
 ## 9. 任务执行与恢复
 
 1. 用户在明确的工作阶段选择操作。DSH 检查当前目录 schema、目标版本和确认要求。
@@ -264,29 +292,112 @@ sequenceDiagram
 
 ## 10. DSH 插件规范与复用
 
-`dev` 中的 `client-yuanshu-workbench` 仍是 UI 原型。其 README 和 `src/index.ts` 明确它使用合成记录，不调用 MCP 或模型，Host `apply()` 为空。它的角色/视图/任务/工作群模型、fixtures、语言包和布局可以作为交互脚手架；在代表真实员工之前，必须替换为类型化 Host 调用。
+`dev` 中的 `client-yuanshu-workbench` 仍是以合成记录为主的 UI 原型，但 Host `src/index.ts` 已注册可选的 Streamable HTTP MCP 连接和 DSH 原生 MCP 账号入口；客户端 `src/client/index.ts` 已接入原生 Conversation、Session 引用和岗位工作台。当前 MCP 配置默认关闭，工作台业务数据仍来自本地 store。它的角色/视图/任务/工作群模型、fixtures、语言包和布局可以作为交互脚手架；在代表真实员工之前，必须把这些 store 读写替换为类型化 Host 调用，并让 MCP grant 与平台主体绑定。
 
 `feature/yuanshu-platform` 包含可复用基础，但不能整体合并：
 
 | 来源 | 复用决定 |
 |---|---|
-| `packages/yuanshu/yuanshu-client/src/mcp.ts` | 复用官方 MCP SDK、发现、PKCE、grant 刷新、撤销、并发和目录失效处理。 |
+| `packages/yuanshu/yuanshu-client/src/mcp.ts` | 优先复用领域解析和协议测试；先验证原生 `mcpManager` 的发现、刷新、撤销和目录失效，只移植确认缺失的行为。同一连接只保留一套传输与授权生命周期。 |
+| `packages/yuanshu/yuanshu-login-server` 与 `apps/yuanshu-login` | 复用登录页、TOTP 分支和外部身份标记。`/yuanshu-token` 是 DSH Host 的 Web 会话交接路由。平台 HTTP 会话凭据应移出 localStorage，MCP grant 单独存于 Host 凭据服务。 |
 | `packages/yuanshu/yuanshu-tool/src/enterprise.ts` | 复用 Session 作用域的 EnterpriseService、typed Remote、资源注册和释放。 |
-| `packages/yuanshu/yuanshu-gateway` | 只有在修正每个 DSH Session 的主体/租户分区后复用；其 console token map 不是业务主体。 |
+| `packages/yuanshu/yuanshu-gateway/src/routes.ts` | 复用显式路由白名单、方法限制、错误状态透传；不得把网关当通用代理，也不能把 console token map 当业务主体。 |
+| `packages/yuanshu/yuanshu-gateway/src/index.ts` | 幂等键解析位于此文件，可单独移植。整体仅在需要同源 HTTP 迁移或兼容旧 Worker 时复用；正式 MCP 模式优先由 DSH `mcpManager` 直连 `/api/v1/client/mcp`，避免网关重复维护 OAuth 和主体映射。 |
+| `packages/yuanshu/yuanshu-gateway` 的 `/workbench/*`、`/ontology/*`、`/scenarios`、`/skills/*`、`/algorithms/*`、`/dag/*` 路由 | 作为现有能力清单和兼容迁移依据；每个路由必须在元枢 MCP Tool/Resource 有等价契约后再切换，不能因为网关存在就宣称生产能力已可用。 |
 | `ui-yuanshu-chat` 的资源和工作台组件 | 复用资源取消、任务恢复和岗位场景模式，重构界面及敏感存储。 |
+| `packages/client/ui-yuanshu-account` | 复用设置入口、昵称/用户名展示和切换账号交互；退出必须同时撤销 DSH 浏览器会话、元枢 access/refresh grant 和本地缓存。 |
+| `packages/yuanshu/yuanshu-client/tests/mcp-authorization.spec.ts` | 复用 OAuth 测试矩阵：租户 header、S256 PKCE、scope、issuer/resource 校验和 token endpoint 不带普通 JWT；上线前增加 MFA、撤销、刷新轮换和租户切换测试。 |
 | 登录 launcher 与 localStorage token 代码 | 不作为 MCP 安全边界或 refresh token 存储直接复用。 |
 | 旧 HTTP worker 调用 | 仅作为明确的迁移探针保留，不能静默从 MCP 回退到 HTTP。 |
 | 原型 fixtures 和本地 save/submit | 只复用视觉状态；业务写入必须调用元枢并显示平台结果。 |
 
 实现必须形成完整的 capability seam：服务定义、Host 提供者、UI/Agent 消费者。所有注册使用 `ctx.effect()` 或 `ctx.on()`。插件卸载、Session 释放、租户切换、目录失效和凭据撤销都必须停止请求、移除动态工具并释放资源。
 
+### 10.1 原生能力与接入责任
+
+| DSH 能力 | 元枢提供 | 插件如何使用 |
+|---|---|---|
+| MCP | 员工 MCP 地址、OAuth 元数据、授权目录、版本化资源和统一任务工具 | Host 复用 MCP manager/client、账户与凭据服务。按平台、租户和主体隔离连接及缓存。确定性页面消费类型化投影，Agent 仅按需加载当前场景允许的工具。先验证目标协议、回调和资源读取的兼容性。 |
+| Upstream Skills | 公共方法提供固定 GitHub 提交、目录、许可、字节上限和摘要。租户私有 SOP 提供经授权的版本化 Resource，必要时提供受控文件下载。 | 公共方法由 Host 用 `ctx.upstreamSkills.register` 注册插件自带的入口 Skill，启动时下载并校验引用文件。私有 SOP 首期作为 Resource 按需读取。若要进入技能目录，新增按主体授权的 Skill provider。两条路径均冻结方法版本并记录实际送入模型的材料。 |
+| 最近会话及工作区根目录 | 返回岗位、场景和可见业务对象引用。 | 悬浮入口继续该岗位最近会话，对话内提供新建和历史入口。复用原生 Session 标题、搜索和打开能力，按主体、租户、岗位、工作区筛选。根目录由用户在 DSH 工作区选择，平台文件通过附件或引用显式导入。 |
+| 共享 fork 与草稿 | 重新验证源对象读权、记录版本和当前动作权限。 | 使用原生 fork 从已完成轮次派生审阅会话，共享历史前缀的能力取决于存储实现。多人共享需另行授予会话访问权限。子会话保留分析来源，单独保留草稿。平台任务、待确认写请求和审批均由原工作继续跟踪。 |
+| 分页和断线恢复 | 提供 `task_ref`、当前状态和事件游标。 | 会话历史走原生 Session 分页和 follow。远程任务通过 `task_get` 和 `task_events` 对账，分别维护会话和平台游标。未提交草稿继续使用原生 Composer 草稿。 |
+| Subagent | 提供可委派的专业能力、版本、输入权限、预算和结果。 | 使用原生 spawn 管理父子会话，通过 Host 当前设置选择允许的模型。给支持继续的子任务发送人类补充消息，一次性子任务可查报告。委派时声明任务范围、证据、交付物和报告指引，报告回到父会话。元枢专业 Agent 通过 `agent_delegate` 独立执行并返回平台任务引用。 |
+
+本地子任务使用独立且受限的 preset，实际可用工具和文件范围由 Host 校验。运行中的模型路由与后续委派的选择分别处理，后者读取最新设置。原生父子关系与平台任务关联分别记录。工作台无须依赖 dsh-master 提供委派运行时。
+
+### 10.2 项目经理交付风险纵切
+
+1. 元枢推送里程碑风险信号。工作台按来源、版本和接收人去重，显示影响对象与截止时间。首次使用事件通知加定向读取，持久事件重放纳入后续接口验收。
+2. 项目经理打开悬浮对话，进入项目工作区下的风险会话。DSH 用工作台投影定位记录，使用本体确认依赖与责任人，通过知识 Resource 读取证据，并装载固定版本的风险 SOP。
+3. 父会话委派交期和质量核查。人可以给可继续的子会话补充客户约束。报告包含结论、证据引用、冲突和待确认项。需要平台计算时调用已发布算法，需要规范化执行时调用 DAG 或场景。
+4. 父会话合并报告形成督办草稿。项目经理可从完成轮次 fork 审阅，回到原会话确认需求。平台根据 Action 预检结果、权限和审批策略接收提交。
+5. 断线后从岗位历史打开原会话，恢复草稿和分析报告，并用原任务引用核实平台状态。结果页保留执行版本、证据与审计引用。
+
+验收同时检查两条历史。DSH 可追溯用户沟通、草稿和子任务报告。元枢可追溯审批、执行和业务结果。撤销授权后阻断新增读取和调用，并按租户策略处理已持久化的本地材料。
+
+当前原型点击“交给助理”时会在尝试发送后立即推进阶段，且复用会话不保证发送本次事项。首发验收必须首次和重复打开都验证具体事项进入原生对话。按租户、主体、场景和记录绑定会话；每次启动分析传入记录版本和证据引用。收到报告并核实引用前只显示分析中或失败，不能开放批准。以下接口是建议，名称待平台确认。
+
+| 操作 | 输入与结果 | 恢复方式 |
+|---|---|---|
+| HTTPS 风险通知与补读 | 通知包含事件 ID、游标、风险引用和版本，由 Host 消费 | 用游标补齐；游标过期时重读当前工作台 |
+| MCP 风险详情 | 风险引用 → 当前版本、里程碑、依赖、责任人和证据引用 | 重新读取；版本变化时重新分析 |
+| MCP 方案预检与提交 | 风险版本、方案版本、证据、责任人和期限 → 审批要求；经确认后带幂等键提交并返回 `task_ref` | 超时先按原请求查询结果；不得用新键盲目重试 |
+| MCP 执行核实 | `task_ref` → 执行状态、结果、审计引用；按业务记录核实写入 | 恢复后对账；尚未确认时显示待核实 |
+
+### 10.3 交付前的元枢暴露清单
+
+下面的清单把“已有源码”与“仍需平台负责人确认或补齐”分开。没有完成右栏契约的能力只能显示为未接入，不能由 DSH 用本地模拟数据冒充已完成。
+
+| 能力 | 当前源码证据 | 元枢必须提供的正式契约 | DSH 首个消费者 |
+|---|---|---|---|
+| 启动登录与租户 | `/api/v1/login`、`/api/v1/login/2fa/verify`、`/api/v1/user/tenants` | 明确 access/refresh 生命周期、MFA/验证码继续地址、租户切换失效规则 | Host 登录插件 |
+| MCP 授权 | `/api/v1/client/mcp`、OAuth metadata、consent | 已注册 client、issuer、resource、redirect URI、scope、MFA 行为、撤销和 refresh rotation | DSH `mcpManager` |
+| 身份与岗位 | `workbench_profile`、少仕 profile/position 代码 | 主岗/兼岗映射、岗位生效期、数据范围、默认工作包、岗位与权限的审计来源 | 工作台导航和 Session context |
+| 主动简报 | `workbench_home`、`workbench_briefing` | 事件/游标/重放、去重键、新鲜度、严重度、责任人和触发原因 | DSH 收件页和提醒 |
+| 延期风险闭环 | `workbench_decisions`、task/action 处理器 | 证据引用、建议方案、确认/审批区分、幂等写入、结果核实和审计链接 | 项目经理场景 + 原生 Conversation |
+| 租户数据目录 | DAP 数据工具、少仕业务迁移与职责分析 | 租户数据源绑定、可见表和字段、行范围、版本化本体映射、证据与分页 | 数据导航、项目经理工作台和 Agent |
+| 本体与知识 | ontology、knowledge 目录和查询实现 | 发布版本、字段/关系 schema、引用 ID、敏感度、数据范围、检索游标 | 助理分析和岗位图表 |
+| Skill/算法/DAG/Agent/场景 | operations 与 gateway 兼容路由 | 发布版本、输入输出 schema、预算、审批、`task_ref`、取消/恢复和结果契约 | DSH 原生 Subagent 编排 |
+| 群组与日程 | 当前仅有原型/通知及数据库迹象 | 工作群成员、岗位 Agent、消息历史、会议/行动、关联业务记录、分页和权限 | 工作群、日程、协作提醒 |
+| 文件与证据 | 文件/导出相关 HTTP 能力 | 文件引用、大小/类型、病毒扫描、保留期、下载权限和版本 | Host 文件传输与对话引用 |
+
+平台每一项契约都应同时给出：OpenAPI 或 MCP schema、错误码、权限点、版本策略、幂等规则、审计字段、脱敏规则、示例请求/响应和一个可复现的验收数据集。只有数据库表或内部 handler 不能作为插件集成契约。
+
+### 10.4 首期联调约定
+
+首期以项目经理处理样机联调延期为共同验收场景。下表中的字段是业务约定和测试样例。已有接口以元枢实际发布的 schema 为准，提案名称由元枢团队确认后冻结。元枢团队交付服务 schema 和测试数据，DSH 团队交付 Host 适配和界面状态，少仕业务负责人确认派发规则和验收结果。
+
+| 步骤 | 接口与状态 | 输入、输出与处理 |
+|---|---|---|
+| 登录与只读授权 | 已有源码 `POST /api/v1/login`、`POST /api/v1/mcp/oauth/preauthorize`、OAuth authorize/token、`/api/v1/client/mcp` | 员工选择少仕租户并完成 MFA。Host 换取只读 grant 后验证 `workbench_profile` 的主体与登录主体一致。需要提交时发起显式 `enterprise:read enterprise:execute` 授权。拒绝时保留草稿和只读访问。 |
+| 今日工作与补读 | 复用 `workbench_home`。建议新增 `GET /api/v1/workbench/events?cursor=…` | 通知携带事件 ID、事项引用和版本。补读返回事件、下一游标及是否还有数据。游标过期时重取带恢复游标的当前快照，再补读后续变更。 |
+| 风险详情与证据 | `workbench_records` 和 `ontology_context`、`ontology_objects_query` 已有源码，需适配少仕发布绑定 | Host 用事项引用读取风险投影，获得里程碑、责任人、截止时间、记录版本和证据引用。Agent 按需沿本体读取依赖。建议以 `yuanshu://evidence/{evidence_ref}/{revision}` 定位版本化业务证据。数据字典用于理解字段，工作台首页直接使用投影。 |
+| 确认与派发 | 复用 `action_preflight`、`action_request`、`action_approve`、`action_execute`。少仕督办 Action 和请求查询需要适配 | 例如当前风险版本 7，方案版本 2，负责人为项目成员，截止日期为 11 月 23 日。预检返回审批要求。用户确认后 Host 固定版本和幂等键提交。需要审批时元枢返回审批引用，由具备权限的审批人决定。 |
+| 结果与恢复 | 复用 `action_get` 与可用的 `task_get`、`task_events` | 用原执行引用跟进。提交超时且尚未拿到引用时按原幂等键查询请求。结果须包含实际业务记录引用及审计引用，Host 回读记录后标记完成。 |
+
+首期权限取当前租户成员资格、MCP scope、平台动作权限、岗位数据范围和业务对象访问权的交集。岗位切换只改变当前工作上下文，审批权仍由平台判定。
+
+| 角色或变化 | 允许 | 拒绝或恢复 |
+|---|---|---|
+| 项目经理，属于该项目 | 读取有权字段、启动分析、确认并申请督办 | 只有平台授权的审批人可审批。执行还需执行 scope 和领域权限。 |
+| 兼岗员工或管理层 | 使用当前岗位已授权的工作包 | 切岗不合并字段权限。跨项目数据须单独授权，汇总权限不自动允许下钻。 |
+| 非项目成员或另一租户 | 访问自己的授权项目 | 风险、证据、任务与页游标均重新授权。隐藏对象与不存在统一响应。 |
+| 撤权或切换主体 | 重新建立当前授权上下文 | 停止依赖旧权限的新读取和未提交动作，关闭相关子任务工具访问。已提交任务按平台状态核实。历史摘要、证据及 fork 的显示按留存策略和当前权限逐项判定。 |
+
+业务库事件描述记录变更，平台投递仅提示刷新，待办由平台维护。收件人按当前项目责任人与授权规则计算。使用租户、风险引用和接收人合并同一待办，以事件 ID 去重并按记录版本更新。风险解除时平台关闭待办，DSH 保留已关闭状态。重放旧通知不能重新打开已关闭待办。
+
+原生会话收到风险引用、版本、截止时间、证据入口和预期交付物。助理报告至少包含结论、影响范围、建议行动、负责人、期限、证据引用及待确认项。Host 校验结构并用当前授权核对证据和记录版本。状态按「待处理 → 分析中 → 待核实 → 待用户确认 → 待审批或执行中 → 已核实」推进。证据不足可补充后重试。版本冲突回到分析，超时保持待核实。用户确认绑定方案和风险版本，重复点击保留原幂等键，助理与 Subagent 在分析阶段仅获得必要读能力。
+
+联调使用两个拥有同名表和相同记录 ID 的测试租户。少仕样例使用 `MS-017`，到货从 11 月 20 日推迟至 24 日。验收要求项目经理恢复漏收提醒、打开同一事项会话并核对报告、拒绝越权读取、确认一次派发并从业务库回查结果。故障演练覆盖批准后版本变化、重复提交、响应丢失和风险解除后重放通知。
+
 ## 11. 开发阶段与验收
 
 | 阶段 | 交付物 | 验收证据 |
 |---|---|---|
-| P0 | 确认 18 岗位映射、两套岗位方法、一个真实案例、OAuth 客户端资料和公开扩展点 | 业务负责人签字确认映射与合格结果；展示 MFA、租户切换和 Session 组合。 |
-| P1 | 用只读 MCP 工作台投影替换 fixtures | 同一来源记录下两个岗位看到不同的授权字段和下一步；缺失数据明确显示。 |
-| P2 | 接入 OAuth、Host 凭据、目录、资源和任务恢复 | 错 issuer/resource、PKCE 重放、过期 grant、双主体和撤销都能清理旧工具与句柄。 |
+| P0 | 冻结项目经理样例和双租户测试数据，接通登录与只读 OAuth | 普通项目经理登录后可调用授权的 `workbench_profile`。验证 MFA、拒绝授权和租户切换。 |
+| P1 | 登记测试租户数据源，发布表目录、字段字典、本体映射和只读工作台投影 | 同一来源记录下两个岗位看到不同的授权字段和下一步；缺失数据明确显示。 |
+| P2 | 接入提醒补读、原生对话、报告核实和任务恢复 | 漏收可补，重复事件不重复建待办，撤权使旧证据和工具失效。 |
 | P3 | 完成一条带复核、审批、执行和核实的写流程 | 真实平台记录到达已验证终态；超时和重启不重复执行。 |
 | P4 | 增加岗位场景、SOP 节点、工作群/日程和受控 Agent 委托 | 每项显示操作都有来源、权限、版本和负责人；群历史与日程由平台提供。 |
 
@@ -296,12 +407,14 @@ sequenceDiagram
 |---|---|
 | 身份认证 | 登录、租户选择、MFA/验证码衔接、JWT 与 MCP token 区分、刷新轮换和撤销。 |
 | 隔离 | 两用户和两租户不能看到对方工作台、缓存、任务、群或资源。 |
+| 租户业务库 | 两个测试租户使用同名表和相同记录 ID；验证查目录、描述字段、本体关系、查询、游标和证据均不串租。覆盖撤权后旧引用、少仕库断线且无主库回退、映射漂移、跨岗位行列脱敏以及事件补投去重。 |
 | 目录 | 分页、变更通知、兼容别名、逐调用授权和不支持的 schema。 |
 | 执行 | 幂等、版本固定、`accepted`、`input_required`、审批、终态失败和未知结果。 |
 | 恢复 | `task_get`、事件游标去重、重启、运行中刷新、取消权限和断线不重放。 |
 | 岗位 | 主岗/兼岗映射、KPI 待复核、无 KPI 的项目管理岗位、同一对象的跨岗位视图。 |
 | 生命周期 | 插件禁用、Session 释放、租户切换、资源中止和动态工具移除。 |
 | 体验 | 助理优先入口、返回 DSH、信号来源/新鲜度/原因、SOP 流程、可访问空/错状态、不伪造成功。 |
+| 原生能力 | 公共 Skill 校验失败时不可装载，私有 SOP 撤权后不可新读；岗位历史可重新打开，切换租户不串读；fork 不重放平台写入；断线后分别恢复会话和平台任务；可继续子任务接收人类补充，报告可追溯到父会话。 |
 
 上线前，元枢负责人必须提供部署中的 MCP resource/issuer/client 值、脱敏发现结果、启用工具目录、MFA 同意行为、工作群/日程契约、留存策略和一个合格业务样例。DSH 团队再在实际 profile 上重跑定向源码、UI、OAuth、任务和快照检查。本文不授权生产写入。
 

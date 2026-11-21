@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.5/web-yuanshu-sign-in/guide.md
+/:
+  en: ebec4015d03d57d1
+  zh: e5df0f4f98b30d04
+/the-web-profile-opens-yuanshu-sign-in:
+  en: 74f4452706d8b428
+  zh: f1bb6961de0d4307
+/the-web-profile-opens-yuanshu-sign-in/change:
+  en: 34e807427d1f6d3f
+  zh: 48a46a0af6978434
+/the-web-profile-opens-yuanshu-sign-in/migration:
+  en: f2ece987335d6d2d
+  zh: 09b33f347ce03c88

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Entrada no YuanShu",
+    "description": "Serve a página de entrada do YuanShu e a transferência /yuanshu-token, disponibilizando a identidade na aplicação web."
+  }
+}

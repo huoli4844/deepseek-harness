@@ -50,6 +50,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  * blocks. A package moves on or off this list with its context behavior.
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
+  'packages/yuanshu/yuanshu-login-server': { kind: 'none', reason: 'Browser sign-in routes and static assets add no model input.' },
   'packages/experimental/client-yuanshu-workbench': { kind: 'none', reason: 'The browser-only workbench uses in-memory demonstration data and preset suggestions; it registers no tools or model input.' },
   'packages/client/config': { kind: 'none', reason: 'Browser configuration types register nothing and add no model input.' },
   'packages/client/script-realm': { kind: 'none', reason: 'Optional browser execution-provider registration contributes no model input.' },

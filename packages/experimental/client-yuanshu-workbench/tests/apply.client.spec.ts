@@ -48,6 +48,8 @@ it('opens the registered workbench on load and removes only its entries on unloa
     if (id !== null) expect(slots.entries('main').some(entry => entry.options.key === id)).toBe(true)
   })
   ctx.provide('layout', { selectPanel } as never)
+  ctx.provide('uiWorkspace', {} as never)
+  ctx.provide('sessions', {} as never)
   const plugin = ctx.plugin({ inject, apply })
   await plugin.await()
   expect(selectPanel).toHaveBeenCalledExactlyOnceWith('yuanshu-workbench')

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; the project position also has a project operations console that links portfolio health, changes, dependencies, risks, decisions, actions and acceptance gates. 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. All records are demonstrations saved in this browser profile. The bundle does not connect to YuanShu MCP, call a model or persist data through the Host.
+Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; the project position also has a project operations console that links portfolio health, changes, dependencies, risks, decisions, actions and acceptance gates. 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. The dashboards use browser-local demonstration records. With employee MCP configured, the native DSH assistant can discover permitted YuanShu tools.
 
 ## Table of Contents
 
@@ -25,6 +25,12 @@ Inside DSH Web, this bundle opens a role-aware assistant inbox with position foc
 <a id="use-this-package"></a>
 ## Use this package
 
+### Connect an employee account
+
+Set `mcp.url` and `mcp.clientId` on the `yuanshu-workbench` plugin row for a single-account DSH Host. Register the exact DSH origin plus `/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f` in YuanShu. Add the client ID under the tenant ID in YuanShu's `client_mcp.preauthorized_clients`. Open Plugins → YuanShu workbench → Sign in to YuanShu. After browser login the registered client receives read access without a separate consent click. Other clients continue through explicit consent. The current authorization page requires a login that completes without an MFA or CAPTCHA challenge.
+
+In connected mode, Today’s work and My tasks show assigned work and risks, the position dashboard shows briefing indicators, Project operations lists projects, Calendar lists project milestones, Business priorities lists pending decisions, and Work methods shows position workflows. Workgroups, notifications, and files show a missing source message until a platform data source is connected.
+
 ### Preview from this checkout
 
 After building the checkout, run the Web profile from the root of the `dev` branch. The source launcher adds the workbench bundle before applying your Web profile patches.
@@ -39,6 +45,8 @@ Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu work
 ### What you can try
 
 In the project operations view, expand ECN-204 and select **Prepare DSH analysis draft**. DSH adds the demo evidence and your constraints to the current or most recent workspace’s new conversation draft. Review it before sending. Once sent, the standard DSH session tracks any native Subagents it starts.
+
+In **Project manager → Today’s work**, open **Review risk** to rehearse MS-017. Generate the mock analysis, approve the recommended plan, simulate dispatch, and accept the simulated replies. The closed case and decision record remain under tracking. The alert, evidence IDs and allowed transitions live in the milestone mock; connect them to authorized platform reads and commands when replacing the simulation.
 
 - Positions have six charts; company management and the vehicle business president have eight: trends, progress, business mix, plan comparison, weekly completions and risk matrices, plus management collections and resource coverage. New charts open raw data details and a related task.
 - Switch all 19 position views: the assistant inbox and position dashboard adapt to the selected role, while shared navigation stays available. Company management and the vehicle business president can open the position responsible for a summarized risk.
@@ -115,3 +123,7 @@ Workbench navigation and draft edits do not change model requests or their cache
 This package is an experimental plugin prototype on `dev`, intended for interface review before platform integration.
 
 </details>
+
+To enable live Today’s work, configure the workbench MCP entry with the employee endpoint, OAuth client ID, and the platform authentication base URL (`apiUrl`). The Host verifies the signed-in employee and tenant before reading the workbench projections. For each tenant that uses automatic connection, allow the registered DSH client in YuanShu’s `client_mcp.preauthorized_clients`. When the signed-in user opens Today’s work, DSH obtains a read-only grant for the selected tenant.
+
+Register the exact DSH callback on the YuanShu OAuth client. On a Host advertised as `http://127.0.0.1:3080`, the callback is `http://127.0.0.1:3080/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f`.

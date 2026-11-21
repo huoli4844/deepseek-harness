@@ -1,5 +1,6 @@
 /** Role-adapted dashboards and shared workspace rendered in a native DSH panel. */
 import { useEffect, useRef, useState } from 'react'
+import { PlatformHome } from './PlatformHome.tsx'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   Button,
@@ -34,6 +35,8 @@ import { positionScenarios, workItemsForRole, workItemForScenario, type WorkStat
 import { prioritiesForRole, priorityAssignment, priorityItems } from './priorities-data.ts'
 import { createDemoWorkgroups } from './workgroup-data.ts'
 import { projectAcceptances, projectActions, projectById, projectChanges, projectDecisions, projectDependencies, projectMilestones, projectRecords, projectRisks, projectSchedule } from './project-operations.ts'
+import { MilestoneRiskPanel } from './MilestoneRiskPanel.tsx'
+import { milestoneDemo } from './milestone-risk.ts'
 import { ChangeDemoPanel } from './ChangeDemoPanel.tsx'
 import { fixtureChangeId, fixtureDecisionId } from './change-demo.ts'
 import { PositionOperations } from './PositionOperations.tsx'
@@ -99,8 +102,10 @@ export function Workbench(props: WorkbenchProps) {
   const { t, actions, onReturn, openAssistant, renderSlot, SessionProvider } = props
   const state = props.useStore(s => s)
   const { role, view } = state
+  const liveHome = Object.getOwnPropertyDescriptor(globalThis, '__DSH_YUANSHU_HOME__')?.value === true
   const key = `${role}:${state.task}`
   const fixture = roleFixtures[role]
+  const [milestoneOpen, setMilestoneOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [query, setQuery] = useState('')
   const stage = state.sceneCheckpoints[key]?.stage ?? 0
@@ -145,13 +150,13 @@ export function Workbench(props: WorkbenchProps) {
     const record = document.getElementById(projectFocusId)
     if (record === null || !contentRef.current?.contains(record)) return
     record.focus({ preventScroll: true })
-    record.scrollIntoView?.({ block: 'start' })
+    if (typeof record.scrollIntoView === 'function') record.scrollIntoView({ block: 'start' })
   }, [view, projectFocusId])
   useEffect(() => {
     if (view !== 'groups' || groupFocusId === undefined) return
     const record = contentRef.current?.querySelector<HTMLElement>(`#delivery-${groupFocusId}`)
     record?.focus({ preventScroll: true })
-    record?.scrollIntoView?.({ block: 'nearest' })
+    if (typeof record?.scrollIntoView === 'function') record.scrollIntoView({ block: 'nearest' })
   }, [view, groupFocusId])
   const draft = state.drafts[key]
   const practice = methodFor(role, state.task)
@@ -208,11 +213,11 @@ export function Workbench(props: WorkbenchProps) {
       : view === 'versions'
         ? t('versions.pageTitle')
         : t(view === 'team' ? 'nav.groups' : navigation.find(n => n.id === view)?.label ?? 'nav.assistant')
-  const openRoleConversation = (prompt?: string) => {
+  const openRoleConversation = (prompt?: string, sessionKey: string = role) => {
     setAssistantOpen(true)
     setAssistantLoading(true)
     setAssistantError(false)
-    void openAssistant(role, prompt)
+    void openAssistant(sessionKey, prompt)
       .then(setAssistantReference)
       .catch(() => { setAssistantError(true) })
       .finally(() => { setAssistantLoading(false) })
@@ -227,7 +232,7 @@ export function Workbench(props: WorkbenchProps) {
   }
   const beginAssistantFloatDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
-    event.currentTarget.setPointerCapture?.(event.pointerId)
+    event.currentTarget.setPointerCapture(event.pointerId)
     const bounds = workbenchRef.current?.getBoundingClientRect()
     const button = event.currentTarget.getBoundingClientRect()
     if (bounds === undefined) return
@@ -248,28 +253,26 @@ export function Workbench(props: WorkbenchProps) {
   const endAssistantFloatDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (dragRef.current?.moved) suppressFloatClickRef.current = true
     dragRef.current = undefined
-    event.currentTarget.releasePointerCapture?.(event.pointerId)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
   useEffect(() => {
+    let parsed: unknown
     try {
-      const saved = localStorage.getItem(ASSISTANT_FLOAT_POSITION_KEY)
-      if (saved !== null) {
-        const parsed: unknown = JSON.parse(saved)
-        if (typeof parsed === 'object' && parsed !== null && 'left' in parsed && 'top' in parsed
-          && typeof parsed.left === 'number' && Number.isFinite(parsed.left)
-          && typeof parsed.top === 'number' && Number.isFinite(parsed.top)) {
-          setAssistantFloatPosition(clampAssistantFloatPosition({ left: parsed.left, top: parsed.top }))
-        }
-      }
+      parsed = JSON.parse(localStorage.getItem(ASSISTANT_FLOAT_POSITION_KEY) ?? 'null')
     } catch {
-      // Ignore unavailable or malformed browser preferences.
+      return
+    }
+    if (typeof parsed === 'object' && parsed !== null && 'left' in parsed && 'top' in parsed
+      && typeof parsed.left === 'number' && Number.isFinite(parsed.left)
+      && typeof parsed.top === 'number' && Number.isFinite(parsed.top)) {
+      setAssistantFloatPosition(clampAssistantFloatPosition({ left: parsed.left, top: parsed.top }))
     }
   }, [])
   useEffect(() => {
     if (assistantFloatPosition === undefined) return
     try {
       localStorage.setItem(ASSISTANT_FLOAT_POSITION_KEY, JSON.stringify(assistantFloatPosition))
-    } catch {
+    } catch (_storageWriteFailed) {
       // The control remains movable when browser storage is unavailable.
     }
   }, [assistantFloatPosition])
@@ -278,7 +281,7 @@ export function Workbench(props: WorkbenchProps) {
       if (assistantFloatPosition !== undefined) setAssistantFloatPosition(clampAssistantFloatPosition(assistantFloatPosition))
     }
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize) }
   }, [assistantFloatPosition])
   const selectView = (next: typeof view) => {
     actions.navigate(next)
@@ -903,7 +906,13 @@ export function Workbench(props: WorkbenchProps) {
       meta: t(`position.${role}.source`), action: t(status === 'review' ? 'home.review' : 'position.open'),
       open: () => { selectView('position-operations') },
     }] : []
+    const milestonePhase = state.milestonePhase ?? 'alert'
+    const milestoneEntry: WorkQueueEntry = {
+      id: milestoneDemo.id, title: t('milestone.title'), detail: t('milestone.trigger'),
+      meta: t('milestone.owner'), action: t('milestone.open'), open: () => { setMilestoneOpen(true) },
+    }
     const queue: readonly WorkQueueEntry[] = [
+      ...(role === 'project' && milestonePhase !== 'closed' ? [milestoneEntry] : []),
       ...decisions,
       ...incomingPositionDeliveries.flatMap((item) => {
         const { positionCase: origin, groupId } = item
@@ -938,7 +947,7 @@ export function Workbench(props: WorkbenchProps) {
       }),
     ]
     const [first, ...remaining] = queue
-    const trackCount = waiting.length + (role === 'project' ? projectWaiting.length : Number(!positionNeedsAction))
+    const trackCount = waiting.length + (role === 'project' ? projectWaiting.length + Number(milestonePhase === 'closed') : Number(!positionNeedsAction))
     return (
       <div className={css.workHome} key={role}>
         <div className={css.pageHeading}>
@@ -961,6 +970,11 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </section>
         )}
+        {role === 'project' && milestoneOpen && (
+          <MilestoneRiskPanel t={t} phase={milestonePhase} advance={actions.advanceMilestone}
+            askAssistant={(prompt) => { openRoleConversation(prompt) }}
+            onClose={() => { setMilestoneOpen(false) }} />
+        )}
         <section className={css.homeLane} aria-label={t('home.action')}>
           <div className={css.homeSectionHeading}>
             <h2>{t('home.action')}</h2>
@@ -974,6 +988,8 @@ export function Workbench(props: WorkbenchProps) {
           <section aria-label={t('home.tracking')}>
             {trackCount === 0 && <p className={css.homeEmpty}>{t('home.noTracking')}</p>}
             {!positionNeedsAction && positionAlert()}
+            {role === 'project' && milestonePhase === 'closed' && queueRow(milestoneEntry.id,
+              milestoneEntry.title, t('milestone.closed'), t('home.viewResult'), milestoneEntry.open)}
             {role === 'project' && projectWaiting.map(item => queueRow(item.id, t(item.title), t(item.evidence), t('home.wait'),
               () => { openProjectRecord(item.projectId, item.id) }))}
             {waiting.map((item) => {
@@ -1741,7 +1757,7 @@ export function Workbench(props: WorkbenchProps) {
                         : `position.status.${status}`)}</Tag>
                       {origin !== undefined && role === origin ? (
                         <Button size="sm" onClick={() => { selectView('position-operations') }}>{t('position.open')}</Button>
-                      ) : canReviewWork && origin === undefined && linkedWork !== undefined ? (
+                      ) : canReviewWork && origin === undefined ? (
                         <Button size="sm" onClick={() => {
                           if (projectAction !== undefined) openProjectRecord(projectAction.projectId, projectAction.id)
                           else openTask(linkedWork.task, 3)
@@ -2117,10 +2133,10 @@ export function Workbench(props: WorkbenchProps) {
             <IconLayersOutlineRegular size={22} />
             <div>
               <strong>{t('panel')}</strong>
-              <small>{t('tenant')}</small>
+              {!liveHome && <small>{t('tenant')}</small>}
             </div>
           </div>
-          <label className={css.roleSelect}>
+          {!liveHome && <label className={css.roleSelect}>
             {t('role')}
             <select
               aria-label={t('role')}
@@ -2142,10 +2158,11 @@ export function Workbench(props: WorkbenchProps) {
                 </optgroup>
               ))}
             </select>
-          </label>
-          <small className={css.positionCount}>{t('roleCount')}</small>
+          </label>}
+          {!liveHome && <small className={css.positionCount}>{t('roleCount')}</small>}
           <nav>
             {navigation.filter((n) => {
+              if (liveHome) return n.id !== 'position-operations'
               if (n.id === 'project-operations') return role === 'project'
               if (n.id === 'position-operations') return role !== 'project'
               return true
@@ -2165,7 +2182,7 @@ export function Workbench(props: WorkbenchProps) {
                   >
                     <Icon size={17} />
                     <span>{t(n.label)}</span>
-                    {n.id === 'notifications' && unread > 0 && <b>{unread}</b>}
+                    {!liveHome && n.id === 'notifications' && unread > 0 && <b>{unread}</b>}
                   </button>
                 </div>
               )
@@ -2191,11 +2208,11 @@ export function Workbench(props: WorkbenchProps) {
                 icon={<IconPanelLeftOutlineRegular size={18} />}
               />
               <span>
-                {t('tenant')} / {title}
+                {liveHome ? title : `${t('tenant')} / ${title}`}
               </span>
             </div>
             <div>
-              <Tag>{t('demo')}</Tag>
+              {!liveHome && <Tag>{t('demo')}</Tag>}
               <Button
                 aria-label={t('search')}
                 onClick={() => {
@@ -2206,7 +2223,7 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {!['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent'].includes(view) && (
+            {!liveHome && !['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent'].includes(view) && (
               <div className={css.pageHeading}>
                 <div>
                   <p className={css.eyebrow}>{t(`role.${role}`)}</p>
@@ -2224,7 +2241,11 @@ export function Workbench(props: WorkbenchProps) {
                 )}
               </div>
             )}
-            {view === 'assistant' ? (
+            {liveHome ? (
+              ['assistant', 'tasks', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations', 'calendar'].includes(view)
+                ? <PlatformHome key={view} t={t} section={view} title={title} onAnalyze={openRoleConversation} />
+                : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
+            ) : view === 'assistant' ? (
               assistant()
             ) : view === 'dashboard' ? (
               dashboard()
@@ -2306,7 +2327,7 @@ export function Workbench(props: WorkbenchProps) {
                 {feedback}
               </p>
             )}
-            <p className={css.disclaimer}>{t('demoNote')}</p>
+            {!liveHome && <p className={css.disclaimer}>{t('demoNote')}</p>}
           </div>
         </div>
         <Modal

@@ -259,6 +259,18 @@ export default class McpServerManager extends TypertRemoteService {
   }
 
   /**
+   * Obtain a generation-bound reader for argument-free projections.
+   * Host callers own the tool allowlist and employee authorization.
+   * @param server - registered MCP server key.
+   * @returns A reader that rejects once its connection is replaced.
+   */
+  projectionReader(server: string): (tool: string, signal: AbortSignal) => Promise<unknown> {
+    const instance = this.instances.get(server)?.instance
+    if (instance === undefined) throw new Error('MCP server connection unavailable')
+    return instance.projectionReader()
+  }
+
+  /**
    * Stream server views for a management surface: the current list on
    * subscription, then the complete list again after each status or entry change.
    * @param signal - subscription lifetime; aborting ends only this stream.

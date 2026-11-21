@@ -149,6 +149,29 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         throw error
       }
     })
+    webCtx.effect(() => webCtx.webServer.register({
+      kind: 'exact', path: '/browser-sign-out', auth: 'required',
+      handler(request, response) {
+        if (request.method !== 'POST') {
+          response.writeHead(405, { allow: 'POST' })
+          response.end()
+          return
+        }
+        if (request.headers['sec-fetch-site'] !== 'same-origin') {
+          response.writeHead(403)
+          response.end()
+          return
+        }
+        const cookie = auth.clearBrowserCookie(request, webCtx.webServer.protocol === 'https:')
+        if (cookie === undefined) {
+          response.writeHead(400)
+          response.end()
+          return
+        }
+        response.writeHead(204, { 'cache-control': 'no-store', 'set-cookie': cookie })
+        response.end()
+      },
+    }), 'host-authentication-token: browser sign-out')
   })
   ctx.on('webserver/entry-url', (baseUrl, entries) => {
     entries.push({ label: 'dsh web', url: auth.authenticatedUrl(baseUrl), open: true })

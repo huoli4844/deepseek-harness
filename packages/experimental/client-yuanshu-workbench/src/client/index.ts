@@ -53,7 +53,7 @@ function AssistantConversation(props: PropsRuntime<'yuanshu.assistant.conversati
     variant: 'embedded',
     phase: hero ? 'hero' : 'active',
     hero,
-    onWorkspaceSelected: async () => undefined,
+    onWorkspaceSelected: () => Promise.resolve(),
   }, { slots: { views: FixedConversationView } })
 }
 
@@ -82,20 +82,24 @@ export function apply(ctx: Context): void {
   const references = new Map<string, SessionReference>()
   const sessionsByRole = readAssistantSessions()
   const getAssistantSession = async (role: string, prompt?: string): Promise<SessionReference> => {
-    const current = references.get(role)
-    if (current !== undefined) return current
-    const existing = sessionsByRole[role]
-    const id = existing === undefined
-      ? await ctx.sessions.create()
-      : existing
-    const reference = ctx.sessions.retain(id as never, { source: ASSISTANT_SOURCE, facets: { conversation: true } })
-    references.set(role, reference)
-    sessionsByRole[role] = reference.sessionId
-    localStorage.setItem(ASSISTANT_SESSION_KEY, JSON.stringify(sessionsByRole))
+    let reference = references.get(role)
+    if (reference === undefined) {
+      const existing = sessionsByRole[role]
+      const id = existing === undefined ? await ctx.sessions.create() : existing
+      reference = references.get(role)
+      if (reference === undefined) {
+        reference = ctx.sessions.retain(id as never, { source: ASSISTANT_SOURCE, facets: { conversation: true } })
+        references.set(role, reference)
+        sessionsByRole[role] = reference.sessionId
+        localStorage.setItem(ASSISTANT_SESSION_KEY, JSON.stringify(sessionsByRole))
+      }
+    }
     await reference.ready
     if (prompt !== undefined && prompt !== '') {
       const scoped = ctx.sessions.scope(reference.sessionId)
-      scoped?.get('conversation')?.send(prompt)
+      const conversation = scoped?.get('conversation')
+      if (conversation === undefined) throw new Error('Workbench conversation unavailable')
+      await conversation.send(prompt)
     }
     return reference
   }

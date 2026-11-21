@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Inicio de sesión de YuanShu",
+    "description": "Sirve la página de inicio de sesión de YuanShu y la transferencia /yuanshu-token, y publica la identidad en la aplicación web."
+  }
+}

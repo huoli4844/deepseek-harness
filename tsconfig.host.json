@@ -299,7 +299,8 @@
     "scripts/*.client.spec.ts",
     "scripts/client-bundle-css.spec.ts",
     "packages/typert/generator/tests/fixtures/**",
-    "scripts/client-bundle-purity.spec.ts"
+    "scripts/client-bundle-purity.spec.ts",
+    "packages/yuanshu/yuanshu-login-server/tests/**/*.ts"
   ],
   "references": [
     { "path": "./packages/experimental/action-cards" },
@@ -619,6 +620,8 @@
     { "path": "./packages/mcp/mcp-resources" },
     { "path": "./packages/connector/linear" },
     { "path": "./packages/connector/notion" },
+    { "path": "./packages/experimental/client-yuanshu-workbench/tsconfig.host.json" },
+    { "path": "./packages/yuanshu/yuanshu-login-server" },
     { "path": "./packages/host/directory-picker" },
     { "path": "./packages/host/directory-picker-auto" },
     { "path": "./packages/host/directory-picker-browse" },

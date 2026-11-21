@@ -213,6 +213,14 @@ list(): McpManagedServerView[]
 register(name: string, entry: McpServerRegistration): () => void
 
 /**
+ * Obtain a generation-bound reader for argument-free projections.
+ * Host callers own the tool allowlist and employee authorization.
+ * @param server - registered MCP server key.
+ * @returns A reader that rejects once its connection is replaced.
+ */
+projectionReader(server: string): (tool: string, signal: AbortSignal) => Promise<unknown>
+
+/**
  * Stream server views for a management surface: the current list on
  * subscription, then the complete list again after each status or entry change.
  * @param signal - subscription lifetime; aborting ends only this stream.

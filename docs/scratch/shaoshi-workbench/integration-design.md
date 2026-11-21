@@ -15,11 +15,13 @@ This document is the engineering companion to [the product and interface design]
 
 ## 1. Decisions
 
+The first release prioritizes the project manager’s delivery risk workflow. YuanShu provides identity, files, and event delivery over HTTPS. Employee MCP exposes workbench projections, semantic queries, methods, and governed execution. DSH leads position work using its native Session, MCP, and Subagent capabilities as described in section 10.
+
 1. DSH is a dedicated client for an authenticated employee. The default screen is the employee's YuanShu workbench; the general DSH surface remains available through the explicit return entry.
 2. The production data path is a Host-owned, user-scoped MCP client to `/api/v1/client/mcp`. The browser does not hold an MCP refresh token and the plugin does not connect directly to PostgreSQL.
 3. HTTP remains the right interface for login, tenant selection, file transfer, health checks, and the existing notification transport. MCP is the right interface for governed business context, workbench projections, knowledge, ontology, professional capabilities, and long-running platform work.
 4. A Tool is one operation. MCP is the protocol that discovers and invokes Tools and Resources. A DSH-native Tool is an optional task-shaped orchestration over local state and authorized platform calls; it is not a duplicate wrapper for every MCP Tool.
-5. YuanShu remains authoritative for identity, permissions, business records, approvals, task state, execution results, and audit history. DSH owns presentation, local drafts, model collaboration, and recoverable UI state.
+5. YuanShu provides the common entry point for identity, permissions, business reads and execution. The platform database owns common governance and run records; each tenant database owns that tenant’s business facts. DSH owns presentation, local drafts, model collaboration, and recoverable UI state.
 6. A role view is selected from effective platform roles and an explicit tenant mapping. A position name, KPI label, or client-side menu must never grant access or infer a user's authority.
 7. Every consequential write has an idempotency key, an opaque `task_ref` when asynchronous, an explicit outcome, and a recovery path. A UI confirmation is not an approval, and HTTP 200 is not business success.
 
@@ -27,7 +29,7 @@ This document is the engineering companion to [the product and interface design]
 
 The YuanShu source was inspected at `/Users/david/Documents/project/cp_project/cp_project`, including the Go server and Vue client. The checkout was on `main` with three commits ahead of `origin/main` and unrelated uncommitted work. No source files, migrations, environment files, production configuration, or database rows were changed. The source tree therefore describes the inspected implementation, not necessarily the deployed service.
 
-The supplied tenant database was queried read-only with a transaction-level read-only setting. The business database was `go_admin_kit`, schema `public`, tenant `3` (`shaoshi`). Credentials and employee names were not copied into this repository. The two focused source tests run for this audit were:
+The earlier read-only audit used `go_admin_kit.public` to check platform and position data for the Shaoshi tenant (`shaoshi`). That audit did not validate the Shaoshi business database. This revision treats the separate PostgreSQL database `cp_shaoshi` as the Shaoshi business store, as confirmed by the user and reflected in the platform repository’s ownership analysis and migrations. This revision inspected source and migrations without connecting to a database or verifying the deployed catalog. The earlier source audit ran:
 
 ```text
 go test ./internal/clientmcp ./internal/tenantaccess
@@ -50,7 +52,10 @@ flowchart LR
   MCP --> Auth[Grant and live membership checks]
   Auth --> Catalog[Workbench, ontology, knowledge, task and asset tools]
   Catalog --> YuanShu[YuanShu domain handlers and ledger]
-  YuanShu --> Records[Business records, approvals, runs and audit]
+  YuanShu --> Main[Platform DB: identity, policy, releases and run ledger]
+  YuanShu --> Resolver[Resolve authorized tenant data source]
+  Resolver --> Shaoshi[cp_shaoshi: Shaoshi business facts]
+  Resolver --> Others[Other tenants: separate business databases]
   UI[Role workbench and DSH Session] --> Host
   UI --> Session[Local drafts and collaboration transcript]
 ```
@@ -88,6 +93,27 @@ The OAuth implementation in `server/internal/clientmcp/oauth.go` uses protocol v
 ### 4.4 Database capabilities
 
 `server/internal/api/client_mcp_database.go` exposes only enabled, valid database handlers from the DAP registry. Read queries have bounds such as `limit <= 1000`, `max_rows <= 10000`, and `timeout <= 120s`; actor and tenant keys cannot be supplied by the caller. Normal employees should receive ontology and workbench projections rather than raw SQL and schema tools. A database registry entry is an implementation capability, not permission to hand the model unrestricted business data.
+
+### 4.5 Tenant business databases and employee-visible catalog
+
+The platform database holds identity, membership, positions and policy, data source registrations and credential references, published ontology and mappings, knowledge, and platform run audit. Shaoshi project, procurement, engineering, manufacturing, quality, delivery and finance facts remain in `cp_shaoshi`; the Shaoshi app owns its business tables and migrations. The platform database can hold governed references, projections and evidence revisions without making a second authoritative copy of business facts. See `server/docs/少仕数据库与元枢平台数据职责边界分析-20261109.md` and `server/sql/shaoshi/migrations/202610290001_shaoshi_business_tables.sql`. A migration inventory is not a deployed MCP catalog.
+
+Platform administrators use management APIs to register sources, test connections, scan schemas, approve field classifications, bind ontology and publish catalogs. After grant validation, the server resolves the registered source from the authenticated tenant, isolates pools by tenant and source, and uses least-privilege read-only credentials for reads. Employee calls accept platform-issued logical references; they do not accept database names, connection strings, arbitrary schemas or tenant overrides. A missing, ambiguous or unavailable binding returns an explicit status without falling back to the platform database or another tenant. Domain services handle writes and independently check business ownership, record version and release conditions.
+
+The initial employee MCP uses the same `/api/v1/client/mcp` without deploying one MCP service per tenant. These proposed logical names must be reconciled with the existing DAP Tools and ontology interfaces before publication. Employees can discover approved business tables or views and safe field metadata. Physical topology, full database scans and advanced queries are limited to approved data roles.
+
+| Proposed MCP capability | Input and output | Consumer |
+|---|---|---|
+| Tool `tenant_data_list_objects` | Domain, type and cursor → opaque `object_ref`, logical table/view name, business meaning, available operations and catalog revision | Workbench data navigation; Agent source discovery as needed |
+| Tool `tenant_data_describe_object` / versioned dictionary Resource | `object_ref` and optional revision → authorized fields, types, units, null semantics, enums, allowed filters, business keys, visible relationships and ontology bindings | Charts, tables and SOP evidence; Resource reads recheck authorization |
+| Tool `tenant_data_query_records` | `object_ref`, authorized fields, typed filters, ordering and cursor → authorized records, record references, source revision and freshness | Deterministic pages, metric details and Agent evidence; aggregations default to published metrics |
+| Published ontology Resource and ontology context/query/evidence Tools | Ontology release, class, relationship or business object reference → authorized concepts, paths, linked records and evidence locators | Agent explains dependencies and impact; DSH displays verifiable business references |
+
+Apply object and field policy before returning catalogs, descriptions or ontology dictionaries. Recheck policy at execution and enforce row scope in filters, joins and aggregations. Counts, foreign keys, column comments and errors must not reveal hidden data. Bound page size, query complexity, runtime and response bytes; ordinary employees cannot submit arbitrary SQL. Return the same response for unauthorized and nonexistent objects. Return distinct errors for unavailable authorized sources or broken mappings, so an outage does not render as no risk. Cursors bind the query, tenant, principal, policy and catalog revision; rediscover when those versions change.
+
+The platform should maintain `ontology release → class/relationship → object and field mapping → record/evidence reference` and register stable logical IDs and data owners. Validate migrations and mappings before switching the published release. Disable affected calls and flag incompatible drift for repair. Scope DSH caches to the authorized principal, tenant and catalog revision; clear usable caches on tenant switch, permissions change and revocation. Session history, forks and evidence rereads follow the permission and retention rules in section 10. Audit principal, logical source, object, mapping revision, operation and outcome summary without storing sensitive row contents in general audit.
+
+For the Shaoshi pilot, use controlled projections of migration tables `prj_projects`, `prj_project_milestones` and `prj_project_risks` and publish semantics for projects containing milestones and risks affecting milestones. Relationships require verified keys or explicit mappings. The project manager opens the workbench from a risk notification. The Host fetches authorized milestone data and evidence, and native Conversation reads ontology and records as needed. Commit risk changes and business events in the business database first; the platform deduplicates by event ID, filters authorized recipients and delivers notifications. Reliable cross-database delivery requires a business outbox or verified CDC; the platform notification does not replace the business commit.
 
 ## 5. API, MCP, and Tool allocation
 
@@ -249,6 +275,8 @@ sequenceDiagram
 
 The platform JWT is a consent credential and bootstrap identity. It is not the MCP access token. Credentials are stored in the Host credential service under issuer, resource, client, tenant, principal, and session scope. Switching tenant or principal destroys the old client, catalog, and task handles before the new scope is loaded. MFA/captcha must return to the platform flow rather than silently falling back to an unscoped client.
 
+YuanShu source includes `POST /api/v1/mcp/oauth/preauthorize`. After login, the Host can request preauthorization with the platform JWT for a tenant-approved client and `enterprise:read` only. On success it receives an authorization-code callback URL; it still validates state and exchanges the code with PKCE. `consent_required` opens explicit consent. Deployment configuration remains unverified. The platform HTTP session, DSH browser cookie and MCP grant expire independently. Verify each on sign-out; browser logout does not establish remote grant revocation.
+
 ## 9. Task execution and recovery
 
 1. The user chooses an action in a visible work stage. DSH checks the current catalog schema, target version, and required confirmation.
@@ -264,29 +292,112 @@ The local Session can store a human-readable summary, selected materials, cursor
 
 ## 10. DSH plugin conformance and reuse
 
-The current `client-yuanshu-workbench` on `dev` is a UI prototype. Its README and `src/index.ts` state that it renders synthetic records, does not call MCP or a model, and has an empty Host `apply()`. Its role/view/task/workgroup model, fixtures, locale dictionaries, and layout are useful interaction scaffolding. They must be replaced with typed Host calls before the plugin represents a real employee.
+The current `client-yuanshu-workbench` on `dev` remains primarily a synthetic-data UI prototype, but its Host `src/index.ts` now registers an optional Streamable HTTP MCP connection and the native DSH MCP account entry; its client `src/client/index.ts` uses native Conversation, Session references and the role workbench. MCP configuration is off by default and workbench business data still comes from the local store. Its role/view/task/workgroup model, fixtures, locale dictionaries, and layout are useful interaction scaffolding. They must be replaced with typed Host calls and bind the MCP grant to the platform principal before the plugin represents a real employee.
 
 The `feature/yuanshu-platform` branch contains reusable foundations, not a package to merge wholesale:
 
 | Source | Reuse decision |
 |---|---|
-| `packages/yuanshu/yuanshu-client/src/mcp.ts` | Reuse official MCP SDK, discovery, PKCE, grant refresh, revoke, concurrency and catalog invalidation. |
+| `packages/yuanshu/yuanshu-client/src/mcp.ts` | Reuse domain parsers and protocol tests first. Verify native `mcpManager` discovery, refresh, revocation and catalog invalidation; port only verified gaps. Keep one transport and authorization lifecycle per connection. |
+| `packages/yuanshu/yuanshu-login-server` and `apps/yuanshu-login` | Reuse the login page, TOTP flow and external identity marker. `/yuanshu-token` is a DSH Host Web session handoff route. Move platform HTTP session credentials out of localStorage and store MCP grants separately in the Host credential service. |
 | `packages/yuanshu/yuanshu-tool/src/enterprise.ts` | Reuse Session-scoped EnterpriseService, typed Remote, resource registration and disposal. |
-| `packages/yuanshu/yuanshu-gateway` | Reuse only after fixing principal and tenant partitioning for each DSH Session; its console-token map is not the business principal. |
+| `packages/yuanshu/yuanshu-gateway/src/routes.ts` | Reuse the explicit route allowlist, method constraints, error-status passthrough; never turn the gateway into a generic proxy or treat its console-token map as the business principal. |
+| `packages/yuanshu/yuanshu-gateway/src/index.ts` | Port idempotency-key parsing independently. Reuse the gateway only for same-origin HTTP migration or legacy Worker compatibility; production MCP mode should prefer DSH `mcpManager` direct access to `/api/v1/client/mcp` to avoid duplicate OAuth and principal mapping. |
+| The gateway `/workbench/*`, `/ontology/*`, `/scenarios`, `/skills/*`, `/algorithms/*` and `/dag/*` routes | Use as an existing capability inventory and compatibility migration reference; switch only after YuanShu provides equivalent MCP Tool/Resource contracts. Gateway existence is not evidence of production availability. |
 | `ui-yuanshu-chat` resource and workbench components | Reuse resource cancellation, task recovery and role scenarios as patterns; refactor UI and sensitive storage. |
+| `packages/client/ui-yuanshu-account` | Reuse the settings launcher, nickname/username display and account-switch interaction; sign-out must revoke the DSH browser session, YuanShu access/refresh grant and local cache together. |
+| `packages/yuanshu/yuanshu-client/tests/mcp-authorization.spec.ts` | Reuse the OAuth matrix: tenant header, S256 PKCE, scopes, issuer/resource checks and no ordinary JWT at the token endpoint; add MFA, revocation, refresh rotation and tenant-switch tests before launch. |
 | Login launcher and localStorage token code | Reuse neither as the MCP security boundary nor as a refresh-token store. |
 | Legacy HTTP worker calls | Keep only as an explicit migration probe; no silent MCP-to-HTTP fallback. |
 | Prototype fixtures and local save/submit actions | Reuse visual states only; all business writes must call YuanShu and show platform outcome. |
 
 The implementation should introduce a complete capability seam: service definition, Host provider, and UI/Agent consumers. All registrations use `ctx.effect()` or `ctx.on()`. Plugin unload, Session disposal, tenant switch, catalog invalidation, and credential revoke must stop requests, remove dynamic tools, and release resources.
 
+### 10.1 Native capabilities and integration responsibilities
+
+| DSH capability | YuanShu provides | Workbench integration |
+|---|---|---|
+| MCP | Employee endpoint, OAuth metadata, authorized catalog, versioned resources, and unified task tools | Reuse the Host MCP manager/client, accounts, and credentials services. Partition connections and caches by platform, tenant, and principal. Read typed projections for pages and load authorized tools on demand for the agent. Verify protocol, callback, and resource compatibility first. |
+| Upstream Skills | Public methods have a pinned GitHub commit, directory, license, byte limit, and digest. Tenant-private SOPs have authorized versioned Resources and controlled downloads where needed. | Register a packaged entry through Host `ctx.upstreamSkills.register` for public methods and verify downloaded references at load time. Read private SOPs as Resources initially. Add a principal-scoped Skill provider if private methods need catalog entries. Pin the method revision and log the material supplied to the model in both cases. |
+| Recent sessions and workspace root | Position, scene, and visible business object references. | Resume the position's latest session from the floating button. Offer new sessions and history inside the conversation. Reuse native titles, search, and opening with principal, tenant, position, and workspace filters. Users choose the DSH workspace root. Import platform artifacts explicitly as attachments or references. |
+| Shared forks and drafts | Revalidate source read access, record versions, and allowed actions. | Fork a completed turn into an independent review session. Shared history prefixes depend on the storage backend. Sharing between users requires explicit session access. Preserve analysis references and independent drafts. Track platform tasks, approvals, and pending writes from the originating work. |
+| Paging and reconnect | A `task_ref`, current status, and event cursor. | Use native Session paging and follow for conversation history. Reconcile platform work through `task_get` and `task_events` with a separate cursor. Keep unsent prompts in native Composer drafts. |
+| Subagent | Delegatable specialist capabilities, versions, input permissions, budgets, and results. | Use native spawn and parent-child sessions. Choose from models allowed by current Host settings. Route human follow-ups to continuable children and expose reports for one-shot children. Specify scope, evidence, deliverables, and report instructions. Send reports to the parent session. Invoke platform specialists separately through `agent_delegate` and track their platform task references. |
+
+Use an independent restricted preset for local children. The Host enforces their actual tool and file access. Current routes and future delegation choices are separate. A new delegation reads the latest settings. Record native lineage and platform task correlation independently. Workbench delegation uses the native runtime without a dependency on dsh-master.
+
+### 10.2 Project delivery risk workflow
+
+1. YuanShu sends a milestone risk signal. The workbench deduplicates by source, version, and recipient, then shows the affected record and deadline. Start with notifications and a targeted read. Include durable replay in subsequent interface acceptance.
+2. The project manager opens the floating conversation for the risk in the project workspace. DSH locates the record through a workbench projection, checks dependencies and ownership through the ontology, reads evidence through knowledge Resources, and loads the pinned risk SOP.
+3. The parent delegates delivery and quality checks. The manager can send customer constraints to a continuable child. Reports include conclusions, citations, conflicts, and open questions. Use published algorithms for platform computation and a DAG or scene for governed execution.
+4. The parent combines the reports into a follow-up draft. The manager may fork a completed turn for review and return to the original session to confirm. The platform admits the submission according to Action preflight, authorization, and approval policy.
+5. After disconnecting, reopen the original session from position history and restore drafts and reports. Reconcile platform state using the original task reference. Show the execution revision, evidence, and audit references.
+
+Validate both histories. DSH preserves user messages, drafts, and child reports. YuanShu preserves approvals, execution, and business outcomes. Revocation blocks new reads and calls. Tenant policy governs material already persisted locally.
+
+The prototype advances immediately after attempting to send the prompt, and reopening a session does not guarantee that the current item is sent. First-release acceptance must verify that the specific item reaches native Conversation on both first and repeat entry. Bind the session by tenant, principal, scenario and record; include the record revision and evidence references in each analysis request. Show analysis in progress or failure until the report arrives and its citations are checked; then enable approval. The following interfaces are proposals; names require platform confirmation.
+
+| Operation | Input and result | Recovery |
+|---|---|---|
+| HTTPS risk notification and replay | Host receives event ID, cursor, risk reference and revision | Replay from the cursor; reread the workbench when the cursor expires |
+| MCP risk details | Risk reference → current revision, milestone, dependencies, owner and evidence references | Reread; request new analysis when the revision changes |
+| MCP proposal preflight and submission | Risk and proposal revisions, evidence, owner and deadline → approval requirements; confirmed submission supplies an idempotency key and returns `task_ref` | On timeout, look up the original request before retrying; preserve the key |
+| MCP execution verification | `task_ref` → execution status, result and audit reference; reread the business record to verify the write | Reconcile after reconnect; show verification pending when outcomes are unknown |
+
+### 10.3 YuanShu exposure checklist before delivery
+
+The checklist separates source evidence from contracts the platform owner still must confirm or provide. Without the right-hand contract, DSH may show an explicit not-connected state but must not present local mock data as completed integration.
+
+| Capability | Current source evidence | Formal YuanShu contract required | First DSH consumer |
+|---|---|---|---|
+| Startup login and tenant | `/api/v1/login`, `/api/v1/login/2fa/verify`, `/api/v1/user/tenants` | Access/refresh lifetime, MFA/captcha continuation, tenant-switch invalidation | Host login plugin |
+| MCP authorization | `/api/v1/client/mcp`, OAuth metadata, consent | Registered client, issuer, resource, redirect URI, scopes, MFA behavior, revocation and refresh rotation | DSH `mcpManager` |
+| Identity and positions | `workbench_profile`, Shaoshi profile/position code | Primary/secondary mapping, validity, data scope, default work package and audited position-to-permission source | Workbench navigation and Session context |
+| Proactive briefing | `workbench_home`, `workbench_briefing` | Event/cursor/replay, dedupe key, freshness, severity, owner and trigger reason | DSH inbox and notices |
+| Delay-risk closure | `workbench_decisions`, task/action handlers | Evidence references, recommendation, confirmation versus approval, idempotent write, result verification and audit link | Project-manager scenario plus native Conversation |
+| Tenant data catalog | DAP tools, Shaoshi migrations and data ownership analysis | Tenant source binding, visible objects and fields, row scope, versioned ontology mappings, evidence and pagination | Data navigation, project-manager workbench and Agent |
+| Ontology and knowledge | Ontology and knowledge catalogs/query handlers | Release version, field/relation schema, citation IDs, sensitivity, data scope and search cursor | Assistant analysis and role charts |
+| Skill/algorithm/DAG/Agent/scenario | Operations and gateway compatibility routes | Published revision, input/output schema, budget, approval, `task_ref`, cancel/resume and result contract | Native DSH Subagent orchestration |
+| Workgroups and calendar | Currently prototype/notification and database evidence only | Membership, position Agents, message history, meetings/actions, business-record links, pagination and access | Workgroups, calendar and collaboration signals |
+| Files and evidence | File/export HTTP capabilities | File reference, size/type, scanning, retention, download permission and version | Host transfer and conversation references |
+
+Each platform contract should include an OpenAPI or MCP schema, error codes, permission points, version policy, idempotency rule, audit fields, redaction rule, example request/response and reproducible acceptance dataset. A database table or internal handler alone is not a plugin integration contract.
+
+### 10.4 First-release integration contract
+
+The shared acceptance scenario is a project manager handling a prototype integration delay. Fields below define business requirements and test examples. Existing interfaces follow the published YuanShu schemas. The platform team confirms and freezes proposed names. YuanShu owns service schemas and fixture data, DSH owns the Host adapter and UI states, and the Shaoshi business owner confirms dispatch rules and acceptance results.
+
+| Step | Interface and status | Input, output and handling |
+|---|---|---|
+| Login and read grant | Existing source for `POST /api/v1/login`, `POST /api/v1/mcp/oauth/preauthorize`, OAuth authorize/token and `/api/v1/client/mcp` | Select Shaoshi and complete MFA. The Host acquires a read grant and checks that `workbench_profile` matches the signed-in principal. On submission, request explicit `enterprise:read enterprise:execute` consent. Denial preserves read access and the draft. |
+| Today and replay | Reuse `workbench_home`. Proposed `GET /api/v1/workbench/events?cursor=…` | A notification carries event ID, item reference and revision. Replay returns events, the next cursor and whether more remain. An expired cursor triggers a current snapshot with a resume cursor, followed by replay of subsequent changes. |
+| Risk details and evidence | Existing `workbench_records`, `ontology_context` and `ontology_objects_query` require the Shaoshi release binding | The Host reads the risk projection by item reference and receives milestone, owner, deadline, record revision and evidence references. The Agent follows ontology dependencies as needed. Proposed `yuanshu://evidence/{evidence_ref}/{revision}` identifies versioned business evidence. Use the dictionary for field meaning and projections directly for the home page. |
+| Confirmation and dispatch | Reuse `action_preflight`, `action_request`, `action_approve` and `action_execute`. Adapt the Shaoshi follow-up Action and request lookup | An example uses risk revision 7, proposal revision 2, a project-member owner and a November 23 deadline. Preflight returns approval requirements. On confirmation the Host submits fixed revisions and an idempotency key. If approval is required, YuanShu returns an approval reference for an authorized approver. |
+| Outcome and recovery | Reuse `action_get` and available `task_get` and `task_events` | Follow the original execution reference. If submission times out before receiving it, look up the request by its original idempotency key. The result includes the business record and audit references. The Host rereads the record before marking complete. |
+
+Effective access is the intersection of current tenant membership, MCP scopes, platform action permissions, position data scope and business object access. Switching position changes the working context. The platform still decides approval rights.
+
+| Role or change | Allowed | Denial or recovery |
+|---|---|---|
+| Project manager assigned to the project | Read authorized fields, start analysis, confirm and request follow-up | Platform-authorized approvers decide approvals. Execution also requires execute scope and domain permission. |
+| Employee with multiple positions or management role | Use the authorized work package for the active position | Switching positions does not merge field permissions. Cross-project access requires its own grant, and aggregate access does not imply drill-down. |
+| Nonmember or different tenant | Access their authorized projects | Reauthorize risk, evidence, task and page cursor access. Hidden and missing objects share a response. |
+| Revocation or principal switch | Establish the newly authorized context | Stop new reads and unsubmitted operations using old permissions, and close dependent child tool access. Reconcile submitted tasks against platform state. Apply current rights and retention policy to history, evidence and forks. |
+
+Business database events describe changes. Platform notifications prompt a refresh. The platform maintains the work item and resolves recipients from current project ownership and access. Merge by tenant, risk reference and recipient, deduplicate by event ID and apply newer revisions. When risk clears, the platform closes the work item and DSH shows it as closed. Replay of an older notice cannot reopen it.
+
+Native Conversation receives the risk reference, revision, deadline, evidence entry points and expected deliverable. The report includes a conclusion, impact, recommended action, owner, deadline, evidence references and open questions. The Host validates the report structure and checks citations and revisions with current access. States progress from pending to analyzing, verifying, awaiting user confirmation, awaiting approval or executing, then verified. Missing evidence permits supplementation and retry. Revision conflicts return to analysis. Timeouts stay unverified. Confirmation binds both revisions. Repeated clicks preserve the key. The Agent and Subagents receive the necessary read capabilities during analysis.
+
+Use two test tenants with identical table names and record IDs. The Shaoshi fixture uses `MS-017` and an arrival slip from November 20 to 24. Acceptance requires replaying a missed alert, opening the same item session, validating its report, denying unauthorized reads, confirming one dispatch and reading back the business result. Exercise revision changes after approval, duplicate submissions, lost responses and replay after the risk clears.
+
 ## 11. Delivery plan and acceptance
 
 | Phase | Deliverable | Acceptance evidence |
 |---|---|---|
-| P0 | Confirm 18-position mapping, two role methods, one real case, OAuth client details, and public extension points | Tenant owner signs mapping and accepted result; MFA, tenant switch, and Session composition are demonstrated. |
-| P1 | Replace fixtures with read-only MCP workbench projections | Two roles see different authorized fields and next actions on the same source record; missing data is explicit. |
-| P2 | Add OAuth, Host credentials, catalog, resources, and task recovery | Wrong issuer/resource, PKCE replay, expired grant, two principals, and revoke clear old tools and handles. |
+| P0 | Freeze the project manager fixture and two-tenant dataset. Connect login and read OAuth. | An ordinary project manager reaches an authorized `workbench_profile` after login. Exercise MFA, denied consent and tenant switch. |
+| P1 | Register test tenant sources and publish object catalogs, field dictionaries, ontology mappings and read-only workbench projections | Two roles see different authorized fields and next actions on the same source record; missing data is explicit. |
+| P2 | Add notification replay, native Conversation, report verification and task recovery | Replay missed events without duplicating work items. Revocation disables stale evidence and tools. |
 | P3 | Complete one write workflow with review, approval, execution, and reconciliation | A real platform record reaches a verified terminal result; timeout and restart do not duplicate it. |
 | P4 | Add role scenes, SOP node flow, group/calendar integrations, and controlled Agent delegation | Every displayed action has source, permission, version and owner; group history and calendar are platform-backed. |
 
@@ -296,12 +407,14 @@ The minimum automated and manual matrix is:
 |---|---|
 | Authentication | Login, tenant selection, MFA/captcha continuation, JWT versus MCP-token rejection, refresh rotation and revoke. |
 | Isolation | Two users and two tenants cannot see each other's workbench, cache, task, group, or resource. |
+| Tenant business databases | Give two test tenants identically named tables and identical record IDs. Verify isolation in catalog, descriptions, ontology traversal, queries, cursors and evidence. Exercise revoked references, Shaoshi database outages without fallback, mapping drift, row and field restrictions across roles and event replay deduplication. |
 | Catalog | Pagination, list changes, compatibility aliases, per-call authorization and unsupported schema. |
 | Execution | Idempotency, revision pinning, `accepted`, `input_required`, approval, terminal failure and unknown outcome. |
 | Recovery | `task_get`, event cursor deduplication, restart, refresh during a run, cancel permissions and no replay after disconnect. |
 | Role | Primary/secondary role mapping, KPI pending states, project management with no KPI, and same-object cross-role views. |
 | Lifecycle | Plugin disable, Session disposal, tenant switch, resource abort and removal of dynamic tools. |
 | UX | Assistant-first entry, return to DSH, source/freshness/reason on signals, SOP flow, accessible empty/error states, and no fabricated success. |
+| Native capabilities | Invalid public Skill artifacts are unavailable. Revocation blocks new private SOP reads. Position history reopens without leaking across tenants. Forking does not replay writes. Reconnect restores conversation and platform work separately. Continuable children accept human follow-ups, and reports link to the parent session. |
 
 Before live release, YuanShu owners must provide the deployed MCP resource/issuer/client values, redacted discovery output, enabled tool catalog, MFA consent behavior, group/calendar contracts, data retention policy, and one accepted business fixture. The DSH team must then rerun focused source, UI, OAuth, task, and snapshot checks on the actual profile. No item in this draft authorizes production writes.
 

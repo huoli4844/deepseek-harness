@@ -122,6 +122,32 @@ it('presents all 18 positions and company management with shared navigation and 
   expect(views).toMatchSnapshot()
 })
 
+it('keeps saved work when an older browser record lacks new fields', () => {
+  const handle = createWorkbenchStore()
+  const legacy = handle.spec.init()
+  const { sceneCheckpoints: _missing, ...saved } = legacy
+  localStorage.setItem('yuanshu-workbench.v2', JSON.stringify({ ...saved, role: 'project', day: 22 }))
+  const state = handle.create().store.getSnapshot()
+  expect(state).toMatchObject({ role: 'project', day: 22, sceneCheckpoints: {} })
+})
+
+it('takes a project manager from the proactive delay alert through an approved and verified mock response', async () => {
+  await bench()
+  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'project' } })
+  fireEvent.click(screen.getByRole('button', { name: /^查看延期预警/ }))
+  const detail = within(screen.getByRole('region', { name: '样机联调里程碑有延期风险' }))
+  expect(detail.queryByRole('button', { name: '模拟派发跟进任务' })).toBeNull()
+  fireEvent.click(detail.getByRole('button', { name: '生成模拟助理分析' }))
+  expect(detail.getByText('ERP · PO-421')).toBeDefined()
+  expect(detail.queryByRole('button', { name: '模拟派发跟进任务' })).toBeNull()
+  fireEvent.click(detail.getByRole('button', { name: '批准建议方案' }))
+  fireEvent.click(detail.getByRole('button', { name: '模拟派发跟进任务' }))
+  fireEvent.click(detail.getByRole('button', { name: '验收模拟回执并关闭风险' }))
+  expect(detail.getByRole('status').textContent).toBe('风险已关闭')
+  expect(detail.getByText(/验收模拟回执并关闭风险，联调仍安排/)).toBeDefined()
+  expect(screen.queryByRole('button', { name: /^查看延期预警/ })).toBeNull()
+})
+
 it('shows a floating native assistant entry without rendering a fake chat', async () => {
   await bench()
   expect(screen.getAllByRole('button', { name: '打开助理对话' })).toHaveLength(1)
@@ -528,7 +554,7 @@ it('returns incomplete evidence for revision and accepts a preserved cross-posit
 it('carries a project change through decision, group deliveries and evidence-gated acceptance', async () => {
   await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'project' } })
-  const inbox = screen.getByRole('region', { name: '建议优先处理' })
+  const inbox = screen.getByRole('region', { name: '其他待处理事项' })
   fireEvent.click(within(inbox).getAllByRole('button', { name: /^打开影响分析流程/ })[0]!)
   expect(screen.getByText('成本：工装返工费用待估算')).toBeDefined()
   expect(document.activeElement).toBe(screen.getByText('成本：工装返工费用待估算').closest('article'))

@@ -86,6 +86,7 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // The worker-preview surface (dist/preview.html and dist/preview/) backs
   // opt-in experimental packages and is not published.
   '@deepseek-ai/dsh-web-frontend': ['dist', '!dist/preview.html', '!dist/preview', 'src'],
+  '@deepseek-ai/yuanshu-login': ['dist'],
 }
 
 /** The subset of package.json fields this constraint check cares about. */

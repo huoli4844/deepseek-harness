@@ -55,6 +55,8 @@ export const inject = ['webServer']
 export interface Config {
   /** Permit default-browser handoff after the Loader tree settles; an SSH launch suppresses it. */
   openBrowser: boolean
+  /** Open the local sign-in page before establishing a browser session. */
+  openLogin?: boolean
   /** Print the URL lines on activation; a non-interactive layer can turn them off. */
   printUrl: boolean
   /**
@@ -74,6 +76,7 @@ export interface Config {
 
 export const Config: z<Config> = z.object({
   openBrowser: z.boolean().default(true),
+  openLogin: z.boolean().default(false),
   printUrl: z.boolean().default(true),
   surfaceContext: z.boolean().default(true),
   publicUrl: z.transform(z.string(), value => parsePublicUrl(value).href),
@@ -236,6 +239,9 @@ export function apply(ctx: Context, config: Config): void {
       if (lifetime.signal.aborted || ctx.get('webServer') === undefined || ANNOUNCED_ROOTS.has(ctx[Context.root])) return
       const entries: WebEntryUrl[] = []
       ctx.emit(ctx.webServer, 'webserver/entry-url', appRootUrl(), entries)
+      if (config.openLogin) {
+        entries.splice(0, entries.length, { label: 'dsh web', url: new URL('/login', appRootUrl()).href, open: true })
+      }
       ANNOUNCED_ROOTS.add(ctx[Context.root])
       if (config.printUrl) {
         for (const entry of entries) console.log(`${entry.label}: ${entry.url}`)
