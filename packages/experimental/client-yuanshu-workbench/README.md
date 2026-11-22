@@ -29,6 +29,8 @@ Inside DSH Web, this bundle opens a role-aware assistant inbox with position foc
 
 Set `mcp.url` and `mcp.clientId` on the `yuanshu-workbench` plugin row for a single-account DSH Host. Register the exact DSH origin plus `/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f` in YuanShu. Add the client ID under the tenant ID in YuanShu's `client_mcp.preauthorized_clients`. Open Plugins → YuanShu workbench → Sign in to YuanShu. After browser login the registered client receives read access without a separate consent click. Other clients continue through explicit consent. The current authorization page requires a login that completes without an MFA or CAPTCHA challenge.
 
+For the source checkout, copy the root `.env.example` to `.env`. Leave `YUANSHU_MCP_TARGET=local` for the local server. Set `YUANSHU_MCP_TARGET=remote` and provide `YUANSHU_REMOTE_API_URL` and `YUANSHU_REMOTE_MCP_URL` to use a remote deployment. The Web login server and the workbench MCP client read the same selection.
+
 In connected mode, Today’s work and My tasks show assigned work and risks, the position dashboard shows briefing indicators, Project operations lists projects, Calendar lists project milestones, Business priorities lists pending decisions, and Work methods shows position workflows. Workgroups, notifications, and files show a missing source message until a platform data source is connected.
 
 ### Preview from this checkout

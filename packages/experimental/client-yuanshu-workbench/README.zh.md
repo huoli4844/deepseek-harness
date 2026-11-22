@@ -29,6 +29,8 @@ kind: "package-bundle"
 
 在单账号 DSH Host 的 `yuanshu-workbench` 插件条目配置 `mcp.url` 和 `mcp.clientId`。在元枢注册 DSH 的准确来源地址加 `/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f` 作为回调，并在元枢的 `client_mcp.preauthorized_clients` 中按租户 ID 加入该客户端 ID。打开插件页 → 元枢工作台 → 登录元枢。浏览器登录成功后，获预授权的客户端直接取得读取权限。其他客户端继续走显式同意流程。当前授权页只支持无需额外完成 MFA 或验证码挑战的登录。
 
+在当前检出目录开发时，将仓库根目录的 `.env.example` 复制为 `.env`。使用本机服务时保留 `YUANSHU_MCP_TARGET=local`。使用远程部署时改为 `YUANSHU_MCP_TARGET=remote`，并填写 `YUANSHU_REMOTE_API_URL` 和 `YUANSHU_REMOTE_MCP_URL`。Web 登录服务和工作台 MCP 客户端会读取同一组选项。
+
 连接模式下，「今日工作」和「我的任务」读取待办与风险，「岗位工作台」显示简报指标，「项目运营」显示项目，「日程日历」显示项目里程碑，「经营重点」显示待决策事项，「工作方法」显示岗位流程。工作群、消息通知和文件与资料在接入平台数据源前显示未接入提示。
 
 ### 从当前检出目录预览

@@ -3,6 +3,6 @@
       name: '@deepseek-ai/dsh-client-yuanshu-workbench'
       config:
         mcp:
-          url: http://localhost:8081/api/v1/client/mcp
-          apiUrl: http://localhost:8081
-          clientId: dsh-yuanshu
+          url: !!js "process.env.YUANSHU_MCP_TARGET === 'remote' ? process.env.YUANSHU_REMOTE_MCP_URL : process.env.YUANSHU_MCP_TARGET === undefined || process.env.YUANSHU_MCP_TARGET === 'local' ? 'http://localhost:8081/api/v1/client/mcp' : undefined"
+          apiUrl: !!js "process.env.YUANSHU_MCP_TARGET === 'remote' ? process.env.YUANSHU_REMOTE_API_URL : process.env.YUANSHU_MCP_TARGET === undefined || process.env.YUANSHU_MCP_TARGET === 'local' ? 'http://localhost:8081' : undefined"
+          clientId: !!js "process.env.YUANSHU_MCP_CLIENT_ID ?? 'dsh-yuanshu'"
