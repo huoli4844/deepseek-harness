@@ -124,6 +124,6 @@ This package is an experimental plugin prototype on `dev`, intended for interfac
 
 </details>
 
-To enable live Today’s work, configure the workbench MCP entry with the employee endpoint, OAuth client ID, and the platform authentication base URL (`apiUrl`). The Host verifies the signed-in employee and tenant before reading the workbench projections. For each tenant that uses automatic connection, allow the registered DSH client in YuanShu’s `client_mcp.preauthorized_clients`. When the signed-in user opens Today’s work, DSH obtains a read-only grant for the selected tenant.
+To enable live Today’s work, configure the workbench MCP entry with the employee endpoint, OAuth client ID, and the platform authentication base URL (`apiUrl`). The Host verifies the signed-in employee and tenant before reading workbench data. It retains only the verified employee and tenant IDs until the profile expires or the MCP connection generation changes; each workbench projection still uses YuanShu authorization. For each tenant that uses automatic connection, allow the registered DSH client in YuanShu’s `client_mcp.preauthorized_clients`. When the signed-in user opens Today’s work, DSH obtains a read-only grant for the selected tenant.
 
 Register the exact DSH callback on the YuanShu OAuth client. On a Host advertised as `http://127.0.0.1:3080`, the callback is `http://127.0.0.1:3080/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f`.

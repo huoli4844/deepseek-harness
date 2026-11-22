@@ -6,6 +6,7 @@
     "tsBuildInfoFile": "lib/host.tsbuildinfo"
   },
   "include": [
+    "src/employee.ts",
     "src/index.ts",
     "src/platform-home.ts"
   ],

@@ -124,6 +124,6 @@ pnpm dsh web
 
 </details>
 
-启用真实「今日工作」时，为工作台 MCP 配置员工端点、OAuth 客户端 ID 和平台认证地址（`apiUrl`）。Host 核实当前登录员工和租户后读取工作台投影。在元枢的 `client_mcp.preauthorized_clients` 中为需要自动连接的租户登记 DSH 客户端。登录后打开「今日工作」时，DSH 会为所选租户申请只读授权。
+启用真实「今日工作」时，为工作台 MCP 配置员工端点、OAuth 客户端 ID 和平台认证地址（`apiUrl`）。Host 核实当前登录员工和租户后读取工作台数据。只有已验证的员工与租户 ID 会保留到 profile 过期或 MCP 连接代次变化；每次工作台投影仍由元枢授权。在元枢的 `client_mcp.preauthorized_clients` 中为需要自动连接的租户登记 DSH 客户端。登录后打开「今日工作」时，DSH 会为所选租户申请只读授权。
 
 在元枢 OAuth 客户端登记 DSH 的完整回调地址。Host 对外地址为 `http://127.0.0.1:3080` 时，回调地址是 `http://127.0.0.1:3080/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f`。

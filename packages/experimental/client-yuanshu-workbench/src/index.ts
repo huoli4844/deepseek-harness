@@ -3,7 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { McpAccountCopy } from '@deepseek-ai/dsh-mcp-account'
 import type {} from '@deepseek-ai/dsh-mcp-manager'
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import { loadPlatformHome, YuanShuGrantMismatch } from './platform-home.ts'
+import { loadEmployee, YuanShuIdentityUnavailable, YuanShuSessionExpired } from './employee.ts'
+import { PlatformHomeLoader, YuanShuGrantMismatch } from './platform-home.ts'
 import z from '@deepseek-ai/schemastery'
 
 /** Stable plugin name shown by the Loader. */
@@ -62,16 +63,6 @@ const copy: McpAccountCopy = {
   },
 }
 
-async function employeeFromResponses(user: Response, tenants: Response) {
-  const bodies: [unknown, unknown] = await Promise.all([user.json(), tenants.json()])
-  const [userBody, tenantBody] = bodies
-  const userId = field(field(userBody, 'data'), 'id')
-  const tenantId = field(field(field(tenantBody, 'data'), 'current'), 'id')
-  if (typeof userId !== 'number' || !Number.isSafeInteger(userId) || userId <= 0 ||
-      typeof tenantId !== 'number' || !Number.isSafeInteger(tenantId) || tenantId <= 0) return undefined
-  return { userId, tenantId: String(tenantId) }
-}
-
 function field(value: unknown, key: string): unknown {
   if (typeof value !== 'object' || value === null || !Object.hasOwn(value, key)) return undefined
   return (value as Record<string, unknown>)[key]
@@ -86,6 +77,7 @@ export function apply(ctx: Context, config: Config): void {
   const mcp = config.mcp
   if (mcp === false) return
   let connecting = false
+  const homeLoader = new PlatformHomeLoader()
   ctx.inject(['webServer', 'mcpManager'], (scope) => {
     scope.on('webserver/index-inject', (table) => {
       table.push({ kind: 'global', name: '__DSH_YUANSHU_HOME__', value: true })
@@ -125,24 +117,8 @@ export function apply(ctx: Context, config: Config): void {
           const activeTenant = req.headers['x-active-tenant']
           const headers = { authorization, ...(typeof activeTenant === 'string' && activeTenant !== '' ? { 'X-Active-Tenant': activeTenant } : {}) }
           const api = mcp.apiUrl.replace(/\/+$/u, '')
-          const [user, tenants] = await Promise.all([
-            fetch(`${api}/api/v1/user/me`, { headers, signal, redirect: 'error' }),
-            fetch(`${api}/api/v1/user/tenants`, { headers, signal, redirect: 'error' }),
-          ])
-          if (user.status === 401 || tenants.status === 401) {
-            send(401)
-            return
-          }
-          if (!user.ok || !tenants.ok) {
-            send(502)
-            return
-          }
-          const employee = await employeeFromResponses(user, tenants)
-          if (employee === undefined) {
-            send(502)
-            return
-          }
           if (req.method === 'POST') {
+            const employee = await loadEmployee(api, headers, signal)
             if (connecting) {
               send(409)
               return
@@ -211,17 +187,18 @@ export function apply(ctx: Context, config: Config): void {
             }
           }
           for await (const servers of scope.mcpManager.watch(signal)) {
-            const status = servers.find(server => server.name === name)?.status.state
-            if (status === 'waiting-authorization') {
+            const status = servers.find(server => server.name === name)?.status
+            if (status?.state === 'waiting-authorization') {
               send(424)
               return
             }
-            if (status === 'connected') {
-              const home = await loadPlatformHome(scope.mcpManager.projectionReader(name), employee, signal, section)
+            if (status?.state === 'connected') {
+              const employee = loadEmployee(api, headers, signal)
+              const home = await homeLoader.load(scope.mcpManager.projectionReader(name), employee, status.connectedAt, signal, section)
               send(200, home)
               return
             }
-            if (status !== 'connecting' && status !== 'reconnecting') {
+            if (status?.state !== 'connecting' && status?.state !== 'reconnecting') {
               send(503)
               return
             }
@@ -229,6 +206,14 @@ export function apply(ctx: Context, config: Config): void {
           send(503)
           return
         } catch (error) {
+          if (error instanceof YuanShuSessionExpired) {
+            send(401)
+            return
+          }
+          if (error instanceof YuanShuIdentityUnavailable) {
+            send(502)
+            return
+          }
           if (error instanceof YuanShuGrantMismatch) {
             send(424)
             return

@@ -829,7 +829,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-client-yuanshu-workbench`
 
-- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:13`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
+- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:14`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
 
 ```ts config-catalog
 /** Optional employee MCP connection for a single-account DSH Host. */
