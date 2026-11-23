@@ -7,6 +7,7 @@
   },
   "include": [
     "src/employee.ts",
+    "src/identity-proxy.ts",
     "src/index.ts",
     "src/platform-home.ts"
   ],

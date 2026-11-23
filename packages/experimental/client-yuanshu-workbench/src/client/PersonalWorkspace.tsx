@@ -139,9 +139,8 @@ function formatDate(value: string | undefined): string {
 }
 
 /** Render personal tasks and calendar events through the Host API proxy. */
-export function PersonalWorkspace({ t, section, title }: PropsLocale<'yuanshu.workbench'> & {
+export function PersonalWorkspace({ t, section }: PropsLocale<'yuanshu.workbench'> & {
   readonly section: PersonalSection
-  readonly title: string
 }) {
   const [view, setView] = useState<ViewState>({ kind: 'loading' })
   const [tasks, setTasks] = useState<PersonalTask[]>([])
@@ -248,7 +247,6 @@ export function PersonalWorkspace({ t, section, title }: PropsLocale<'yuanshu.wo
   }
 
   if (view.kind !== 'ready') return <section className={css.card}>
-    <h1>{title}</h1>
     {view.kind === 'loading' && <p role="status">{t('live.loading')}</p>}
     {view.kind === 'login' && <p role="alert">{t('live.login')}</p>}
     {view.kind === 'denied' && <p role="alert">{t('live.denied')}</p>}
@@ -257,7 +255,7 @@ export function PersonalWorkspace({ t, section, title }: PropsLocale<'yuanshu.wo
   </section>
 
   if (section === 'tasks') return <section className={css.card}>
-    <div className={css.sectionHeading}><h1>{title}</h1><Button variant="primary" onClick={() => { setEditingTask(undefined); setTaskForm(initialTask()); setShowTaskForm(true) }}>{t('personal.newTask')}</Button></div>
+    <div className={css.sectionHeading}><Button variant="primary" onClick={() => { setEditingTask(undefined); setTaskForm(initialTask()); setShowTaskForm(true) }}>{t('personal.newTask')}</Button></div>
     {showTaskForm && <div className={css.personalForm}>
       <Input aria-label={t('personal.taskTitle')} placeholder={t('personal.taskTitle')} value={taskForm.title} onChange={(event) => { setTaskForm({ ...taskForm, title: event.target.value }) }} />
       <Input aria-label={t('personal.taskDescription')} placeholder={t('personal.taskDescription')} value={taskForm.description} onChange={(event) => { setTaskForm({ ...taskForm, description: event.target.value }) }} />
@@ -275,7 +273,7 @@ export function PersonalWorkspace({ t, section, title }: PropsLocale<'yuanshu.wo
   </section>
 
   return <section className={css.card}>
-    <div className={css.sectionHeading}><h1>{title}</h1><div className={css.personalActions}><Button variant="primary" onClick={() => { setEditingEvent(undefined); setEventForm(initialEvent(calendars.find(item => item.is_default)?.id ?? calendars[0]?.id)); setShowEventForm(true) }}>{t('personal.newEvent')}</Button><Button variant="outline" onClick={() => { setShowCalendarForm(value => !value) }}>{t('personal.newCalendar')}</Button></div></div>
+    <div className={css.sectionHeading}><div className={css.personalActions}><Button variant="primary" onClick={() => { setEditingEvent(undefined); setEventForm(initialEvent(calendars.find(item => item.is_default)?.id ?? calendars[0]?.id)); setShowEventForm(true) }}>{t('personal.newEvent')}</Button><Button variant="outline" onClick={() => { setShowCalendarForm(value => !value) }}>{t('personal.newCalendar')}</Button></div></div>
     {showCalendarForm && <div className={css.personalForm}><Input aria-label={t('personal.calendarName')} placeholder={t('personal.calendarName')} value={calendarName} onChange={(event) => { setCalendarName(event.target.value) }} /><div className={css.personalActions}><Button variant="primary" disabled={busy || !calendarName.trim()} onClick={() => { void saveCalendar() }}>{t('personal.save')}</Button><Button variant="outline" onClick={() => { setShowCalendarForm(false) }}>{t('cancel')}</Button></div></div>}
     {showEventForm && <div className={css.personalForm}>
       <Input aria-label={t('personal.eventTitle')} placeholder={t('personal.eventTitle')} value={eventForm.title} onChange={(event) => { setEventForm({ ...eventForm, title: event.target.value }) }} />

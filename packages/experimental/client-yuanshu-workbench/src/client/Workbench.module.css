@@ -103,8 +103,8 @@
   border-right: 0.5px solid var(--work-line);
   overflow-y: auto;
   background: var(--dsw-alias-bg-layer-1);
-  /* Desktop frame: the sidebar's non-interactive area drags the window. */
-  -webkit-app-region: drag;
+  /* 注意：侧栏不能设为 -webkit-app-region: drag ——
+     Electron 拖拽区会吞掉滚轮事件，导致菜单栏经常无法滚动。 */
 }
 .navigation button,
 .navigation select,
@@ -144,13 +144,13 @@
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
 }
+/* 导航列表保持自然高度，滚动统一交给外层 .navigation，
+   避免出现两个嵌套滚动容器。 */
 .navigation nav {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
 }
 .navigation nav button {
   display: flex;
@@ -182,20 +182,20 @@
   margin: 15px 10px 5px;
   letter-spacing: 0.8px;
 }
+/* 底部一行：左边“返回”按钮，右边当前用户（头像 + 姓名）。 */
 .return {
   flex: none;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 0.5px solid var(--work-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .return > button {
-  width: 100%;
-  justify-content: flex-start;
+  flex: none;
   font-size: 12px;
-}
-.return small {
-  margin: 6px 10px 0;
-  font-size: 10px;
 }
 .main {
   display: flex;
@@ -206,11 +206,11 @@
   overflow: hidden;
 }
 .topbar {
-  min-height: 62px;
+  /* 桌面端窗口拖拽条：标题已去除，仅保留极细的拖拽热区。 */
+  min-height: 10px;
   flex: none;
-  padding: 12px 28px;
+  padding: 0 28px;
   padding-inline-start: max(28px, var(--dsh-frame-leading-clearance, 0px));
-  border-bottom: 0.5px solid var(--work-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2637,14 +2637,13 @@
     display: inline-flex;
   }
   .topbar {
+    min-height: 48px;
+    padding-block: 6px;
     padding-inline: 14px;
     padding-inline-start: max(14px, var(--dsh-frame-leading-clearance, 0px));
   }
   .topbar > div {
     gap: 6px;
-  }
-  .topbar > div:first-child > span {
-    display: none;
   }
   .content {
     padding: 24px 18px;

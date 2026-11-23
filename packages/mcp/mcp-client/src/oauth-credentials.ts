@@ -10,6 +10,7 @@ import z from 'zod'
 import { McpAuthorizationRequired, McpLocalError, oauthFailure } from './diagnostic.ts'
 import type { McpOAuthConfig } from './oauth-options.ts'
 import { OAuthSchema } from './oauth-options.ts'
+import { mcpFileLog } from './mcp-filelog.ts'
 
 const ClientRecordSchema = z.object({
   version: z.literal(1),
@@ -184,13 +185,24 @@ export class McpOAuthCredentials {
       if (current.tokens.refresh_token === undefined) throw new McpAuthorizationRequired('expired')
       const client = await this.client(parseCredentialKey(current.clientKey), current.issuer)
       if (client?.client_id !== current.clientId) throw new McpAuthorizationRequired('binding')
-      const tokens = await refreshAuthorization(current.issuer, {
-        ...current.metadata === undefined ? {} : { metadata: current.metadata },
-        clientInformation: client,
-        refreshToken: current.tokens.refresh_token,
-        ...current.resource === undefined ? {} : { resource: current.resource },
-        fetchFn: oauthFetch(signal, this.config.requestTimeoutMs),
-      })
+      let tokens: Awaited<ReturnType<typeof refreshAuthorization>>
+      try {
+        tokens = await refreshAuthorization(current.issuer, {
+          ...current.metadata === undefined ? {} : { metadata: current.metadata },
+          clientInformation: client,
+          refreshToken: current.tokens.refresh_token,
+          ...current.resource === undefined ? {} : { resource: current.resource },
+          fetchFn: oauthFetch(signal, this.config.requestTimeoutMs),
+        })
+      } catch (error) {
+        // 刷新失败是排查授权断连的关键信号：记录安全原因（invalid_grant 代表服务端已吊销该授权），
+        // 再按原错误类型向上抛，由调用方决定走等待授权还是重试。
+        const safe = oauthFailure(error)
+        mcpFileLog('refresh-failed', this.key, safe === undefined
+          ? `error=${error instanceof Error ? error.name : 'unknown'}`
+          : `reason=${safe.reason}`)
+        throw error
+      }
       const { expiresAt: _expiresAt, ...retained } = current
       return oauthRecord({ ...retained, tokens: { ...tokens, scope: tokens.scope ?? current.tokens.scope },
         ...tokens.expires_in === undefined ? {} : { expiresAt: Date.now() + tokens.expires_in * 1000 },

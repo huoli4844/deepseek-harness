@@ -5,6 +5,7 @@ import type {} from '@deepseek-ai/dsh-mcp-manager'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { loadEmployee, YuanShuIdentityUnavailable, YuanShuSessionExpired } from './employee.ts'
+import { proxyIdentityRequest } from './identity-proxy.ts'
 import { PlatformHomeLoader, YuanShuGrantMismatch } from './platform-home.ts'
 import z from '@deepseek-ai/schemastery'
 
@@ -423,6 +424,36 @@ export function apply(ctx: Context, config: Config): void {
         }
       },
     }), 'yuanshu: oem icon')
+
+    // 身份 / 个人资料 / 工时：只读代理，供左下角用户卡片与经营总览使用。
+    scope.effect(() => scope.webServer.register({
+      kind: 'prefix',
+      path: '/yuanshu-workbench/identity',
+      auth: 'required',
+      async handler(req, res) {
+        const authorization = req.headers.authorization
+        if (authorization === undefined || !/^Bearer [^\s]+$/u.test(authorization)) {
+          res.writeHead(401, { 'cache-control': 'no-store' })
+          res.end()
+          return
+        }
+        const lifetime = new AbortController()
+        const close = () => { lifetime.abort() }
+        res.once('close', close)
+        try {
+          await proxyIdentityRequest(
+            req,
+            res,
+            mcp.apiUrl.replace(/\/+$/u, ''),
+            authorization,
+            typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
+            AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
+          )
+        } finally {
+          res.off('close', close)
+        }
+      },
+    }), 'yuanshu: identity API')
 
     scope.effect(() => scope.webServer.register({
       kind: 'prefix',

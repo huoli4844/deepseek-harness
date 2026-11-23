@@ -1,5 +1,5 @@
 /** Evidence, decision and acceptance controls for a position operating scenario. */
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Button, Checkbox, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DemoFollowUp } from './model.ts'
@@ -10,10 +10,16 @@ interface PositionOperationsProps extends PropsLocale<'yuanshu.workbench'> {
   readonly role: OperatingRole
   readonly record: PositionCaseRecord | undefined
   readonly delivery: DemoFollowUp | undefined
+  /** 「我的任务」区块（由外层工作台注入本岗位的任务行）。 */
+  readonly myTasks?: ReactNode
   readonly onMethod: () => void
   readonly onGroup: (id: string) => void
   readonly onDispatch: (option: 0 | 1, assignment: string) => void
-  readonly onReview: (note: string, outcome: 'accepted' | 'rework', checks: readonly [boolean, boolean]) => void
+  readonly onReview: (
+    note: string,
+    outcome: 'accepted' | 'rework',
+    checks: readonly [boolean, boolean],
+  ) => void
 }
 
 const steps = ['signal', 'decision', 'delivery', 'review'] as const
@@ -24,7 +30,17 @@ const options = [0, 1] as const
  * @param props - The position, its persisted decision and handoff, and navigation and review actions.
  * @returns The operating scenario and its available actions.
  */
-export function PositionOperations({ t, role, record, delivery, onMethod, onGroup, onDispatch, onReview }: PositionOperationsProps) {
+export function PositionOperations({
+  t,
+  role,
+  record,
+  delivery,
+  myTasks,
+  onMethod,
+  onGroup,
+  onDispatch,
+  onReview,
+}: PositionOperationsProps) {
   const id = useId()
   const [option, setOption] = useState<0 | 1>()
   const [note, setNote] = useState('')
@@ -52,14 +68,6 @@ export function PositionOperations({ t, role, record, delivery, onMethod, onGrou
 
   return (
     <>
-      <div className={css.pageHeading}>
-        <div>
-          <p className={css.eyebrow}>{t('position.title')} / {t(`role.${role}`)}</p>
-          <h1>{t(`position.${role}.title`)}</h1>
-          <p>{t(`position.${role}.impact`)}</p>
-        </div>
-        <Tag>{t(`position.status.${status}`)}</Tag>
-      </div>
       <section className={css.positionSop} aria-labelledby={`${id}-sop`}>
         <div className={css.sectionHeading}>
           <h2 id={`${id}-sop`}>{t('position.sop')}</h2>
@@ -73,6 +81,15 @@ export function PositionOperations({ t, role, record, delivery, onMethod, onGrou
           ))}
         </ol>
       </section>
+      {/* 我的任务：原独立菜单页已并入岗位运营。 */}
+      {myTasks !== undefined && (
+        <section className={css.card} aria-labelledby={`${id}-tasks`}>
+          <div className={css.sectionHeading}>
+            <h2 id={`${id}-tasks`}>{t('position.myTasks')}</h2>
+          </div>
+          {myTasks}
+        </section>
+      )}
       <div className={css.positionGrid}>
         <section className={css.card} aria-labelledby={`${id}-metric`}>
           <div className={css.sectionHeading}>

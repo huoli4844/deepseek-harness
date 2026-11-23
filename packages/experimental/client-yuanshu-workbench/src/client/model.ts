@@ -34,10 +34,24 @@ export type RoleId =
 export type TaskId =
   0 | 1 | 2 | 3 | 4 | 5 | 6 | `${Exclude<RoleId, 'procurement' | 'quality' | 'director'>}.${0 | 1 | 2}`
 /** Workbench routes; agent and versions open from source work; `team` is a persisted alias. */
+/** 运营者视角五屏的 ViewId，作为独立菜单项平铺进现有导航，不另起一层外壳。 */
+export const OPERATOR_VIEW_IDS = [
+  'operator-overview', 'operator-decisions', 'operator-projects', 'operator-functional', 'operator-evidence',
+] as const
+
+/** 运营者视角五屏的 ViewId 联合类型，由常量数组派生，避免两处不同步。 */
+export type OperatorViewId = typeof OPERATOR_VIEW_IDS[number]
+
 export type ViewId =
   'assistant' | 'dashboard' | 'project-operations' | 'position-operations' | 'priorities' | 'agent'
   | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
-  | 'operator'
+  | 'profile'
+  | OperatorViewId
+
+/** 判断一个 ViewId 是否属于运营者视角五屏。 */
+export function isOperatorView(view: ViewId): view is OperatorViewId {
+  return (OPERATOR_VIEW_IDS as readonly string[]).includes(view)
+}
 /** A saved demo draft snapshot owned by one task and position. */
 export interface DraftVersion {
   readonly number: number

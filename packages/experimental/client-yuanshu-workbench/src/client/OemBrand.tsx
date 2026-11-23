@@ -77,12 +77,12 @@ export function OemBrandName() {
     return () => { live = false }
   }, [])
   if (brand === null) {
-    return <span style={{ fontSize: '13px', letterSpacing: 0, whiteSpace: 'nowrap' }}>元枢智能工作台</span>
+    return <span style={{ fontSize: '15px', letterSpacing: 0, whiteSpace: 'nowrap' }}>元枢智能工作台</span>
   }
   return (
     <span style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: '13px', fontWeight: 600, lineHeight: '13px' }}>{brand.systemName}</span>
-      <span style={{ fontSize: '10px', fontWeight: 500, lineHeight: '10px', opacity: 0.65 }}>
+      <span style={{ fontSize: '14px', fontWeight: 600, lineHeight: '15px' }}>{brand.systemName}</span>
+      <span style={{ fontSize: '14px', fontWeight: 600, lineHeight: '15px', opacity: 0.78 }}>
         {WORKBENCH_LABEL}
       </span>
     </span>

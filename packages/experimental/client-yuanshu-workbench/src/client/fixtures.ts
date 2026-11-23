@@ -123,18 +123,20 @@ export const roleFixtures: Record<RoleId, RoleFixture> = {
 }
 /** Every position exposes the same collaboration destinations. */
 export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team' | 'agent' | 'versions'>; readonly label: WorkbenchKey }[] = [
-  { id: 'operator', label: 'nav.operator' },
+  { id: 'operator-overview', label: 'operator.screen.overview' },
+  { id: 'operator-decisions', label: 'operator.screen.decisions' },
+  { id: 'operator-projects', label: 'operator.screen.projects' },
+  { id: 'operator-functional', label: 'operator.screen.functional' },
+  { id: 'operator-evidence', label: 'operator.screen.evidence' },
   { id: 'assistant', label: 'nav.assistant' },
   { id: 'dashboard', label: 'nav.dashboard' },
   { id: 'project-operations', label: 'nav.projectOperations' },
   { id: 'position-operations', label: 'nav.positionOperations' },
-  { id: 'tasks', label: 'nav.tasks' },
   { id: 'groups', label: 'nav.groups' },
   { id: 'calendar', label: 'nav.calendar' },
   { id: 'notifications', label: 'nav.notifications' },
-  { id: 'priorities', label: 'nav.priorities' },
   { id: 'files', label: 'nav.files' },
-  { id: 'methods', label: 'nav.methods' },
+  { id: 'profile', label: 'nav.profile' },
 ]
 /** Localized title for each fixed demonstration task. */
 export const taskTitles: Record<TaskId, WorkbenchKey> = {

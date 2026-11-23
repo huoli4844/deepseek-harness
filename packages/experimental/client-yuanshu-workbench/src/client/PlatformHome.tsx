@@ -55,9 +55,8 @@ function messageKeyFor(state: { status?: number; upstream?: number }): FailureKe
  * @param props - Localized workbench labels.
  * @returns The live work queue and its request status.
  */
-export function PlatformHome({ t, onAnalyze, section, title }: PropsLocale<'yuanshu.workbench'> & {
+export function PlatformHome({ t, onAnalyze, section }: PropsLocale<'yuanshu.workbench'> & {
   readonly section: string
-  readonly title: string
   readonly onAnalyze: (prompt: string, sessionKey: string) => void
 }) {
   const [selected, setSelected] = useState<Item>()
@@ -144,7 +143,6 @@ export function PlatformHome({ t, onAnalyze, section, title }: PropsLocale<'yuan
   }, [attempt, section])
 
   return <section className={css.card}>
-    <h1>{title}</h1>
     {state.kind === 'loading' && <p role="status">{t('live.loading')}</p>}
     {state.kind === 'login' && <p role="alert">{t('live.login')}</p>}
     {state.kind === 'connecting' && <>

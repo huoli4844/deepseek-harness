@@ -11,7 +11,7 @@ import { roleMethods } from '../src/client/methodology-data.ts'
 import { createWorkbenchStore } from '../src/client/model.ts'
 import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
 import { positionScenarios } from '../src/client/scenario-data.ts'
-import { prioritiesForRole, priorityAssignment, priorityItems, type PriorityAssignment } from '../src/client/priorities-data.ts'
+import { prioritiesForRole } from '../src/client/priorities-data.ts'
 import { zh } from '../src/client/locales.ts'
 
 usePinnedBrowserLanguages('zh-CN')
@@ -51,7 +51,6 @@ async function bench() {
 it('presents all 18 positions and company management with shared navigation and distinct work', async () => {
   await bench()
   const dialog = screen.getByRole('dialog', { name: '元枢工作台' })
-  expect(within(dialog).getByRole('heading', { name: '采购工程师 · 今日工作' })).toBeDefined()
   expect(within(dialog).getByRole('heading', { name: '关键物料到货偏差' })).toBeDefined()
   const inbox = within(dialog).getByRole('region', { name: '其他待处理事项' })
   fireEvent.click(within(inbox).getByRole('button', { name: '开始处理 · PCBA 来料异常处置' }))
@@ -77,14 +76,12 @@ it('presents all 18 positions and company management with shared navigation and 
     expect(sopFlows).toHaveLength(3)
     for (const flow of sopFlows) expect(within(flow).getAllByRole('listitem')).toHaveLength(4)
     expect(prioritiesForRole(role).length).toBeGreaterThan(0)
-    fireEvent.click(within(dialog).getByRole('button', { name: '经营重点' }))
-    expect(within(dialog).getByRole('region', { name: '公司重点事项' }).querySelectorAll('article')).toHaveLength(prioritiesForRole(role).length)
     fireEvent.click(within(dialog).getByRole('button', { name: '今日工作' }))
     for (const scenario of positionScenarios[role]) {
       if (scenario === undefined) throw new Error('each position must have a KPI scenario')
       const scenarioButtons = within(openKpiScenarios()).getAllByRole('button', { name: /^让助理带我处理/ })
       fireEvent.click(scenarioButtons[scenario.kpiIndex]!)
-      expect(within(dialog).getByRole('heading', { name: zh[taskTitles[scenario.task]], level: 1 })).toBeDefined()
+      expect(within(dialog).getByRole('region', { name: zh['home.workContext'] })).toBeDefined()
       expect(within(dialog).getByText(
         `${zh[`${role}.metric${scenario.kpiIndex + 1}` as keyof typeof zh]} · ${roleFixtures[role].metrics[scenario.kpiIndex]}`,
       )).toBeDefined()
@@ -100,23 +97,26 @@ it('presents all 18 positions and company management with shared navigation and 
       .map(heading => heading.textContent)
     if (role !== 'project') {
       fireEvent.click(within(dialog).getByRole('button', { name: '查看场景' }))
-      expect(within(dialog).getByRole('heading', { name: zh[`position.${role}.title`], level: 1 })).toBeDefined()
+      expect(within(dialog).getByRole('heading', { name: zh['position.sop'] })).toBeDefined()
       expect(within(dialog).getByText(zh[`position.${role}.source`])).toBeDefined()
       expect(within(dialog).getByRole('radio', { name: new RegExp(zh[`position.${role}.option0`]) })).toBeDefined()
       expect(within(dialog).getByText(zh[`position.${role}.criterion1`])).toBeDefined()
     }
-    for (const name of ['经营重点', '我的任务', '日程日历', '工作群']) {
+    for (const name of ['个人资料', '日程日历', '工作群']) {
       expect(within(dialog).getByRole('button', { name })).toBeDefined()
     }
     expect(within(dialog).queryByRole('button', { name: '助理执行' })).toBeNull()
     expect(within(dialog).queryByRole('button', { name: '任务版本' })).toBeNull()
     expect(within(dialog).queryByRole('button', { name: '团队协作' })).toBeNull()
-    fireEvent.click(within(dialog).getByRole('button', { name: '我的任务' }))
-    const tasks = within(dialog)
-      .getAllByRole('button')
-      .filter(button => button.className.includes('taskRow'))
-      .map(button => button.textContent)
-    expect(tasks).toHaveLength(3)
+    // 我的任务已并入岗位运营：非项目角色的任务行直接显示在岗位运营页内。
+    const tasksRegion = role === 'project' ? null : within(dialog).getByRole('region', { name: '我的任务' })
+    const tasks = tasksRegion === null
+      ? []
+      : within(tasksRegion)
+        .getAllByRole('button')
+        .filter(button => button.className.includes('taskRow'))
+        .map(button => button.textContent)
+    expect(tasks).toHaveLength(role === 'project' ? 0 : 3)
     views.push({ position: option.textContent, dashboard, tasks })
   }
   expect(views).toMatchSnapshot()
@@ -201,95 +201,14 @@ it('creates a workgroup, assigns work, invites position assistants and keeps a v
   expect(localStorage.getItem('yuanshu-workbench.v2')).toContain('请同步各自的评审结论')
 })
 
-it('separates the position inbox from the company priority assistant run', async () => {
+it('separates the position inbox from role switching and position data', async () => {
   await bench()
   const inbox = screen.getByRole('region', { name: '建议优先处理' })
   expect(within(inbox).getByText('采购订单 PO-2611-048 · 供应商交期回执')).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  const priority = within(screen.getByRole('region', { name: '公司重点事项' })).getAllByRole('article')
-    .find(article => article.textContent?.includes(zh[priorityItems[3]!.title]))
-  if (priority === undefined) throw new Error('supplier priority should be available in the company list')
-  fireEvent.click(within(priority).getByRole('button', { name: '让助理主导处理' }))
-  expect(screen.getByRole('heading', { name: zh[priorityItems[3]!.title], level: 1 })).toBeDefined()
-  expect(screen.getByRole('heading', { name: '执行计划' })).toBeDefined()
-  expect(screen.getByText('这是本地模拟流程，不会调用元枢 MCP 或模型，也不会写入平台数据。')).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  const supplierRow = within(screen.getByRole('region', { name: '公司重点事项' }))
-    .getAllByRole('article')
-    .find(article => article.textContent?.includes(zh[priorityItems[3]!.title]))
-  if (supplierRow === undefined) throw new Error('priority list should retain its work status')
-  expect(within(supplierRow).getByText('等待协作')).toBeDefined()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
   fireEvent.click(screen.getByRole('button', { name: '今日工作' }))
-  expect(screen.getByRole('heading', { name: '生产工艺质量工程师 · 今日工作' })).toBeDefined()
-  expect(screen.getByText('将根因假设与已确认事实分开，补足整改验证证据。')).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '查看岗位数据' }))
-  expect(screen.getByRole('heading', { name: '每一个质量结论，都有依据。' })).toBeDefined()
-})
-
-it('shows all ten priority records and opens each responsible position workflow', async () => {
-  await bench()
-  fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  fireEvent.click(screen.getByRole('button', { name: '公司清单' }))
-  expect(within(screen.getByRole('region', { name: '公司重点事项' })).getAllByRole('article')).toHaveLength(10)
-  let activeRole: (typeof roleIds)[number] = 'procurement'
-  for (const item of priorityItems) {
-    const region = screen.getByRole('region', { name: '公司重点事项' })
-    const rows = within(region).getAllByRole('article')
-    const row = rows.find(candidate => candidate.textContent?.includes(zh[item.title]))
-    if (row === undefined) throw new Error(`missing priority ${item.id}`)
-    expect(within(row).getByText(zh[item.reason])).toBeDefined()
-    expect(within(row).getByText(zh[item.source])).toBeDefined()
-    expect(within(row).getByText(zh[item.action])).toBeDefined()
-    const assignment: PriorityAssignment | undefined = priorityAssignment(item, activeRole) ?? item.assignments[0]
-    if (assignment === undefined) throw new Error(`missing responsible position for ${item.id}`)
-    activeRole = assignment.role
-    fireEvent.click(within(row).getByRole('button', { name: '让助理主导处理' }))
-    const scenario = positionScenarios[assignment.role][assignment.kpiIndex]
-    if (scenario === undefined) throw new Error(`missing work scenario for ${item.id}`)
-    expect(screen.getByRole('combobox', { name: '当前岗位视角' })).toHaveProperty('value', assignment.role)
-    expect(screen.getByRole('heading', { name: zh[item.title], level: 1 })).toBeDefined()
-    expect(screen.getByRole('heading', { name: '执行计划' })).toBeDefined()
-    expect(screen.getAllByText(zh[item.source]).length).toBeGreaterThan(0)
-    fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  }
-  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
-  fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  fireEvent.click(screen.getByRole('button', { name: '公司清单' }))
-  fireEvent.click(screen.getByRole('button', { name: '本岗位相关' }))
-  expect(within(screen.getByRole('region', { name: '公司重点事项' })).getAllByRole('article')).toHaveLength(priorityItems.filter(item => priorityAssignment(item, 'quality') !== undefined).length)
-})
-
-it('records simulated agent steps, pauses for review and updates local work only after approval', async () => {
-  await bench()
-  fireEvent.click(screen.getByRole('button', { name: '经营重点' }))
-  fireEvent.click(screen.getByRole('button', { name: '公司清单' }))
-  const list = screen.getByRole('region', { name: '公司重点事项' })
-  const row = within(list).getAllByRole('article').find(article => article.textContent?.includes(zh[priorityItems[3]!.title]))
-  if (row === undefined) throw new Error('supplier delivery priority should be available')
-  fireEvent.click(within(row).getByRole('button', { name: '让助理主导处理' }))
-  fireEvent.change(screen.getByRole('textbox', { name: '给本岗位助理的备注' }), {
-    target: { value: '质量确认前不要调整交付承诺。' },
-  })
-  expect(screen.getByRole('textbox', { name: '给本岗位助理的备注' })).toHaveProperty('value', '质量确认前不要调整交付承诺。')
-  fireEvent.click(screen.getByRole('button', { name: '开始执行' }))
-  expect(screen.getByText('业务记录查询')).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '运行下一步 · 2 / 4' }))
-  fireEvent.click(screen.getByRole('button', { name: '运行下一步 · 3 / 4' }))
-  expect(screen.getByRole('heading', { name: '跨岗位复核' })).toBeDefined()
-  expect(screen.getAllByText('模拟步骤').length).toBeGreaterThan(0)
-  fireEvent.click(screen.getByRole('button', { name: '运行下一步 · 4 / 4' }))
-  expect(screen.getByRole('heading', { name: '拟议行动' })).toBeDefined()
-  expect(screen.getByRole('button', { name: '确认并启动演示工作' })).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '补充分析' }))
-  expect(screen.getByRole('button', { name: '运行下一步 · 3 / 4' })).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '运行下一步 · 3 / 4' }))
-  fireEvent.click(screen.getByRole('button', { name: '运行下一步 · 4 / 4' }))
-  fireEvent.click(screen.getByRole('button', { name: '确认并启动演示工作' }))
-  expect(screen.getByText('已确认 · 演示工作进行中')).toBeDefined()
-  expect(screen.getByRole('button', { name: '打开工作草稿' })).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '打开工作草稿' }))
-  expect(screen.getByRole('heading', { name: zh[taskTitles[roleFixtures.procurement.tasks[1]]], level: 1 })).toBeDefined()
+  // 页面标题区已移除：断言工作首页的「其他待处理事项」收件箱区块正常渲染。
+  expect(screen.getByRole('region', { name: '其他待处理事项' })).toBeDefined()
 })
 
 it.each([
@@ -303,7 +222,7 @@ it.each([
     value: '0',
     task: '关键设备故障维修',
   },
-])('opens $title data and its corresponding task', async ({ role, title, row, value, task }) => {
+])('opens $title data and its corresponding task', async ({ role, title, row, value, task: _task }) => {
   await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
   fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
@@ -312,7 +231,7 @@ it.each([
   const dataRow = within(detail).getByRole('row', { name: new RegExp(row) })
   expect(within(dataRow).getByRole('cell', { name: value })).toBeDefined()
   fireEvent.click(within(detail).getByRole('button', { name: '打开关联任务' }))
-  expect(screen.getByRole('heading', { name: task, level: 1 })).toBeDefined()
+  expect(screen.getByRole('region', { name: zh['home.workContext'] })).toBeDefined()
   expect(screen.getAllByRole('dialog')).toHaveLength(1)
 })
 
@@ -335,11 +254,13 @@ it('connects every role’s three methods to the corresponding work and specific
     fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
     expect(roleMethods[role].map(item => item.task)).toEqual(roleFixtures[role].tasks)
     for (const assignment of roleMethods[role]) {
-      fireEvent.click(screen.getByRole('button', { name: '工作方法' }))
+      // 工作方法视图已不在侧栏菜单中：每轮经“岗位工作台 → 查看岗位方法”进入。
+      fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
+      fireEvent.click(screen.getByRole('button', { name: '查看岗位方法' }))
       const card = screen.getByRole('heading', { name: zh[taskTitles[assignment.task]] }).closest('article')
       if (card === null) throw new Error('the method card must identify its task')
       fireEvent.click(within(card).getByRole('button', { name: '按此方法开展' }))
-      expect(screen.getByRole('heading', { name: zh[taskTitles[assignment.task]], level: 1 })).toBeDefined()
+      expect(screen.getByRole('region', { name: zh['home.workContext'] })).toBeDefined()
       expect(screen.getByRole('heading', { name: zh[assignment.method.title] })).toBeDefined()
       expect(screen.getByText(zh[assignment.inputs])).toBeDefined()
       expect(screen.getByText(zh[assignment.output])).toBeDefined()
@@ -357,7 +278,9 @@ it('connects every role’s three methods to the corresponding work and specific
 
 it('retains method records across navigation and includes them in saved version comparisons', async () => {
   await bench()
-  fireEvent.click(screen.getByRole('button', { name: '工作方法' }))
+  // 工作方法视图已不在侧栏菜单中：经“岗位工作台 → 查看岗位方法”进入。
+  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看岗位方法' }))
   const supplier = screen.getByRole('heading', { name: '供应商季度评价' }).closest('article')
   if (supplier === null) throw new Error('supplier work must expose its method')
   fireEvent.click(within(supplier).getByRole('button', { name: '按此方法开展' }))
@@ -374,7 +297,8 @@ it('retains method records across navigation and includes them in saved version 
   const comparison = screen.getByRole('dialog', { name: '比较版本' })
   expect(within(comparison).getByText('材料核对记录: 核对本季度到货台账 v2，缺少两项响应记录。')).toBeDefined()
   fireEvent.click(within(comparison).getByRole('button', { name: '关闭' }))
-  fireEvent.click(screen.getByRole('button', { name: '我的任务' }))
+  // 我的任务已并入岗位运营：经「岗位运营」菜单进入后直接点击任务行。
+  fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: '岗位运营' }))
   fireEvent.click(screen.getByRole('button', { name: /供应商季度评价/ }))
   fireEvent.click(screen.getByRole('button', { name: '1 · 材料' }))
   expect(screen.getByRole('textbox', { name: '材料核对记录' })).toHaveProperty('value', '核对本季度到货台账 v2，缺少两项响应记录。')
@@ -458,7 +382,7 @@ it('records a group work arrangement as a position confirmation', async () => {
   fireEvent.change(selector, { target: { value: 'procurement' } })
   fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: '工作群' }))
   fireEvent.click(screen.getByRole('button', { name: '复核关联工作' }))
-  expect(screen.getByRole('heading', { name: '供应商季度评价', level: 1 })).toBeDefined()
+  expect(screen.getByRole('region', { name: '事项背景' })).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '4 · 协同审阅' }))
   expect(screen.getByText('已核对来料标准，记录 IQ-24 可追溯，照片证据待补。')).toBeDefined()
   expect(screen.getByText('等待审阅人确认这项结果。')).toBeDefined()
@@ -488,8 +412,8 @@ it('drills from company risks to the responsible view and returns through DSH la
   if (sales === null) throw new Error('the company view did not render its operating risk')
   fireEvent.click(within(sales).getByRole('button', { name: '查看责任岗位' }))
   expect(screen.getByRole('combobox', { name: '当前岗位视角' })).toHaveProperty('value', 'sales')
-  expect(screen.getByRole('heading', { name: '重点客户项目推进' })).toBeDefined()
-  fireEvent.click(screen.getByRole('button', { name: '返回 DSH 原始界面' }))
+  expect(screen.getByRole('region', { name: '事项背景' })).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '返回' }))
   expect(selectPanel).toHaveBeenLastCalledWith(null)
 })
 
@@ -605,9 +529,15 @@ it('carries a project change through decision, group deliveries and evidence-gat
 
 it('keeps the workbench open when Escape closes a nested material dialog', async () => {
   const { selectPanel } = await bench()
-  fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'hr' } })
-  fireEvent.click(screen.getByRole('button', { name: '文件与资料' }))
-  fireEvent.click(screen.getByRole('button', { name: /岗位需求与招聘计划/ }))
+  // 文件与资料页已改为目录树 + 内联预览（不再弹窗）；改经任务工作页的「关联材料」打开嵌套弹窗。
+  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看岗位方法' }))
+  const supplier = screen.getByRole('heading', { name: '供应商季度评价' }).closest('article')
+  if (supplier === null) throw new Error('supplier work must expose its method')
+  fireEvent.click(within(supplier).getByRole('button', { name: '按此方法开展' }))
+  const evidence = screen.getByText('关联材料').parentElement
+  if (evidence === null) throw new Error('work view must expose related materials')
+  fireEvent.click(within(evidence).getAllByRole('button')[0]!)
   expect(screen.getAllByRole('dialog')).toHaveLength(2)
   fireEvent.keyDown(document.activeElement ?? document, { key: 'Escape' })
   expect(screen.getAllByRole('dialog')).toHaveLength(1)

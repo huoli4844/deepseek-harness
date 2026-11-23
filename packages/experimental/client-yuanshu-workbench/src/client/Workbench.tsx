@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { PlatformHome } from './PlatformHome.tsx'
 import { PersonalWorkspace } from './PersonalWorkspace.tsx'
+import { ProjectCalendar } from './ProjectCalendar.tsx'
+import { FilesScreen } from './FilesScreen.tsx'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   Button,
@@ -15,9 +17,7 @@ import {
   IconArchiveOutlineRegular,
   IconPaperclipOutlineRegular,
   IconPanelLeftOutlineRegular,
-  IconPlusOutlineRegular,
   IconChevronRightOutlineRegular,
-  IconSearchOutlineRegular,
   IconNewChatOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -25,6 +25,7 @@ import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SidebarPanelIconOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { DraftVersion, RoleId, TaskId, WorkbenchStoreProps } from './model.ts'
+import { isOperatorView } from './model.ts'
 import type { WorkgroupKind } from './workgroup-data.ts'
 import type { WorkbenchKey } from './locales.ts'
 import { managementDomains, navigation, roleFixtures, roleGroups, roleIds, taskTitles } from './fixtures.ts'
@@ -42,7 +43,8 @@ import { ChangeDemoPanel } from './ChangeDemoPanel.tsx'
 import { fixtureChangeId, fixtureDecisionId } from './change-demo.ts'
 import { PositionOperations } from './PositionOperations.tsx'
 import { positionSignals } from './position-operations.ts'
-import { OperatorWorkbench } from './operator/index.ts'
+import { OperatorWorkbench, screenOfView, viewOfScreen } from './operator/index.ts'
+import { ProfileScreen, UserBadge, useIdentity } from './identity/index.ts'
 
 interface WorkbenchInjected {
   readonly openAssistant: (role: string, prompt?: string) => Promise<SessionReference>
@@ -82,7 +84,12 @@ export function WorkbenchIcon(props: SidebarPanelIconOwnerProps) {
 }
 
 const navIcons = {
-  operator: IconLayersOutlineRegular,
+  'operator-overview': IconLayersOutlineRegular,
+  'operator-decisions': IconArchiveOutlineRegular,
+  'operator-projects': IconChecklistOutlineRegular,
+  'operator-functional': IconLayersOutlineRegular,
+  'operator-evidence': IconPaperclipOutlineRegular,
+  profile: IconLayersOutlineRegular,
   assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
   priorities: IconArchiveOutlineRegular,
@@ -106,6 +113,8 @@ export function Workbench(props: WorkbenchProps) {
   const state = props.useStore(s => s)
   const { role, view } = state
   const liveHome = Object.getOwnPropertyDescriptor(globalThis, '__DSH_YUANSHU_HOME__')?.value === true
+  // 当前登录用户与角色来自后台身份接口；本页只消费视图模型，不直接发请求。
+  const identity = useIdentity()
   const key = `${role}:${state.task}`
   const fixture = roleFixtures[role]
   const [milestoneOpen, setMilestoneOpen] = useState(false)
@@ -415,14 +424,6 @@ export function Workbench(props: WorkbenchProps) {
     const visibleItems = priorityFilter === 'all' ? priorityItems : prioritiesForRole(role)
     return (
       <>
-        <div className={css.pageHeading}>
-          <div>
-            <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
-            <h1>{t('priorities.title')}</h1>
-            <p>{t('priorities.subtitle')}</p>
-          </div>
-          <Tag>{t('count', { count: visibleItems.length })}</Tag>
-        </div>
         <div className={css.priorityFilters} role="group" aria-label={t('priorities.title')}>
           <Button variant={priorityFilter === 'all' ? 'outline' : 'ghost'} aria-pressed={priorityFilter === 'all'} onClick={() => { setPriorityFilter('all') }}>
             {t('priorities.all')}
@@ -495,14 +496,6 @@ export function Workbench(props: WorkbenchProps) {
       const choices = prioritiesForRole(role).slice(0, 3)
       return (
         <>
-          <div className={css.pageHeading}>
-            <div>
-              <p className={css.eyebrow}>{t('tenant')} / {t(`role.${role}`)}</p>
-              <h1>{t('agent.title')}</h1>
-              <p>{t('agent.queueIntro')}</p>
-            </div>
-            <Tag>{t('demo')}</Tag>
-          </div>
           <section className={css.agentQueue} aria-label={t('agent.chooseSignal')}>
             <h2>{t('agent.chooseSignal')}</h2>
             {choices.map(item => (
@@ -555,13 +548,6 @@ export function Workbench(props: WorkbenchProps) {
 
     return (
       <>
-        <div className={css.pageHeading}>
-          <div>
-            <p className={css.eyebrow}>{t('agent.title')} / {t(`role.${assignment.role}`)}</p>
-            <h1>{t(item.title)}</h1>
-            <p>{t(item.reason)}</p>
-          </div>
-        </div>
         <div className={css.agentLayout}>
           <div className={css.agentMain}>
             <section className={css.agentSection} aria-label={t('agent.plan')}>
@@ -953,13 +939,6 @@ export function Workbench(props: WorkbenchProps) {
     const trackCount = waiting.length + (role === 'project' ? projectWaiting.length + Number(milestonePhase === 'closed') : Number(!positionNeedsAction))
     return (
       <div className={css.workHome} key={role}>
-        <div className={css.pageHeading}>
-          <div>
-            <h1>{t('home.title', { role: t(`role.${role}`) })}</h1>
-            <p>{t(`${role}.focus`)}</p>
-          </div>
-          <Button variant="outline" onClick={() => { selectView('dashboard') }}>{t('assistant.positionData')}</Button>
-        </div>
         {first !== undefined && (
           <section className={css.homeBrief} aria-label={t('home.briefTitle')}>
             <div className={css.homeBriefHeading}>
@@ -1075,14 +1054,6 @@ export function Workbench(props: WorkbenchProps) {
     const acceptanceReady = (item: typeof projectAcceptances[number]) => item.requiredActionIds.every(id => projectRecordStatus(id) === 'done')
     return (
       <>
-        <div className={css.pageHeading}>
-          <div>
-            <p className={css.eyebrow}>{t('tenant')} / {t('role.project')}</p>
-            <h1>{t('project.operations.title')}</h1>
-            <p>{t('project.operations.subtitle')}</p>
-          </div>
-          <Tag>{t('demoSample')}</Tag>
-        </div>
         <section className={css.projectOpsBanner} aria-label={t('project.operations.loop')}>
           <div>
             <p className={css.eyebrow}>{t('project.operations.loop')}</p>
@@ -1289,24 +1260,6 @@ export function Workbench(props: WorkbenchProps) {
   }
   const dashboard = () => (
     <>
-      <div className={css.pageHeading}>
-        <div>
-          <p className={css.eyebrow}>
-            {t('tenant')} / {t(`role.${role}`)}
-          </p>
-          <h1>{t(`${role}.title`)}</h1>
-          <p>{t(`${role}.subtitle`)}</p>
-        </div>
-        <Button
-          variant="primary"
-          icon={<IconPlusOutlineRegular size={16} />}
-          onClick={() => {
-            selectView('methods')
-          }}
-        >
-          {t('new')}
-        </Button>
-      </div>
       {positionAlert()}
       <div className={css.metrics}>
         {fixture.metrics.map((value, i) => (
@@ -1518,82 +1471,6 @@ export function Workbench(props: WorkbenchProps) {
           {t('work.draft')}
         </Button>
       </section>
-    </>
-  )
-  const calendarPage = () => (
-    <>
-      <p className={css.intro}>{t('calendar.intro')}</p>
-      <div className={css.calendarLayout}>
-        <section className={css.card}>
-          <div className={css.sectionHeading}>
-            <h2>{t('calendar.month')}</h2>
-            <Tag>{t('demoSample')}</Tag>
-          </div>
-          <div className={css.calendar}>
-            {[0, 1, 2, 3, 4, 5, 6].map(i => (
-              <span className={css.weekday} key={`week-${i}`}>
-                {t(`week.${i}` as WorkbenchKey)}
-              </span>
-            ))}
-            {Array.from({ length: 42 }, (_, i) => {
-              const day = i - 5
-              return day < 1 || day > 30 ? (
-                <span key={`blank-${i}`} />
-              ) : (
-                <button
-                  key={day}
-                  aria-label={t('calendar.day', { day })}
-                  aria-pressed={state.day === day}
-                  className={state.day === day ? css.selectedDay : ''}
-                  onClick={() => {
-                    actions.selectDay(day)
-                  }}
-                >
-                  <span>{day}</span>
-                  {([16, 17, 20].includes(day) || state.events.some(e => e.day === day)) && <i />}
-                </button>
-              )
-            })}
-          </div>
-        </section>
-        <section className={css.card}>
-          <div className={css.sectionHeading}>
-            <h2>{t('calendar.day', { day: state.day })}</h2>
-          </div>
-          <div className={css.dayEvents}>
-            {[16, 17, 20].includes(state.day) && (
-              <button
-                onClick={() => {
-                  openTask(fixture.tasks[0])
-                }}
-              >
-                <small>09:30 — 10:00</small>
-                <strong>{t(state.day === 16 ? 'calendar.0' : state.day === 17 ? 'calendar.1' : 'calendar.2')}</strong>
-              </button>
-            )}
-            {state.events
-              .filter(e => e.day === state.day)
-              .map(e => (
-                <div key={e.id}>
-                  <small>{t('demoEvent')}</small>
-                  <strong>{e.title}</strong>
-                </div>
-              ))}
-            {![16, 17, 20].includes(state.day) && !state.events.some(e => e.day === state.day) && (
-              <p className={css.empty}>{t('calendar.none')}</p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEventTitle('')
-              setDialog('event')
-            }}
-          >
-            {t('calendar.add')}
-          </Button>
-        </section>
-      </div>
     </>
   )
   const groupsPage = () => (
@@ -1874,15 +1751,6 @@ export function Workbench(props: WorkbenchProps) {
   const workPage = () => (
     <>
       <Button size="sm" variant="ghost" onClick={() => { selectView('assistant') }}>{t('home.back')}</Button>
-      <div className={css.workHeading}>
-        <div>
-          <p className={css.eyebrow}>
-            {t(`role.${role}`)} / {t('draftOnly')}
-          </p>
-          <h1>{currentTitle}</h1>
-        </div>
-        {currentWorkStatus !== undefined && <Tag>{statusLabel(currentWorkStatus)}</Tag>}
-      </div>
       <section className={css.workContext} aria-label={t('home.workContext')}>
         <dl className={css.methodFacts}>
           {currentWorkItem !== undefined && (
@@ -2173,10 +2041,10 @@ export function Workbench(props: WorkbenchProps) {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
-                  {n.id === 'operator' && <p className={css.groupLabel}>{t('operator.group.operations')}</p>}
+                  {n.id === 'operator-overview' && <p className={css.groupLabel}>{t('operator.group.operations')}</p>}
                   {n.id === 'assistant' && <p className={css.groupLabel}>{t('workGroup')}</p>}
                   {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
-                  {n.id === 'priorities' && <p className={css.groupLabel}>{t('resources')}</p>}
+                  {n.id === 'files' && <p className={css.groupLabel}>{t('resources')}</p>}
                   <button
                     className={view === n.id || (view === 'team' && n.id === 'groups') ? css.activeNav : ''}
                     onClick={() => {
@@ -2192,11 +2060,15 @@ export function Workbench(props: WorkbenchProps) {
               )
             })}
           </nav>
+          {/* 底部一行：左“返回”（纯图标），右当前用户（仅头像 + 姓名）。 */}
           <div className={css.return}>
-            <Button icon={<IconPanelLeftOutlineRegular size={17} />} onClick={onReturn} title={t('returnHint')}>
-              {t('return')}
-            </Button>
-            <small>{t('returnHint')}</small>
+            <Button
+              icon={<IconPanelLeftOutlineRegular size={15} />}
+              onClick={onReturn}
+              title={t('return')}
+              aria-label={t('return')}
+            />
+            <UserBadge user={identity.user} t={t} />
           </div>
         </aside>
         <div className={css.main}>
@@ -2211,48 +2083,28 @@ export function Workbench(props: WorkbenchProps) {
                 }}
                 icon={<IconPanelLeftOutlineRegular size={18} />}
               />
-              <span>
-                {liveHome ? title : `${t('tenant')} / ${title}`}
-              </span>
-            </div>
-            <div>
-              {!liveHome && <Tag>{t('demo')}</Tag>}
-              <Button
-                aria-label={t('search')}
-                onClick={() => {
-                  selectView('tasks')
-                }}
-                icon={<IconSearchOutlineRegular size={17} />}
-              />
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {!liveHome && !['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent', 'operator'].includes(view) && (
-              <div className={css.pageHeading}>
-                <div>
-                  <p className={css.eyebrow}>{t(`role.${role}`)}</p>
-                  <h1>{title}</h1>
-                </div>
-                {view === 'tasks' && (
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      selectView('methods')
-                    }}
-                  >
-                    {t('new')}
-                  </Button>
-                )}
-              </div>
-            )}
-            {view === 'operator' ? (
-              <OperatorWorkbench t={t} />
+            {/* 各页不再渲染顶部大标题，内容直接从顶部开始。 */}
+            {isOperatorView(view) ? (
+              <OperatorWorkbench
+                t={t}
+                screen={screenOfView(view)}
+                onNavigate={(screen) => { selectView(viewOfScreen(screen)) }}
+              />
+            ) : view === 'profile' ? (
+              <ProfileScreen model={identity} t={t} />
             ) : liveHome ? (
               ['assistant', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
-                ? <PlatformHome key={view} t={t} section={view} title={title} onAnalyze={openRoleConversation} />
-                : view === 'tasks' || view === 'calendar'
-                  ? <PersonalWorkspace key={view} t={t} section={view} title={title} />
-                  : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
+                ? <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
+                : view === 'tasks'
+                  ? <PersonalWorkspace key={view} t={t} section={view} />
+                  : view === 'calendar'
+                    ? <ProjectCalendar t={t} />
+                    : view === 'files'
+                      ? <FilesScreen t={t} />
+                      : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
             ) : view === 'assistant' ? (
               assistant()
             ) : view === 'dashboard' ? (
@@ -2266,6 +2118,7 @@ export function Workbench(props: WorkbenchProps) {
                 role={role}
                 record={positionCase}
                 delivery={positionDelivery}
+                myTasks={taskRows(true)}
                 onMethod={() => { openTask(fixture.tasks[positionSignals[role].taskIndex]) }}
                 onGroup={openWorkgroup}
                 onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
@@ -2296,7 +2149,7 @@ export function Workbench(props: WorkbenchProps) {
             ) : view === 'versions' ? (
               versionPage()
             ) : view === 'calendar' ? (
-              calendarPage()
+              <ProjectCalendar t={t} />
             ) : view === 'team' || view === 'groups' ? (
               groupsPage()
             ) : view === 'notifications' ? (
@@ -2304,25 +2157,7 @@ export function Workbench(props: WorkbenchProps) {
             ) : view === 'work' ? (
               workPage()
             ) : view === 'files' ? (
-              <>
-                <p className={css.intro}>{t('files.intro')}</p>
-                <section className={css.card}>
-                  {[0, 1, 2].map(id => (
-                    <button
-                      key={id}
-                      className={css.source}
-                      onClick={() => {
-                        setSourceIndex(id)
-                        setDialog('source')
-                      }}
-                    >
-                      <IconPaperclipOutlineRegular size={18} />
-                      <span className={css.grow}>{t(`${role}.source${id}` as WorkbenchKey)}</span>
-                      <span>{t('files.preview')}</span>
-                    </button>
-                  ))}
-                </section>
-              </>
+              <FilesScreen t={t} />
             ) : (
               <>
                 <p className={css.intro}>{t('methods.intro')}</p>

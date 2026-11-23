@@ -3,100 +3,18 @@
  * 占位符统一置灰，绝不填造数字。
  */
 
-.shell {
+.screen {
   --op-line: var(--dsw-alias-border-l3);
   --op-muted: var(--dsw-alias-label-tertiary);
   --op-soft: var(--dsw-alias-label-secondary);
   --op-accent: var(--dsw-alias-brand-primary);
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  height: 100%;
-  min-height: 0;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-base);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.sidebar {
-  min-width: 0;
-  overflow: auto;
-  padding: 20px 12px;
-  border-right: 0.5px solid var(--op-line);
-}
-
-.brand {
-  margin: 0 0 8px;
-  padding-inline: 10px;
-  color: var(--op-soft);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.group {
-  margin-top: 16px;
-}
-
-.groupLabel {
-  margin: 0 0 6px;
-  padding-inline: 10px;
-  color: var(--op-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.navButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 6px;
-  color: var(--op-soft);
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.navButton:hover {
-  background: var(--dsw-alias-fill-hover);
-}
-
-.navActive {
-  color: var(--op-accent);
-  background: var(--dsw-alias-fill-selected);
-  font-weight: 600;
-}
-
-.main {
-  min-width: 0;
-  overflow: auto;
-  padding: 20px 24px 40px;
-}
-
-.header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 14px;
-  border-bottom: 0.5px solid var(--op-line);
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.screen {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-top: 18px;
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .contextBar {
@@ -108,6 +26,36 @@
   border-radius: 8px;
   color: var(--op-soft);
   background: var(--dsw-alias-bg-secondary);
+}
+
+/* 时间范围切换器：靠右对齐，位于内容区右上角。 */
+.periodBar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.periodButton,
+.periodButtonActive {
+  padding: 4px 14px;
+  border: 0.5px solid var(--op-line);
+  border-radius: 999px;
+  color: var(--op-soft);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.periodButton:hover {
+  border-color: var(--op-accent);
+  color: var(--op-accent);
+}
+
+.periodButtonActive {
+  border-color: var(--op-accent);
+  color: #fff;
+  background: var(--op-accent);
 }
 
 .section {
@@ -133,6 +81,18 @@
   border: 0.5px solid var(--op-line);
   border-radius: 10px;
   background: var(--dsw-alias-bg-primary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+/* 可交互 KPI（人员总工时）渲染为按钮：hover 反馈提示可点击。 */
+button.kpiCard {
+  cursor: pointer;
+}
+
+button.kpiCard:hover {
+  border-color: var(--op-accent);
 }
 
 .kpiCard h3 {
@@ -149,66 +109,30 @@
   line-height: 1.2;
 }
 
-.kpiDefinition {
+/* KPI 卡片上的全年目标行（按时间范围分配后的目标值）与完成率。 */
+.kpiTarget {
   margin: 0;
   color: var(--op-muted);
   font-size: 11px;
 }
 
-.definitionLabel {
-  color: var(--op-soft);
+/* 完成率颜色档位：达标绿 / 接近琥珀 / 明显落后红。 */
+.kpiAttainOk {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.kpiAttainWarn {
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.kpiAttainRisk {
+  color: var(--dsw-alias-state-error-primary);
 }
 
 .placeholder {
   color: var(--op-muted);
   font-weight: 500;
   letter-spacing: 0.08em;
-}
-
-.provenance {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  vertical-align: middle;
-}
-
-.source {
-  color: var(--op-muted);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.twoColumn {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.anomalyGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.anomalyCard {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border: 0.5px solid var(--op-line);
-  border-radius: 8px;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-primary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.anomalyCard:hover {
-  border-color: var(--op-accent);
 }
 
 .list {
@@ -236,25 +160,9 @@
   color: var(--op-accent);
 }
 
-.health {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 8px;
-  color: var(--op-soft);
-  background: var(--dsw-alias-bg-secondary);
-}
-
 .empty {
   margin: 0;
   padding: 12px 0;
-  color: var(--op-muted);
-}
-
-.note {
-  margin: 0;
   color: var(--op-muted);
 }
 
@@ -262,6 +170,30 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* 异常与决策的分类筛选 tab：样式与时间范围切换器一致，激活态高亮。 */
+.filterButton,
+.filterButtonActive {
+  padding: 4px 14px;
+  border: 0.5px solid var(--op-line);
+  border-radius: 999px;
+  color: var(--op-soft);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  border-color: var(--op-accent);
+  color: var(--op-accent);
+}
+
+.filterButtonActive {
+  border-color: var(--op-accent);
+  color: #fff;
+  background: var(--op-accent);
 }
 
 .decisionLayout {
@@ -382,6 +314,7 @@
   color: var(--op-muted);
 }
 
+/* 穿透维度卡片：标题 + 当前指标列表，点击切换下方穿透明细。 */
 .panelGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -393,6 +326,186 @@
   border: 0.5px solid var(--op-line);
   border-radius: 8px;
   background: var(--dsw-alias-bg-primary);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panelActive {
+  border-color: var(--op-accent);
+  box-shadow: inset 0 0 0 1px var(--op-accent);
+}
+
+/* 穿透节点区：左侧明细（字段 / 原件 / 事件），右侧节点时间线。 */
+.drillLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(200px, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .drillLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.drillMain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drillFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.drillField {
+  padding: 8px 10px;
+  border: 0.5px solid var(--op-line);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drillField span {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.drillField strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.drillLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.drillLink {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0.5px dashed var(--op-accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--op-accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drillLink small {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.eventList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eventList li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--op-line);
+  font-size: 12px;
+}
+
+.eventTime {
+  color: var(--dsw-alias-label-secondary);
+  min-width: 96px;
+}
+
+.eventTitle {
+  font-weight: 600;
+}
+
+.eventDetail {
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 节点时间线：竖向圆点轨道，状态决定颜色。 */
+.nodeTrack {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+
+.nodeTrack li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nodeDot {
+  position: absolute;
+  left: -18px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary);
+}
+
+.nodeTrack::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--op-line);
+}
+
+.nodeDone .nodeDot {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.nodeActive .nodeDot {
+  background: var(--op-accent);
+}
+
+.nodeRisk .nodeDot {
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.nodeTrack strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nodeTrack small {
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.previewMeta {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.previewBody {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.previewBody p {
+  margin: 0 0 8px;
 }
 
 .panel h3 {
@@ -407,13 +520,6 @@
 
 .panel li {
   padding: 2px 0;
-}
-
-.panelSource {
-  display: block;
-  margin-top: 8px;
-  color: var(--op-muted);
-  font-size: 10px;
 }
 
 .table {
@@ -433,6 +539,8 @@
   color: var(--op-soft);
   font-weight: 600;
 }
+
+/* 工时区已并入 KPI 卡：此处仅保留弹窗内的表格样式。 */
 
 .chain {
   display: flex;
@@ -466,10 +574,6 @@
 }
 
 @media (max-width: 900px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-
   .decisionLayout {
     grid-template-columns: 1fr;
   }
