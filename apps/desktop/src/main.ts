@@ -34,7 +34,7 @@ import { installDesktopFileDrag } from './file-drag.ts'
 import { installDesktopDirectoryPicker } from './directory-picker.ts'
 import { installMicrophonePermissions } from './microphone-permissions.ts'
 import { DesktopBackendController } from './backend-controller.ts'
-import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
+import { DESKTOP_IPC, SCHEME, allowWebLoginSender, assertDesktopSender, isAllowedApplicationUrl, type DesktopUpdateState } from './ipc.ts'
 import { readDeviceInfo } from './device-info.ts'
 import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import type { DesktopMessages } from './locale.ts'
@@ -261,7 +261,21 @@ function platformLoginUrl(authorizeUrl: string): string {
   return url.href
 }
 
+/**
+ * Web-login mode (`DSH_DESKTOP_WEB_LOGIN=1`): the main window opens the Host's
+ * web login page instead of the dsh-app shell, so the deployment's web identity
+ * flow (Yuanshu) applies unchanged. The shell sets `webLoginEntryOrigin` once
+ * the Host is ready; navigation to that origin stays in-window.
+ */
+let webLoginEntryOrigin: string | undefined
+
 function createWindow(preload: string, show = false, primary = false): BrowserWindow {
+  // Web-login mode: the primary window's pages (Host origin only — the main-frame
+  // navigation guard admits nothing else) run the desktop preload. The flag goes
+  // through argv because the Host origin is not known this early; the preload's
+  // http documents are additionally verified against the origin on every IPC call
+  // (`allowWebLoginSender`).
+  const webLoginMode = process.env.DSH_DESKTOP_WEB_LOGIN === '1'
   const window = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -293,6 +307,12 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
       webSecurity: true,
       webviewTag: primary,
       devTools: true,
+      // Web-login mode: the preload reads this flag from argv to recognize the
+      // window's http documents as the desktop workspace page. The flag is static
+      // because the Host origin is not known at window-creation time; those
+      // documents are additionally verified against the registered origin on
+      // every IPC call (`allowWebLoginSender`).
+      ...(primary && webLoginMode ? { additionalArguments: ['--dsh-web-login'] } : {}),
     },
   })
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -370,7 +390,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     const destination = new URL(url)
     const current = new URL(window.webContents.getURL())
     if (destination.protocol !== `${SCHEME}:`
-      && !(destination.protocol === 'http:' && destination.origin === current.origin)) {
+      && !(destination.protocol === 'http:' && destination.origin === current.origin)
+      && destination.origin !== webLoginEntryOrigin) {
       event.preventDefault()
       if (['http:', 'https:'].includes(destination.protocol)) void shell.openExternal(url)
     }
@@ -487,6 +508,11 @@ async function main(): Promise<void> {
   })
   const appPreload = fileURLToPath(new URL('./preload-app.cjs', import.meta.url))
   const applicationUrl = `${SCHEME}://app/`
+  // Web-login mode: the workspace entry is the Host's web login page (same
+  // page as browser deployments); the preload stays origin-gated, so the
+  // client boots through its plain web path with session-cookie auth.
+  const webLogin = process.env.DSH_DESKTOP_WEB_LOGIN === '1'
+  const entryUrl = (): string => webLogin && hostUrl !== undefined ? new URL('login', hostUrl).href : applicationUrl
   let hostUrl: string | undefined
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl)
@@ -548,6 +574,12 @@ async function main(): Promise<void> {
         const cookie = ready.authenticationCookie
         hostCookie = cookie
         hostUrl = ready.url
+        if (webLogin) {
+          webLoginEntryOrigin = new URL(hostUrl).origin
+          // The web-login document runs the full desktop preload; its IPC joins
+          // the dsh-app origin as a trusted Desktop document sender.
+          allowWebLoginSender(webLoginEntryOrigin)
+        }
         void removeLegacyHostCookies(session.defaultSession.cookies, ready.url)
           .catch((error: unknown) => { console.error('desktop: legacy Host cookie cleanup failed', error) })
         if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
@@ -659,7 +691,7 @@ async function main(): Promise<void> {
           if (quitting) return
           // A replacement Host can have a new port, cookie, or boot injections even at the same URL.
           navigation = undefined
-          await navigateMain(applicationUrl)
+          await navigateMain(entryUrl())
           if (backend.host !== undefined) updateJournal?.action('workspace-ready')
         })
         workspaceRecovery = recovery
@@ -685,7 +717,9 @@ async function main(): Promise<void> {
 
   const reconcileBackend = (): Promise<void> => {
     startup ??= (async () => {
-      await navigateMain(applicationUrl)
+      // Web-login mode loads only after the Host URL is known; the shell would
+      // otherwise boot the dsh-app document briefly before navigating away.
+      if (!webLogin) await navigateMain(applicationUrl)
       await backend.start(async () => {
         await Promise.all([manager.applyRelease(), prepareHostEnvironment()])
       })
@@ -850,6 +884,8 @@ async function main(): Promise<void> {
   })
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*', 'wss://127.0.0.1/*'] }, (details, callback) => {
+    // Web-login pages carry their own session cookie from the jar; no rewrite.
+    if (webLogin) { callback({}); return }
     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
       callback({})
       return
@@ -862,11 +898,17 @@ async function main(): Promise<void> {
     callback({ requestHeaders: { ...headers, origin: target.origin, cookie: hostCookie, 'sec-fetch-site': 'same-origin' } })
   })
 
+  // A web-login document is a trusted Desktop sender too: the frame URL check
+  // accepts the registered Host origin alongside the dsh-app shell origin.
+  const isPrimaryTrustedFrame = (event: IpcMainInvokeEvent): boolean => {
+    if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) return false
+    const frameOrigin = new URL(event.senderFrame.url).origin
+    return frameOrigin === new URL(applicationUrl).origin
+      || (webLogin && webLoginEntryOrigin !== undefined && frameOrigin === webLoginEntryOrigin)
+  }
   const assertMainApplication = (event: IpcMainInvokeEvent): BrowserWindow => {
-    const owner = mainWindow
-    if (owner === undefined || event.sender !== owner.webContents || event.senderFrame !== owner.webContents.mainFrame
-      || !event.senderFrame.url.startsWith('dsh-app://app/')) throw new Error('Rejected Platform command')
-    return owner
+    if (!isPrimaryTrustedFrame(event)) throw new Error('Rejected Platform command')
+    return mainWindow!
   }
   installFileActions(assertMainApplication, () => hostUrl)
   ipcMain.on(PLATFORM_IPC.bootstrap, (event) => {
@@ -885,15 +927,12 @@ async function main(): Promise<void> {
   ipcMain.handle(PLATFORM_IPC.close, (event) => { assertMainApplication(event); platformView.close() })
   // Only the main window may synchronize its palette with the native material.
   ipcMain.on(DESKTOP_IPC.nativeThemeSet, (event, source: unknown) => {
-    if (mainWindow === undefined || event.sender !== mainWindow.webContents
-      || event.senderFrame !== mainWindow.webContents.mainFrame
-      || !event.senderFrame.url.startsWith(`${SCHEME}://app/`)) return
+    if (!isPrimaryTrustedFrame(event)) return
     if (source !== 'light' && source !== 'dark' && source !== 'system') return
     nativeTheme.themeSource = source
   })
   ipcMain.handle(DESKTOP_IPC.localeBootstrap, async (event) => {
-    if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame
-      || new URL(event.senderFrame.url).origin !== new URL(applicationUrl).origin) {
+    if (!isPrimaryTrustedFrame(event)) {
       throw new Error('desktop welcome: rejected locale request from an unowned frame')
     }
     if (welcomeBackend === undefined) throw new Error('desktop welcome: backend unavailable')
@@ -957,7 +996,7 @@ async function main(): Promise<void> {
     const window = mainWindow
     if (window === undefined || window.isDestroyed() || event.sender !== window.webContents
       || event.senderFrame !== window.webContents.mainFrame
-      || !event.senderFrame.url.startsWith(`${SCHEME}://app/`) || typeof active !== 'boolean') return
+      || !isAllowedApplicationUrl(event.senderFrame.url) || typeof active !== 'boolean') return
     window.setMinimumSize(active ? 960 : 520, 600)
     if (active) {
       const { width, height } = window.getBounds()
@@ -1310,7 +1349,7 @@ async function main(): Promise<void> {
     ipcMain.on(DESKTOP_IPC.windowsAppearance, (event, _language: unknown, color: unknown, symbolColor: unknown) => {
       if (mainWindow === undefined || event.sender !== mainWindow.webContents
         || event.senderFrame !== mainWindow.webContents.mainFrame) return
-      if (!event.senderFrame.url.startsWith(`${SCHEME}://app/`)) return
+      if (!isAllowedApplicationUrl(event.senderFrame.url)) return
       // Document lang starts as English before Host locale bootstrap; only localeChanged owns shell language.
       // Empty colors precede client stylesheet installation; only CSS color values cross IPC.
       const validColor = (value: unknown): value is string => typeof value === 'string'
@@ -1379,7 +1418,7 @@ async function main(): Promise<void> {
   const enterWorkspace = async ({ activate = true }: { activate?: boolean } = {}): Promise<void> => {
     if (quitting) return
     const window = mainWindow ?? createMainWindow()
-    await navigateMain(applicationUrl)
+    await navigateMain(entryUrl())
     if (isQuitting() || recovery.active || window.isDestroyed()) return
     if (process.platform === 'win32') window.setBackgroundColor(chromeFallbackFill())
     if (activate) window.show()
@@ -1472,7 +1511,7 @@ async function main(): Promise<void> {
     writeDesktopLocaleCache(app.getPath('userData'), locale.id)
     windowsLanguage = locale.id
     refreshApplicationMenu()
-    if (!enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey })) {
+    if (!webLogin && !enteredWorkspace && needsWelcome({ loggedIn: state.loggedIn, hasApiKey: state.hasApiKey })) {
       // A later login must retain its own activation policy instead of replaying startup focus.
       raiseAfterUpdate = false
       await showWelcome()
@@ -1486,7 +1525,7 @@ async function main(): Promise<void> {
     const window = welcomeWindow ?? mainWindow
     if (window === undefined || window.isDestroyed()) {
       try { createMainWindow() } catch (error) { reportFatal(error, 'main'); return }
-      void (backend.state.phase === 'ready' ? openInitialWindow() : navigateMain(applicationUrl)).catch((error: unknown) => { reportFatal(error, 'main') })
+      void (backend.state.phase === 'ready' ? openInitialWindow() : navigateMain(entryUrl())).catch((error: unknown) => { reportFatal(error, 'main') })
       return
     }
     // Startup and sign-out select the visible window before activation may reveal the workspace.

@@ -251,7 +251,7 @@ export class DesktopUpdateCoordinator {
     return state
   }
 
-  private failure(error: unknown, failedOperation: 'check' | 'download' | 'install'): DesktopUpdateState {
+  private failure(error: unknown, failedOperation: 'check' | 'download' | 'install' | 'unavailable'): DesktopUpdateState {
     return { phase: 'error', ...this.target(), failedOperation,
       message: error instanceof Error ? error.message : String(error),
       ...(failedOperation === 'download' ? downloadFailureDetails(error) : {}),
@@ -269,7 +269,9 @@ export class DesktopUpdateCoordinator {
     const generation = this.generation
     try {
       this.assertLive()
-      if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
+      // No packaged update source (dev builds, or app-update.yml stripped): surface a
+      // dedicated "unavailable" outcome instead of a generic check failure.
+      if (!this.enabled()) throw new DesktopUpdateUnavailableError()
       const result = await this.updater.checkForUpdates()
       if (generation !== this.generation || this.disposed) return this.current
       if (result === null) throw new Error('desktop update: no check result was returned')
@@ -281,7 +283,13 @@ export class DesktopUpdateCoordinator {
       return this.setState(this.candidate === undefined ? { phase: 'idle' } : { phase: 'available', version })
     } catch (error) {
       if (generation !== this.generation || this.disposed) return this.current
-      return this.failure(error, 'check')
+      return this.failure(error, error instanceof DesktopUpdateUnavailableError ? 'unavailable' : 'check')
     }
   }
+}
+
+/** The process has no packaged update source (dev build or stripped app-update.yml). */
+class DesktopUpdateUnavailableError extends Error {
+  override name = 'DesktopUpdateUnavailableError'
+  constructor() { super('desktop update: this application has no packaged update source') }
 }

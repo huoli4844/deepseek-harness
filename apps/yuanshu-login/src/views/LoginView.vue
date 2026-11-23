@@ -125,7 +125,27 @@ function toggleTheme() {
   justify-content: space-between;
   width: min(calc(100% - 96px), 1240px);
   margin: 0 auto;
-  padding-top: 24px;
+  /* Desktop window: drop the bar below the traffic lights and let the bar
+     drag the window; its controls stay clickable. */
+  padding-top: calc(24px + var(--dsh-frame-top-clearance, 0px));
+  -webkit-app-region: drag;
+}
+
+.login-topbar__actions :deep(.t-button) {
+  -webkit-app-region: no-drag;
+}
+
+/* Full-width drag strip across the very top so the corners outside the
+   centered topbar drag the window too. */
+.login-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--dsh-frame-top-clearance, 0px);
+  z-index: 4;
+  -webkit-app-region: drag;
 }
 
 .login-topbar__brand {

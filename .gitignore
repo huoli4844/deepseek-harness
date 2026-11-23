@@ -57,3 +57,6 @@ native/system/test/bin/
 /packages/experimental/cua-macos/cua-helper.json
 
 /.dsh-home/
+
+# local dev runtime logs / pids (start-web.sh / start-desktop.sh)
+.local-tools/

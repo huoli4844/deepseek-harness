@@ -37,6 +37,7 @@ export type TaskId =
 export type ViewId =
   'assistant' | 'dashboard' | 'project-operations' | 'position-operations' | 'priorities' | 'agent'
   | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
+  | 'operator'
 /** A saved demo draft snapshot owned by one task and position. */
 export interface DraftVersion {
   readonly number: number

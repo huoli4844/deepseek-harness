@@ -4,7 +4,7 @@ import { bindingKey, effectiveShortcuts, presentBinding, parseShortcutDefinition
 import type { NormalizedBinding, ShortcutConfigSnapshot, ShortcutDefinition, ShortcutPlatform, ShortcutRevision } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import type { DesktopBrowserLeaseId } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
 import { desktopKeybindings } from './keybindings.ts'
-import { DESKTOP_IPC, assertDesktopSender } from './ipc.ts'
+import { DESKTOP_IPC, assertDesktopSender, isAllowedApplicationUrl } from './ipc.ts'
 
 /**
  * Install application-owned configuration handlers and attach each product window's input lifecycle.
@@ -78,7 +78,8 @@ export function installDesktopShortcuts(
       || previousClose !== menuAccelerator(closeBinding)
       || previousSettings !== menuAccelerator(settingsBinding)) updateMenu()
     const window = getWindow()
-    if (window !== undefined && !window.isDestroyed() && window.webContents.mainFrame.url.startsWith('dsh-app://app/')) {
+    const frameUrl = window !== undefined && !window.isDestroyed() ? window.webContents.mainFrame.url : undefined
+    if (window !== undefined && frameUrl !== undefined && (frameUrl.startsWith('dsh-app://app/') || isAllowedApplicationUrl(frameUrl))) {
       window.webContents.send(DESKTOP_IPC.shortcutsChanged, snapshot)
     }
   }

@@ -32,6 +32,7 @@ function updateCopy(state: DesktopUpdatePresentation, t: SettingsTranslate): { l
       configuration: t('desktop.update.configurationFailed'),
       check: t('desktop.update.checkFailed'),
       'check-network': t('desktop.update.checkNetworkFailed'),
+      unavailable: t('desktop.update.unavailable'),
       download: t('desktop.update.downloadFailed'),
       'download-space': t('desktop.update.downloadSpaceFailed'),
       'download-permission': t('desktop.update.downloadPermissionFailed'),

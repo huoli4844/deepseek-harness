@@ -13,6 +13,22 @@ import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
 import type { FileDragHandle } from '@deepseek-ai/dsh-util-file-drag'
 
+/**
+ * Web-login mode (`DSH_DESKTOP_WEB_LOGIN=1`): the shell passes a static flag
+ * through `webPreferences.additionalArguments`. The primary window's http
+ * documents are then the trusted workspace pages of the desktop shell, so they
+ * receive the full desktop treatment (platform mark, drag regions, vibrancy,
+ * product bridges) exactly like the dsh-app document. Trust rests on two
+ * checks: the main-frame navigation guard admits only the Host origin, and
+ * every IPC call re-verifies the sender frame against the registered origin
+ * (`allowWebLoginSender`). Guests (webviews/iframes) never run this preload,
+ * so external content cannot reach these bridges.
+ */
+const isDshAppDocument = location.protocol === `${SCHEME}:` && location.hostname === 'app'
+const isWebLoginDocument = process.argv.includes('--dsh-web-login')
+  && (location.protocol === 'https:' || location.protocol === 'http:')
+const isDesktopDocument = isDshAppDocument || isWebLoginDocument
+
 function createProductApi(): DshDesktopProductApi {
   return {
     protocolVersion: 1,
@@ -86,7 +102,7 @@ function createProductApi(): DshDesktopProductApi {
   }
 }
 
-if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
+if (isDesktopDocument) {
   contextBridge.exposeInMainWorld('dshOnboarding', {
     hasApiKey: () => ipcRenderer.invoke(DESKTOP_IPC.onboardingApiKey) as Promise<boolean>,
     setActive: (active: boolean) => { ipcRenderer.send(DESKTOP_IPC.onboardingActive, active) },
@@ -110,24 +126,43 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
   contextBridge.exposeInMainWorld('__DSH_HOST_PATHS__', {
     pathFor: (file: File) => webUtils.getPathForFile(file),
   })
-  contextBridge.exposeInMainWorld('dshDesktopBoot', {
-    ready: () => ipcRenderer.invoke(DESKTOP_IPC.boot) as Promise<unknown>,
-    failed: (message: string) => ipcRenderer.invoke(DESKTOP_IPC.bootFailed, message) as Promise<void>,
-  })
   contextBridge.exposeInMainWorld('dshPlatform', {
     open: (page: 'usage' | 'top-up', bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke(PLATFORM_IPC.open, page, bounds),
     setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke(PLATFORM_IPC.bounds, bounds),
     close: () => ipcRenderer.invoke(PLATFORM_IPC.close),
   })
 }
+// The desktop boot handoff belongs to the dsh-app shell only. A web-login page
+// is already bootstrapped by the Host's served index (its `__DSH_BOOT_READY__`
+// gate resolves inline), so re-applying the boot injection table there would
+// execute bundles the served bootstrap also loads — duplicate registrations
+// abort the batch scripts. The page boots through its web graph instead; the
+// product bridge below still gives it every native capability.
+if (isDshAppDocument) {
+  contextBridge.exposeInMainWorld('dshDesktopBoot', {
+    ready: () => ipcRenderer.invoke(DESKTOP_IPC.boot) as Promise<unknown>,
+    failed: (message: string) => ipcRenderer.invoke(DESKTOP_IPC.bootFailed, message) as Promise<void>,
+  })
+}
 
-markDocumentPlatform()
-syncWindowFullscreen()
-syncNativeTheme()
-// Main-process IPC also verifies the owning window and top frame.
-contextBridge.exposeInMainWorld('dshDesktop', location.protocol === `${SCHEME}:` && location.hostname === 'app' && process.isMainFrame ? createProductApi() : { protocolVersion: 1 })
+// Platform marking and native mirrors apply to every desktop document: the
+// dsh-app shell and, in web-login mode, the Host-origin workspace page. A page
+// without the mark presents as a plain browser (`detectEnvironment` reads
+// `data-platform` to decide whether desktop bridges are required).
+if (isDesktopDocument) {
+  markDocumentPlatform()
+  syncWindowFullscreen()
+  syncNativeTheme()
+}
+// Every desktop document receives the product bridge: native window chrome
+// (drag regions, traffic-light clearance, vibrancy), shortcuts, file actions,
+// and update presentation — while the module boot stays on the document's own
+// bootstrap path.
+if (isDesktopDocument && process.isMainFrame) {
+  contextBridge.exposeInMainWorld('dshDesktop', createProductApi())
+}
 
-if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
+if (isDesktopDocument) {
   contextBridge.exposeInMainWorld('__DSH_LOCALE__', {
     read: () => ipcRenderer.invoke(DESKTOP_IPC.localeBootstrap),
     onChange: (locale: string) => { ipcRenderer.send(DESKTOP_IPC.localeChanged, locale) },

@@ -6,6 +6,7 @@ export class YuanShuGrantMismatch extends Error {}
 /** Employee identity returned by YuanShu's authenticated APIs. */
 export interface Employee {
   readonly tenantId: string
+  readonly tenantCode: string
   readonly userId: number
 }
 

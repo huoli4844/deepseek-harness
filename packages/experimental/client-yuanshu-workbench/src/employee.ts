@@ -5,7 +5,15 @@ import type { Employee } from './platform-home.ts'
 export class YuanShuSessionExpired extends Error {}
 
 /** YuanShu could not resolve the authenticated employee identity. */
-export class YuanShuIdentityUnavailable extends Error {}
+export class YuanShuIdentityUnavailable extends Error {
+  /** The HTTP status YuanShu's backend actually returned, when any. */
+  readonly upstream: number | undefined
+
+  constructor(upstream?: number) {
+    super()
+    this.upstream = upstream
+  }
+}
 
 function field(value: unknown, key: string): unknown {
   if (typeof value !== 'object' || value === null || !Object.hasOwn(value, key)) return undefined
@@ -14,10 +22,13 @@ function field(value: unknown, key: string): unknown {
 
 function employeeFromResponses(userBody: unknown, tenantBody: unknown): Employee | undefined {
   const userId = field(field(userBody, 'data'), 'id')
-  const tenantId = field(field(field(tenantBody, 'data'), 'current'), 'id')
+  const current = field(field(tenantBody, 'data'), 'current')
+  const tenantId = field(current, 'id')
+  const tenantCode = field(current, 'code')
   if (typeof userId !== 'number' || !Number.isSafeInteger(userId) || userId <= 0 ||
-      typeof tenantId !== 'number' || !Number.isSafeInteger(tenantId) || tenantId <= 0) return undefined
-  return { userId, tenantId: String(tenantId) }
+      typeof tenantId !== 'number' || !Number.isSafeInteger(tenantId) || tenantId <= 0 ||
+      typeof tenantCode !== 'string' || tenantCode === '') return undefined
+  return { userId, tenantId: String(tenantId), tenantCode }
 }
 
 /**
@@ -34,7 +45,7 @@ export async function loadEmployee(api: string, headers: Record<string, string>,
     fetch(`${api}/api/v1/user/tenants`, { headers, signal, redirect: 'error' }),
   ])
   if (user.status === 401 || tenants.status === 401) throw new YuanShuSessionExpired()
-  if (!user.ok || !tenants.ok) throw new YuanShuIdentityUnavailable()
+  if (!user.ok || !tenants.ok) throw new YuanShuIdentityUnavailable(!user.ok ? user.status : tenants.status)
   const bodies: [unknown, unknown] = await Promise.all([user.json(), tenants.json()])
   const employee = employeeFromResponses(...bodies)
   if (employee === undefined) throw new YuanShuIdentityUnavailable()

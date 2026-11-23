@@ -27,6 +27,7 @@ import type { McpOAuthCredentials, McpOAuthGrant } from './oauth-credentials.ts'
 import type { McpStatusCell } from './status.ts'
 import type { McpCloseResult } from './types.ts'
 import { McpGeneration } from './generation.ts'
+import { mcpFileLog } from './mcp-filelog.ts'
 import { McpTemplateBinding } from './credentials.ts'
 import { MissingTemplateValue } from './templates.ts'
 import { McpToolRegistrationError, syncTools } from './tools.ts'
@@ -154,6 +155,7 @@ export function startConnection(
   const binding = new McpTemplateBinding(ctx, config)
   const diagnostic = (error: unknown, operation: string): string => binding.diagnostic(error, operation)
   const lifetime = new AbortController()
+  mcpFileLog('start', config.serverName, `transport=${config.transport}`)
   const readiness = Promise.withResolvers<ConnectionOutcome>()
   const loader = config.toolLoading === 'on-demand'
     ? new McpToolLoader(ctx, config.serverName, config.catalogDescriptionMaxLength)
@@ -183,6 +185,7 @@ export function startConnection(
 
   function authorizationFailed(record: Generation, error: McpAuthorizationRequired): void {
     if (!isCurrent(record)) return
+    mcpFileLog('waiting-authorization', config.serverName, `${error.reason}: ${error.message}`)
     current = undefined
     stopTimers()
     clearTools()
@@ -251,6 +254,7 @@ export function startConnection(
         : 'connection failed and reconnect is disabled — no tools were registered; reload the plugin or restart the Host to connect'
       status.update({ state: 'failed', reason: 'reconnect-disabled', lastError: error })
       ctx.logger.error(`${label}: ${message}`)
+      mcpFileLog('reconnect-disabled', config.serverName, error)
       return
     }
     if (connectedAt !== undefined && Date.now() - connectedAt >= policy.maxDelayMs) failedAttempts = 0
@@ -259,11 +263,14 @@ export function startConnection(
       syncChain = syncChain.then(clearTools)
       status.update({ state: 'failed', reason: 'gave-up', lastError: error })
       ctx.logger.error(`${label}: giving up after ${policy.maxAttempts} consecutive failed reconnect attempts — tools unregistered; reload the plugin or restart the Host to reconnect`)
+      mcpFileLog('gave-up', config.serverName, `after ${policy.maxAttempts} attempts: ${error}`)
       return
     }
     const delayMs = Math.min(policy.maxDelayMs, policy.initialDelayMs * 2 ** (failedAttempts - 1))
     const action = connectedAt !== undefined ? 'connection lost; reconnecting' : 'connection failed; retrying'
     ctx.logger.warn(`${label}: ${action} in ${delayMs}ms (attempt ${failedAttempts}/${policy.maxAttempts})`)
+    mcpFileLog('reconnect-scheduled', config.serverName,
+      `attempt=${failedAttempts}/${policy.maxAttempts} delay=${delayMs}ms error="${error}"`)
     status.update({ state: 'reconnecting', attempt: failedAttempts, maxAttempts: policy.maxAttempts,
       nextRetryAtMs: Date.now() + delayMs, lastError: error })
     reconnectTimer = setTimeout(() => {
@@ -275,6 +282,7 @@ export function startConnection(
 
   function lost(record: Generation, error: string): void {
     if (!isCurrent(record)) return
+    mcpFileLog('connection-lost', config.serverName, error)
     current = undefined
     settling = close(record).then((confirmed) => {
       readiness.resolve({ error: new Error(error) })
@@ -297,6 +305,7 @@ export function startConnection(
         }
         const nextValue = next === undefined ? {} : { config: next.config, ...next.grant === undefined ? {} : { grantId: next.grant.id } }
         if (disposed || bindingValue !== undefined && deepEqualJson(nextValue, bindingValue)) continue
+        mcpFileLog('credential-change', config.serverName)
         stopTimers()
         const record = current
         const attempt = settling
@@ -335,25 +344,6 @@ export function startConnection(
 
   async function connectGeneration(): Promise<void> {
     if (isStopped()) return
-    const client = new Client({ name: 'dsh-mcp-client', version: '0.0.1' }, {
-      capabilities: {}, versionNegotiation: { mode: 'auto' },
-      listChanged: { tools: { autoRefresh: false, debounceMs: 0, onChanged: () => { void refreshTools() } } },
-    })
-    const record: Generation = { wire: new McpGeneration(client, config.closeTimeoutMs, error => diagnostic(error, 'cleanup')) }
-    current = record
-    status.opened()
-    status.update({ state: 'connecting', attempt: failedAttempts })
-    client.onclose = () => {
-      if (record.connectedAt !== undefined) lost(record, 'connection closed')
-    }
-    if (oauth !== undefined) client.onerror = (error) => {
-      const failure = oauthFailure(error)
-      if (failure === undefined) return
-      // A committed grant replacement fails this generation's later requests with `binding` before the
-      // pending credential check replaces the generation; that check owns recovery.
-      if (failure.reason === 'binding' && (credentialsDirty || checkingCredentials !== undefined)) return
-      authorizationFailed(record, failure)
-    }
     async function refreshTools(): Promise<void> {
       if (!isCurrent(record)) return
       ctx.logger.info(`${label}: tool list changed, re-syncing`)
@@ -367,19 +357,70 @@ export function startConnection(
         else if (isCurrent(record)) ctx.logger.error(`${label}: tool re-sync failed: ${diagnostic(error, 'tool synchronization')}`)
       }
     }
+    const client = new Client({ name: 'dsh-mcp-client', version: '0.0.1' }, {
+      capabilities: {},
+      // The Yuanshu MCP backend now speaks the stateless 2026-07-28 protocol
+      // only (see doc/EXTERNAL_MCP_INTEGRATION(1).md): no initialize/
+      // notifications/initialized handshake, no Mcp-Session-Id, no GET SSE.
+      // Every request self-describes via the Mcp-Protocol-Version/Mcp-Method
+      // headers and a params._meta protocol envelope — the SDK attaches all
+      // of those automatically once a modern era is negotiated. Pinning skips
+      // the probe-and-fallback dance entirely and fails loudly if the server
+      // stops advertising 2026-07-28.
+      //
+      // stdio keeps the SDK-default legacy handshake (pinning would probe
+      // stdio children with server/discover, which conventional MCP servers
+      // neither answer nor survive) plus the listChanged re-sync hook: those
+      // sessions are long-lived and servers push change notifications over
+      // them unsolicited.
+      //
+      // No `listChanged` on streamable-http even though the backend
+      // advertises tools.listChanged: with it the SDK auto-opens a
+      // subscriptions/listen stream after a modern connect, and the backend
+      // holds that POST's response headers indefinitely (measured: 12s+ with
+      // zero bytes) — that stall WAS the workbench's 2-5 minute "warm-up".
+      // Stateless streams can't push notifications anyway; tool lists are
+      // instead re-synced wholesale on every (re)connect.
+      ...config.transport === 'streamable-http'
+        ? { versionNegotiation: { mode: { pin: '2026-07-28' } } }
+        : { listChanged: { tools: { autoRefresh: false, debounceMs: 0, onChanged: () => { void refreshTools() } } } },
+    })
+    const record: Generation = { wire: new McpGeneration(client, config.closeTimeoutMs, error => diagnostic(error, 'cleanup')) }
+    current = record
+    status.opened()
+    status.update({ state: 'connecting', attempt: failedAttempts })
+    mcpFileLog('connecting', config.serverName,
+      `transport=${config.transport}${failedAttempts > 0 ? ` attempt=${failedAttempts}` : ''}`)
+    client.onclose = () => {
+      if (record.connectedAt !== undefined) lost(record, 'connection closed')
+    }
+    if (oauth !== undefined) client.onerror = (error) => {
+      const failure = oauthFailure(error)
+      if (failure === undefined) return
+      // A committed grant replacement fails this generation's later requests with `binding` before the
+      // pending credential check replaces the generation; that check owns recovery.
+      if (failure.reason === 'binding' && (credentialsDirty || checkingCredentials !== undefined)) return
+      authorizationFailed(record, failure)
+    }
+    const startedAt = Date.now()
     try {
-      const startedAt = Date.now()
       const remaining = (): number | undefined => config.startupTimeoutMs === undefined ? undefined
         : config.startupTimeoutMs - (Date.now() - startedAt)
       const next = await record.wire.run(signal => resolveBinding(signal), remaining())
       const resolved = next.config
       bindingValue = { config: resolved, ...next.grant === undefined ? {} : { grantId: next.grant.id } }
+      mcpFileLog('binding-resolved', config.serverName,
+        `transport=${resolved.transport}${'url' in resolved && typeof resolved.url === 'string' ? ` url=${resolved.url}` : ''}${next.grant === undefined ? '' : ` grant=${next.grant.id}`}`)
       const auth = oauth !== undefined && next.grant !== undefined
         ? oauth.transport(next.grant, record.wire.lifetime.signal, (url, init) => record.wire.run(() => globalThis.fetch(url, init)))
         : undefined
       await record.wire.connect(resolved, remaining(), auth?.fetch, auth === undefined ? undefined : {
         ...auth.authProvider,
-        token: async () => binding.remember(await auth.authProvider.token()),
+        token: async () => {
+          const token = await auth.authProvider.token()
+          mcpFileLog('token-refreshed', config.serverName)
+          return binding.remember(token)
+        },
       })
       if (!isCurrent(record)) return
       const text = client.getInstructions()?.trimEnd() ?? ''
@@ -394,6 +435,8 @@ export function startConnection(
       serverInstructions = instructions
       record.connectedAt = Date.now()
       status.update({ state: 'connected', toolCount: loader?.size ?? disposers.size, connectedAt: record.connectedAt })
+      mcpFileLog('connected', config.serverName,
+        `tools=${loader?.size ?? disposers.size} took=${record.connectedAt - startedAt}ms`)
       readiness.resolve({})
       if (failedAttempts > 0) ctx.logger.info(`${label}: reconnected and re-synced tools (attempt ${failedAttempts}/${policy.maxAttempts})`)
     } catch (error) {
@@ -405,6 +448,7 @@ export function startConnection(
       if (error instanceof MissingTemplateValue) {
         bindingValue = {}
         status.update({ state: 'waiting-credentials', lastError: diagnostic(error, 'credential resolution') })
+        mcpFileLog('waiting-credentials', config.serverName, diagnostic(error, 'credential resolution'))
         return
       }
       const failure = oauth === undefined ? undefined : oauthFailure(error)
@@ -412,9 +456,11 @@ export function startConnection(
         bindingValue = {}
         clearTools()
         status.update({ state: 'waiting-authorization', reason: failure.reason, lastError: failure.message })
+        mcpFileLog('waiting-authorization', config.serverName, `${failure.reason}: ${failure.message}`)
         return
       }
       ctx.logger.warn(`${label}: connection attempt failed: ${diagnostic(error, 'startup')}`)
+      mcpFileLog('connect-failed', config.serverName, diagnostic(error, 'startup'))
       scheduleReconnect(diagnostic(error, 'startup'))
     }
   }
@@ -499,6 +545,8 @@ export function startConnection(
       const result = closureFailure ?? status.closure()
       status.recordClosure(result)
       status.update({ state: 'closed', result })
+      mcpFileLog('closed', config.serverName,
+        `closeConfirmed=${result.closeConfirmed}${result.cleanupError === undefined ? '' : ` cleanupError="${result.cleanupError}"`}`)
       if (!result.closeConfirmed || result.cleanupError !== undefined) ctx.logger.error(`${label}: cleanup incomplete`)
     },
   }

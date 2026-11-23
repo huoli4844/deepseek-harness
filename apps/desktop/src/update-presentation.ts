@@ -11,6 +11,7 @@ const NETWORK_FAILURE = /\b(?:ERR_CONNECTION_CLOSED|ERR_CONNECTION_RESET|ERR_INT
  */
 function desktopUpdateFailureKind(state: DesktopUpdateState): DesktopUpdateFailureKind {
   if (state.failedOperation === 'configuration') return 'configuration'
+  if (state.failedOperation === 'unavailable') return 'unavailable'
   if (state.failedOperation === 'install' && state.preparationFailure !== undefined) return state.preparationFailure
   if (state.failedOperation === 'download' && state.downloadFailure !== undefined) return `download-${state.downloadFailure}`
   const operation = state.failedOperation ?? 'install'
@@ -29,6 +30,7 @@ export function desktopUpdateErrorSummary(state: DesktopUpdateState, messages: D
     configuration: messages.updateConfigurationFailed,
     check: messages.updateCheckFailed,
     'check-network': messages.updateCheckNetworkFailed,
+    unavailable: messages.updateUnavailable,
     download: messages.updateDownloadFailed,
     'download-space': messages.updateDownloadSpaceFailed,
     'download-permission': messages.updateDownloadPermissionFailed,

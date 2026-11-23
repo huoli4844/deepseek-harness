@@ -32,13 +32,31 @@ function buildChildEnv(extra: Record<string, string>): Record<string, string> {
  */
 export function createTransport(config: Config, fetch?: FetchLike, authProvider?: AuthProvider): Transport {
   switch (config.transport) {
-    case 'stdio':
-      return new StdioClientTransport({
+    case 'stdio': {
+      const transport = new StdioClientTransport({
         command: config.command,
         args: config.args,
         env: buildChildEnv(config.env),
         cwd: config.cwd,
       })
+      // Some SDK spawn-failure paths (e.g. ENOTDIR on the resolved command
+      // path) resolve close() without ever firing onclose, which the
+      // supervisor treats as unconfirmed cleanup and stops reconnecting on.
+      // Ensure the close event fires exactly once after a stdio close.
+      const close = transport.close.bind(transport)
+      transport.close = async () => {
+        const onclose = transport.onclose
+        let fired = false
+        transport.onclose = () => { fired = true; onclose?.() }
+        try { await close() }
+        finally {
+          if (onclose === undefined) delete transport.onclose
+          else transport.onclose = onclose
+          if (onclose !== undefined && !fired) onclose()
+        }
+      }
+      return transport
+    }
     case 'streamable-http':
       return new StreamableHTTPClientTransport(
         new URL(config.url),

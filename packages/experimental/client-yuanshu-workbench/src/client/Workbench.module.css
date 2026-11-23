@@ -103,6 +103,13 @@
   border-right: 0.5px solid var(--work-line);
   overflow-y: auto;
   background: var(--dsw-alias-bg-layer-1);
+  /* Desktop frame: the sidebar's non-interactive area drags the window. */
+  -webkit-app-region: drag;
+}
+.navigation button,
+.navigation select,
+.navigation input {
+  -webkit-app-region: no-drag;
 }
 .brand {
   flex: none;
@@ -210,6 +217,14 @@
   gap: 12px;
   color: var(--work-muted);
   font-size: 11px;
+  /* Desktop frame: the titlebar row drags the window except its controls. */
+  -webkit-app-region: drag;
+}
+.topbar button,
+.topbar select,
+.topbar input,
+.topbar a {
+  -webkit-app-region: no-drag;
 }
 .topbar > div {
   display: flex;
@@ -2813,4 +2828,11 @@
   .compare {
     grid-template-columns: 1fr;
   }
+}
+
+.statusMeta {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
 }

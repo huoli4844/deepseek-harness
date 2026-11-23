@@ -223,7 +223,9 @@ export class McpOAuthCredentials {
               grant = await this.refresh(bound, grant.tokens.access_token, signal)
             }
             return grant.tokens.access_token
-          } catch (error) { throw safeOAuthError(error) }
+          } catch (error) {
+            throw safeOAuthError(error)
+          }
         },
         onUnauthorized: async ({ response }) => {
           try {
@@ -243,7 +245,9 @@ export class McpOAuthCredentials {
           const response = await send(url, { ...init, signal: requestSignal, redirect: 'error' })
           requests.set(response, { token: authorization.slice(7), signal: requestSignal })
           return response
-        } catch (error) { throw safeOAuthError(error) }
+        } catch (error) {
+          throw safeOAuthError(error)
+        }
       },
     }
   }

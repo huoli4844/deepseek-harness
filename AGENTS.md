@@ -1,5 +1,7 @@
 # AGENTS.md
 
+**工作区强制编码规则（优先于下列通用约定）：写/改任何代码前先读 [`../CODING_RULES.md`](../CODING_RULES.md)** —— 分层边界、文件行数上限与冻结清单、中文注释规则、数据占位符规则、质量门禁命令、环境踩坑。下文与 `docs/architecture.md` 讲的是框架机制，不替代编码约束。换模型同样适用。
+
 DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
 ## Pre-stable APIs and released Session data

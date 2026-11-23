@@ -56,7 +56,7 @@ export interface DesktopUpdateState {
   /** Main-owned diagnostics without subprocess output or credentials; hidden until expanded. */
   readonly technicalDetails?: string
   readonly percent?: number
-  readonly failedOperation?: 'check' | 'download' | 'install' | 'configuration'
+  readonly failedOperation?: 'check' | 'download' | 'install' | 'configuration' | 'unavailable'
   /** Main-owned preparation cause; UI wording is selected by the active locale. */
   readonly preparationFailure?: DesktopUpdatePreparationFailureKind
   /** Current filesystem failure, independent of previous cache cleanup attempts. */
@@ -68,6 +68,7 @@ export type DesktopUpdateFailureKind =
   | 'configuration'
   | 'check'
   | 'check-network'
+  | 'unavailable'
   | 'download'
   | 'download-network'
   | 'download-space'
@@ -114,6 +115,37 @@ export interface DshDesktopProductApi {
 export const SCHEME = 'dsh-app'
 
 /**
+ * Web-login mode (`DSH_DESKTOP_WEB_LOGIN=1`): the Host origin serving the
+ * workspace document. Its pages run the same preload and product bridges as
+ * the dsh-app document, so their IPC is accepted alongside `dsh-app://app`.
+ * The main-frame navigation guard keeps every other origin out of the window;
+ * guest frames (webviews/iframes) run no preload and cannot call these APIs.
+ */
+let webLoginSenderOrigin: string | undefined
+
+/**
+ * Register (or clear) the web-login Host origin whose pages may call Desktop IPC.
+ * @param origin - the Host origin (e.g. `http://127.0.0.1:3000`), or undefined to clear.
+ */
+export function allowWebLoginSender(origin: string | undefined): void {
+  webLoginSenderOrigin = origin
+}
+
+/**
+ * Whether a frame URL names a trusted Desktop application document: the
+ * dsh-app shell, or in web-login mode the registered Host origin.
+ * @param raw - the frame URL.
+ * @returns true when the frame may drive Desktop IPC.
+ */
+export function isAllowedApplicationUrl(raw: string): boolean {
+  let url: URL
+  try { url = new URL(raw) } catch { return false }
+  if (webLoginSenderOrigin !== undefined && (url.protocol === 'https:' || url.protocol === 'http:')
+    && url.origin === webLoginSenderOrigin) return true
+  return url.protocol === `${SCHEME}:`
+}
+
+/**
  * Reject IPC outside the allowed Desktop document origins.
  * @param event - IPC caller whose frame URL supplies the origin.
  * @param hostnames - Desktop document hosts allowed for this operation.
@@ -121,8 +153,11 @@ export const SCHEME = 'dsh-app'
 export function assertDesktopSender(event: IpcMainInvokeEvent, hostnames: readonly string[]): void {
   const senderFrame = event.senderFrame
   if (senderFrame === null) throw new Error('dsh desktop: rejected IPC without a sender frame')
-  const url = new URL(senderFrame.url)
-  if (url.protocol !== `${SCHEME}:` || !hostnames.includes(url.hostname)) {
+  let url: URL
+  try { url = new URL(senderFrame.url) } catch { throw new Error('dsh desktop: rejected IPC with an unreadable frame URL') }
+  const webLoginDocument = webLoginSenderOrigin !== undefined
+    && (url.protocol === 'https:' || url.protocol === 'http:') && url.origin === webLoginSenderOrigin
+  if (!webLoginDocument && (url.protocol !== `${SCHEME}:` || !hostnames.includes(url.hostname))) {
     throw new Error('dsh desktop: rejected IPC from an unowned renderer')
   }
 }

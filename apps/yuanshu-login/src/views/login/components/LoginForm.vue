@@ -12,7 +12,7 @@
       <select id="active-tenant" v-model="activeTenant" class="login-tenant-select" :disabled="submitting">
         <option v-for="tenant in authorizedTenants" :key="tenant.id" :value="tenant.id">{{ tenant.name }}</option>
       </select>
-      <t-button type="button" theme="primary" :loading="submitting" @click="enterTenant">进入工作台</t-button>
+      <t-button type="button" theme="primary" class="login-tenant-action" :loading="submitting" @click="enterTenant">进入工作台</t-button>
     </div>
     <template v-else>
     <div class="login-field">
@@ -128,6 +128,7 @@ const FORM_RULES: Record<string, FormRule[]> = {
 
 const form = ref<FormInstanceFunctions>()
 const formData = ref({ ...INITIAL_DATA })
+const REMEMBER_KEY = 'yuanshu-login-account'
 const showPsw = ref(false)
 const showTotpDialog = ref(false)
 const totpLoading = ref(false)
@@ -157,7 +158,15 @@ async function loadTenants() {
   }
 }
 
-onMounted(loadTenants)
+onMounted(() => {
+  void loadTenants()
+  // Restore the remembered account so the returning user only types the password.
+  const remembered = localStorage.getItem(REMEMBER_KEY)
+  if (remembered) {
+    formData.value.account = remembered
+    formData.value.remember = true
+  }
+})
 
 const onSubmit = async (ctx: SubmitContext) => {
   if (ctx.validateResult !== true) return
@@ -222,6 +231,10 @@ const handoff = async (tenantId: number) => {
     localStorage.setItem('workbench-client-token', token)
     localStorage.setItem('yuanshu-active-tenant', String(tenantId))
     localStorage.setItem('yuanshu-token', token)
+    // Honor the "记住账号" choice: persist the username on success, or drop a
+    // previously remembered one when the box is unchecked. Never store the password.
+    if (formData.value.remember && formData.value.account) localStorage.setItem(REMEMBER_KEY, formData.value.account)
+    else localStorage.removeItem(REMEMBER_KEY)
     // Cache the account profile so the Harness sidebar can render the signed-in
     // identity immediately; the server remains the source of truth.
     localStorage.setItem('yuanshu-user', JSON.stringify({
@@ -274,6 +287,7 @@ const handleTotpCancel = () => {
 
 <style lang="less" scoped>
 .login-tenant-select {
+  display: block;
   width: 100%;
   min-height: 40px;
   padding-inline: 12px;
@@ -281,6 +295,18 @@ const handleTotpCancel = () => {
   border-radius: var(--td-radius-default);
   background: var(--td-bg-color-specialcomponent);
   color: var(--td-text-color-primary);
+}
+
+/* 租户选择步骤：按钮与下拉框同宽，紧凑衔接为一个表单组 */
+.login-tenant-action {
+  display: flex;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .login-form {

@@ -21,3 +21,10 @@ html, body {
   width: 100%;
   height: 100%;
 }
+
+/* Desktop frame (Electron web-login window): the preload marks every document
+   with data-platform='darwin'; mirror the harness AppFrame clearance so pages
+   can keep their content below the traffic lights. Browsers never match. */
+html[data-platform='darwin'] {
+  --dsh-frame-top-clearance: 48px;
+}

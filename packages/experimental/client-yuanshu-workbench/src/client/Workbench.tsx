@@ -42,6 +42,7 @@ import { ChangeDemoPanel } from './ChangeDemoPanel.tsx'
 import { fixtureChangeId, fixtureDecisionId } from './change-demo.ts'
 import { PositionOperations } from './PositionOperations.tsx'
 import { positionSignals } from './position-operations.ts'
+import { OperatorWorkbench } from './operator/index.ts'
 
 interface WorkbenchInjected {
   readonly openAssistant: (role: string, prompt?: string) => Promise<SessionReference>
@@ -81,6 +82,7 @@ export function WorkbenchIcon(props: SidebarPanelIconOwnerProps) {
 }
 
 const navIcons = {
+  operator: IconLayersOutlineRegular,
   assistant: IconLayersOutlineRegular,
   dashboard: IconLayersOutlineRegular,
   priorities: IconArchiveOutlineRegular,
@@ -2171,6 +2173,7 @@ export function Workbench(props: WorkbenchProps) {
               const Icon = navIcons[n.id]
               return (
                 <div key={n.id}>
+                  {n.id === 'operator' && <p className={css.groupLabel}>{t('operator.group.operations')}</p>}
                   {n.id === 'assistant' && <p className={css.groupLabel}>{t('workGroup')}</p>}
                   {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
                   {n.id === 'priorities' && <p className={css.groupLabel}>{t('resources')}</p>}
@@ -2224,7 +2227,7 @@ export function Workbench(props: WorkbenchProps) {
             </div>
           </header>
           <div ref={contentRef} className={css.content}>
-            {!liveHome && !['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent'].includes(view) && (
+            {!liveHome && !['dashboard', 'assistant', 'project-operations', 'position-operations', 'work', 'priorities', 'agent', 'operator'].includes(view) && (
               <div className={css.pageHeading}>
                 <div>
                   <p className={css.eyebrow}>{t(`role.${role}`)}</p>
@@ -2242,7 +2245,9 @@ export function Workbench(props: WorkbenchProps) {
                 )}
               </div>
             )}
-            {liveHome ? (
+            {view === 'operator' ? (
+              <OperatorWorkbench t={t} />
+            ) : liveHome ? (
               ['assistant', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
                 ? <PlatformHome key={view} t={t} section={view} title={title} onAnalyze={openRoleConversation} />
                 : view === 'tasks' || view === 'calendar'

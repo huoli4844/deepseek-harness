@@ -5,7 +5,7 @@ type ReadProjection = (tool: 'workbench_profile' | 'workbench_home' | 'workbench
 
 afterEach(() => { vi.useRealTimers() })
 
-const employee = { tenantId: '3', userId: 42 }
+const employee = { tenantId: '3', tenantCode: 'shaoshi', userId: 42 }
 const result = (data: object) => ({ structuredContent: { outcome: 'returned', data } })
 
 describe('employee MCP home projection', () => {

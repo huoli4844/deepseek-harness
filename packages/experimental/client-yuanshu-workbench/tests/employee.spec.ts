@@ -12,13 +12,14 @@ describe('YuanShu employee identity', () => {
   it('derives the active tenant from YuanShu rather than trusting the request header', async () => {
     const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse(200, { data: { id: 42 } }))
-      .mockResolvedValueOnce(jsonResponse(200, { data: { current: { id: 3 } } }))
+      .mockResolvedValueOnce(jsonResponse(200, { data: { current: { id: 3, code: 'shaoshi' } } }))
     vi.stubGlobal('fetch', fetchMock)
     const headers = { authorization: 'Bearer test-token', 'X-Active-Tenant': '003' }
     const signal = new AbortController().signal
 
     await expect(loadEmployee('https://yuan.example', headers, signal)).resolves.toEqual({
       tenantId: '3',
+      tenantCode: 'shaoshi',
       userId: 42,
     })
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
@@ -31,12 +32,13 @@ describe('YuanShu employee identity', () => {
   it('loads the current tenant when the browser has no numeric tenant selection', async () => {
     const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse(200, { data: { id: 42 } }))
-      .mockResolvedValueOnce(jsonResponse(200, { data: { current: { id: 3 } } }))
+      .mockResolvedValueOnce(jsonResponse(200, { data: { current: { id: 3, code: 'shaoshi' } } }))
     vi.stubGlobal('fetch', fetchMock)
     const headers = { authorization: 'Bearer test-token', 'X-Active-Tenant': 'tenant-code' }
 
     await expect(loadEmployee('https://yuan.example', headers, new AbortController().signal)).resolves.toEqual({
       tenantId: '3',
+      tenantCode: 'shaoshi',
       userId: 42,
     })
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([

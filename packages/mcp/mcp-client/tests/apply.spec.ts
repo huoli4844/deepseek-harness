@@ -37,8 +37,8 @@ const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotification
     close = mockClose
     listTools = mockListTools
     callTool = mockCallTool
-    constructor(_info: unknown, options: { listChanged: { tools: { onChanged: () => void } } }) {
-      mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
+    constructor(_info: unknown, options?: { listChanged?: { tools: { onChanged: () => void } } }) {
+      if (options?.listChanged?.tools) mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
     }
     getServerCapabilities = () => ({ tools: {} })
     getInstructions(): string | undefined { return undefined }

@@ -5,6 +5,7 @@ export type DesktopUpdateFailureKind =
   | 'configuration'
   | 'check'
   | 'check-network'
+  | 'unavailable'
   | 'download'
   | 'download-network'
   | 'download-space'

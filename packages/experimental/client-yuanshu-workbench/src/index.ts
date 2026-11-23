@@ -143,6 +143,8 @@ export function apply(ctx: Context, config: Config): void {
   const mcp = config.mcp
   if (mcp === false) return
   let connecting = false
+  /** Live explicit-consent authorization: URL handed to the browser, awaiting the callback. */
+  let pendingConsent: { url: string } | undefined
   const homeLoader = new PlatformHomeLoader()
   ctx.inject(['webServer', 'mcpManager'], (scope) => {
     scope.on('webserver/index-inject', (table) => {
@@ -185,6 +187,12 @@ export function apply(ctx: Context, config: Config): void {
           const api = mcp.apiUrl.replace(/\/+$/u, '')
           if (req.method === 'POST') {
             const employee = await loadEmployee(api, headers, signal)
+            if (pendingConsent !== undefined) {
+              // An explicit-consent window is already open: re-hand out the
+              // same authorization URL instead of starting a rival attempt.
+              send(403, { authorizationUrl: pendingConsent.url })
+              return
+            }
             if (connecting) {
               send(409)
               return
@@ -193,14 +201,20 @@ export function apply(ctx: Context, config: Config): void {
             const attempt = await scope.mcpManager.startAuthorization(name).catch((error: unknown) => { connecting = false; throw error })
             try {
               let submitted = false
-              for await (const servers of scope.mcpManager.watch(signal)) {
+              let responded = false
+              // The explicit-consent window outlives the HTTP request: after
+              // the authorization URL reaches the browser the connection may
+              // close, so the watch runs on its own deadline and the callback
+              // can still land while no request is attached.
+              const watchDeadline = AbortSignal.timeout(Math.max(mcp.requestTimeoutMs, 300_000))
+              for await (const servers of scope.mcpManager.watch(watchDeadline)) {
                 const view = servers.find(server => server.name === name)?.authorization
                 if (view?.id !== attempt.id || view.phase === 'failed' || view.phase === 'cancelled') {
-                  send(503)
+                  if (!responded) send(503)
                   return
                 }
                 if (view.phase === 'authorized') {
-                  send(204)
+                  if (!responded) send(204)
                   return
                 }
                 if (submitted || view.phase !== 'waiting-browser' || view.authorizationUrl === undefined) continue
@@ -218,11 +232,45 @@ export function apply(ctx: Context, config: Config): void {
                   redirect: 'error',
                 })
                 if (grant.status === 403) {
-                  send(403)
-                  return
+                  // consent_required: the tenant has not approved this client
+                  // for this grant yet, so preauthorize cannot grant silently.
+                  // The consent page's own protocol (authorize + consent=approve
+                  // with the employee token) can approve programmatically, so
+                  // complete the consent server-side without any browser round
+                  // trip; only fall back to the explicit browser consent page
+                  // when the backend refuses the programmatic approval.
+                  const consent = new URLSearchParams(request.searchParams)
+                  consent.set('consent', 'approve')
+                  consent.set('tenant', employee.tenantCode)
+                  const approve = await fetch(`${api}/api/v1/mcp/oauth/authorize`, {
+                    method: 'POST',
+                    headers: { authorization, 'X-Active-Tenant': employee.tenantCode, accept: 'application/json' },
+                    body: consent,
+                    signal,
+                    redirect: 'error',
+                  }).catch(() => undefined)
+                  if (approve !== undefined && approve.ok) {
+                    const redirect = field(await approve.json(), 'redirect_uri')
+                    if (typeof redirect === 'string') {
+                      const callback = new URL(redirect)
+                      const expected = new URL(request.searchParams.get('redirect_uri') ?? '')
+                      if (callback.origin === expected.origin && callback.pathname === expected.pathname &&
+                          !callback.username && !callback.password && !callback.hash &&
+                          callback.searchParams.get('state') === request.searchParams.get('state')) {
+                        const result = await fetch(callback, { signal, redirect: 'error' })
+                        if (result.ok) continue
+                      }
+                    }
+                  }
+                  pendingConsent = { url: view.authorizationUrl }
+                  responded = true
+                  send(403, { authorizationUrl: view.authorizationUrl })
+                  continue
                 }
                 if (!grant.ok) {
-                  send(502)
+                  // Surface the backend's own status (rate limit, validation,
+                  // outage…) so the browser can explain what actually failed.
+                  send(502, { upstream: grant.status })
                   return
                 }
                 const redirect = field(await grant.json(), 'redirect_uri')
@@ -241,17 +289,19 @@ export function apply(ctx: Context, config: Config): void {
                 submitted = true
                 const result = await fetch(callback, { signal, redirect: 'error' })
                 if (!result.ok) {
-                  send(502)
+                  send(502, { upstream: result.status })
                   return
                 }
               }
-              send(503)
+              if (!responded) send(503)
               return
             } finally {
+              pendingConsent = undefined
               try { await scope.mcpManager.cancelAuthorization(name, attempt.id) }
               finally { connecting = false }
             }
           }
+          let lastRestartAt = 0
           for await (const servers of scope.mcpManager.watch(signal)) {
             const status = servers.find(server => server.name === name)?.status
             if (status?.state === 'waiting-authorization') {
@@ -265,11 +315,27 @@ export function apply(ctx: Context, config: Config): void {
               return
             }
             if (status?.state !== 'connecting' && status?.state !== 'reconnecting') {
-              send(503)
+              // The supervisor stops retrying after repeated reconnect
+              // failures ('gave-up') and never retries on its own, which
+              // would leave the panel stuck on 503 forever even though the
+              // stored grant is usually fine by then. Kick a fresh
+              // connection periodically and keep watching instead.
+              if (status?.state === 'failed' && ('reason' in status ? status.reason : undefined) !== 'cleanup' &&
+                  Date.now() - lastRestartAt >= 15_000) {
+                lastRestartAt = Date.now()
+                void scope.mcpManager.restart(name).catch(() => undefined)
+                continue
+              }
+              // Surface why the connection is not progressing so the browser
+              // can show something more actionable than a bare 503.
+              const detail = status === undefined
+                ? 'server not registered'
+                : `${status.state}${'reason' in status && status.reason !== undefined ? ` (${status.reason})` : ''}${'lastError' in status && status.lastError !== undefined && status.lastError !== '' ? `: ${status.lastError}` : ''}`
+              send(503, { detail })
               return
             }
           }
-          send(503)
+          send(503, { detail: 'connection did not become ready in time' })
           return
         } catch (error) {
           if (error instanceof YuanShuSessionExpired) {
@@ -277,7 +343,7 @@ export function apply(ctx: Context, config: Config): void {
             return
           }
           if (error instanceof YuanShuIdentityUnavailable) {
-            send(502)
+            send(502, error.upstream === undefined ? undefined : { upstream: error.upstream })
             return
           }
           if (error instanceof YuanShuGrantMismatch) {
@@ -293,6 +359,70 @@ export function apply(ctx: Context, config: Config): void {
         }
       },
     }), 'yuanshu: employee home')
+    // OEM branding: the platform's public OEM config and icon, proxied
+    // same-origin so the client shell can brand itself without CORS setup.
+    scope.effect(() => scope.webServer.register({
+      kind: 'exact',
+      path: '/yuanshu-workbench/oem-configs',
+      auth: 'anonymous',
+      async handler(req, res) {
+        const send = (status: number, payload?: object): void => {
+          res.writeHead(status, { 'cache-control': 'no-store', 'content-type': 'application/json' })
+          res.end(payload === undefined ? undefined : JSON.stringify(payload))
+        }
+        if (req.method !== 'GET') {
+          send(405)
+          return
+        }
+        try {
+          const api = mcp.apiUrl.replace(/\/+$/u, '')
+          const response = await fetch(`${api}/api/v1/oem-configs/public`, { signal: AbortSignal.timeout(Math.min(mcp.requestTimeoutMs, 15_000)) })
+          if (!response.ok) {
+            send(502)
+            return
+          }
+          const data = field(await response.json(), 'data')
+          if (typeof data !== 'object' || data === null) {
+            send(502)
+            return
+          }
+          send(200, data)
+        } catch {
+          send(502)
+        }
+      },
+    }), 'yuanshu: oem configs')
+    scope.effect(() => scope.webServer.register({
+      kind: 'exact',
+      path: '/yuanshu-workbench/oem-configs/icon',
+      auth: 'anonymous',
+      async handler(req, res) {
+        if (req.method !== 'GET') {
+          res.writeHead(405, { allow: 'GET' })
+          res.end()
+          return
+        }
+        try {
+          const api = mcp.apiUrl.replace(/\/+$/u, '')
+          const response = await fetch(`${api}/api/v1/oem-configs/public/icon`, { signal: AbortSignal.timeout(Math.min(mcp.requestTimeoutMs, 15_000)) })
+          if (!response.ok) {
+            res.writeHead(502)
+            res.end()
+            return
+          }
+          const payload = Buffer.from(await response.arrayBuffer())
+          res.writeHead(200, {
+            'cache-control': 'public, max-age=300',
+            'content-length': String(payload.byteLength),
+            'content-type': response.headers.get('content-type') ?? 'application/octet-stream',
+          })
+          res.end(payload)
+        } catch {
+          res.writeHead(502)
+          res.end()
+        }
+      },
+    }), 'yuanshu: oem icon')
 
     scope.effect(() => scope.webServer.register({
       kind: 'prefix',
@@ -346,7 +476,10 @@ export function apply(ctx: Context, config: Config): void {
       oauth: {
         credentialKey: 'mcp-client/yuanshu-workbench',
         clientId: mcp.clientId,
-        scope: 'enterprise:read',
+        // The deployed YuanShu preauthorize endpoint validates the requested
+        // scope against the full registered grant set: read-only requests are
+        // rejected with invalid_request, so request the complete scope pair.
+        scope: 'enterprise:read enterprise:execute',
       },
     })
     scope.effect(() => scope.mcpAccounts.register({

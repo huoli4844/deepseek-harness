@@ -22,6 +22,7 @@ import type { AttachmentStore, ImageAttachmentRef, ImageMediaType, SaveImageAtta
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
+import { mcpFileLog } from './mcp-filelog.ts'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { describeError, McpLocalError, mcpRequestError, McpToolError } from './diagnostic.ts'
@@ -153,6 +154,7 @@ export async function syncTools(
   const response = client.getServerCapabilities()?.tools === undefined
     ? { tools: [] }
     : await client.listTools(undefined, { cacheMode: 'refresh', signal: opts.signal })
+  mcpFileLog('tools-listed', opts.serverName, `${response.tools.length} tools`)
   const outputValidators = new AjvJsonSchemaValidator()
   for (const tool of response.tools) {
     const publicName = publicToolName(opts.serverName, tool.name)

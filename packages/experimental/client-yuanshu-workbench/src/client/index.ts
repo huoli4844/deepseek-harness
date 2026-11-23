@@ -11,6 +11,7 @@ import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversa
 import type { PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { createElement, Fragment } from 'react'
 import { Workbench, WorkbenchIcon } from './Workbench.tsx'
+import { loadOemBrand, OemBrandMark, OemBrandName, PRODUCT_TITLE_EVENT } from './OemBrand.tsx'
 import { createWorkbenchStore } from './model.ts'
 import { en, zh } from './locales.ts'
 
@@ -139,6 +140,15 @@ export function apply(ctx: Context): void {
         WorkbenchIcon,
       ),
     )
+    yield ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
+      name: 'sidebar.brand.mark',
+    }, OemBrandMark))
+    yield ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({
+      name: 'sidebar.brand.name',
+    }, OemBrandName))
+    void loadOemBrand().then((brand) => {
+      if (brand !== null) window.dispatchEvent(new CustomEvent(PRODUCT_TITLE_EVENT, { detail: brand.title }))
+    })
   })
   ctx.effect(() => () => {
     for (const reference of references.values()) reference.release()
