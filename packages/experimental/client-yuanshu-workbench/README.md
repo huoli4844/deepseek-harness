@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Inside DSH Web, this bundle opens a role-aware assistant inbox with position focus, assigned work and schedule actions. Role dashboards provide charts; the project position also has a project operations console that links portfolio health, changes, dependencies, risks, decisions, actions and acceptance gates. 18 positions and company management each have four KPI-led scenarios and three daily tasks linked to work methods. Workgroups organize project and supervision conversations with position assistants and browser-local history. The dashboards use browser-local demonstration records. With employee MCP configured, the native DSH assistant can discover permitted YuanShu tools.
+Inside DSH Web, this bundle provides a role-aware assistant inbox, position dashboards, project operations, workgroups and schedule actions. It includes KPI-led scenarios and daily methods for 18 positions and company management. Dashboards and collaboration records remain browser-local demonstrations. The native assistant can discover permitted YuanShu tools through employee MCP. **My tasks** and **Calendar** use YuanShu's authenticated REST API through the DSH Host proxy, following the `.env` local or remote API selection.
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@ Set `mcp.url` and `mcp.clientId` on the `yuanshu-workbench` plugin row for a sin
 
 For the source checkout, copy the root `.env.example` to `.env`. Leave `YUANSHU_MCP_TARGET=local` for the local server. Set `YUANSHU_MCP_TARGET=remote` and provide `YUANSHU_REMOTE_API_URL` and `YUANSHU_REMOTE_MCP_URL` to use a remote deployment. The Web login server and the workbench MCP client read the same selection.
 
-In connected mode, Today’s work and My tasks show assigned work and risks, the position dashboard shows briefing indicators, Project operations lists projects, Calendar lists project milestones, Business priorities lists pending decisions, and Work methods shows position workflows. Workgroups, notifications, and files show a missing source message until a platform data source is connected.
+In connected mode, Today’s work, Position dashboard, Project operations, Business priorities, and Work methods continue to use the employee MCP projection. My tasks and Calendar read and write the personal task, calendar, and event REST resources through the Host proxy. Workgroups, notifications, and files show a missing source message until a platform data source is connected.
 
 ### Preview from this checkout
 
@@ -126,6 +126,6 @@ This package is an experimental plugin prototype on `dev`, intended for interfac
 
 </details>
 
-To enable live Today’s work, configure the workbench MCP entry with the employee endpoint, OAuth client ID, and the platform authentication base URL (`apiUrl`). The Host verifies the signed-in employee and tenant before reading workbench data. It retains only the verified employee and tenant IDs until the profile expires or the MCP connection generation changes; each workbench projection still uses YuanShu authorization. For each tenant that uses automatic connection, allow the registered DSH client in YuanShu’s `client_mcp.preauthorized_clients`. When the signed-in user opens Today’s work, DSH obtains a read-only grant for the selected tenant.
+To enable live work, configure the workbench MCP entry with the employee endpoint, OAuth client ID, and the platform authentication base URL (`apiUrl`). The Host verifies the signed-in employee and tenant before reading workbench data. It retains only the verified employee and tenant IDs until the profile expires or the MCP connection generation changes; each workbench projection still uses YuanShu authorization. The personal task and calendar pages use this same `apiUrl` for REST calls. With `YUANSHU_MCP_TARGET=local`, `apiUrl` is `http://localhost:8081`; with `YUANSHU_MCP_TARGET=remote`, it is `YUANSHU_REMOTE_API_URL`. For each tenant that uses automatic connection, allow the registered DSH client in YuanShu’s `client_mcp.preauthorized_clients`. When the signed-in user opens Today’s work, DSH obtains a read-only grant for the selected tenant.
 
 Register the exact DSH callback on the YuanShu OAuth client. On a Host advertised as `http://127.0.0.1:3080`, the callback is `http://127.0.0.1:3080/mcp/oauth/callback/56a411dab576919cbca52fcfee03f1a34ff9b37d4858c71c781c9005942ac59f`.

@@ -1,6 +1,7 @@
 /** Role-adapted dashboards and shared workspace rendered in a native DSH panel. */
 import { useEffect, useRef, useState } from 'react'
 import { PlatformHome } from './PlatformHome.tsx'
+import { PersonalWorkspace } from './PersonalWorkspace.tsx'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import {
   Button,
@@ -2242,9 +2243,11 @@ export function Workbench(props: WorkbenchProps) {
               </div>
             )}
             {liveHome ? (
-              ['assistant', 'tasks', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations', 'calendar'].includes(view)
+              ['assistant', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
                 ? <PlatformHome key={view} t={t} section={view} title={title} onAnalyze={openRoleConversation} />
-                : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
+                : view === 'tasks' || view === 'calendar'
+                  ? <PersonalWorkspace key={view} t={t} section={view} title={title} />
+                  : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
             ) : view === 'assistant' ? (
               assistant()
             ) : view === 'dashboard' ? (

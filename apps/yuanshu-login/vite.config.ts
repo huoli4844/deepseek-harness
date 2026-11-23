@@ -6,8 +6,10 @@ import { defineConfig, loadEnv } from 'vite'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
-  const apiUrl = env.VITE_API_URL || 'http://localhost:8081'
+  const env = loadEnv(mode, path.resolve(dirname, '../..'), '')
+  const apiUrl = env.VITE_API_URL
+    || (env.YUANSHU_MCP_TARGET === 'remote' ? env.YUANSHU_REMOTE_API_URL : 'http://localhost:8081')
+    || 'http://localhost:8081'
   const apiPrefix = env.VITE_API_URL_PREFIX || '/api/v1'
 
   return {
