@@ -891,7 +891,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-client-yuanshu-workbench`
 
-- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:15`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
+- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:16`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
 
 ```ts config-catalog
 /** Optional employee MCP connection for a single-account DSH Host. */
@@ -904,7 +904,9 @@ export interface Config {
     clientId: string
     /** YuanShu API base URL. */
     apiUrl: string
-    /** Deadline for workbench and MCP requests, in milliseconds. */
+    /** Deadline for MCP connection startup and initial tool discovery, in milliseconds. */
+    startupTimeoutMs: number
+    /** Deadline for workbench API and MCP tool requests, in milliseconds. */
     requestTimeoutMs: number
   }
 }

@@ -22,7 +22,9 @@ export interface Config {
     clientId: string
     /** YuanShu API base URL. */
     apiUrl: string
-    /** Deadline for workbench and MCP requests, in milliseconds. */
+    /** Deadline for MCP connection startup and initial tool discovery, in milliseconds. */
+    startupTimeoutMs: number
+    /** Deadline for workbench API and MCP tool requests, in milliseconds. */
     requestTimeoutMs: number
   }
 }
@@ -33,6 +35,7 @@ export const Config: z<Config> = z.object({
     url: z.string().required(),
     clientId: z.string().required(),
     apiUrl: z.string().required(),
+    startupTimeoutMs: z.number().min(1000).max(300_000).default(30_000),
     requestTimeoutMs: z.number().min(1000).max(300_000).default(90_000),
   })]).default(false),
 })
@@ -502,7 +505,7 @@ export function apply(ctx: Context, config: Config): void {
       transport: 'streamable-http',
       url: mcp.url,
       toolLoading: 'on-demand',
-      startupTimeoutMs: mcp.requestTimeoutMs,
+      startupTimeoutMs: mcp.startupTimeoutMs,
       toolCallTimeoutMs: mcp.requestTimeoutMs,
       oauth: {
         credentialKey: 'mcp-client/yuanshu-workbench',

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-yuanshu-login-server",
   "description": "Serve the YuanShu sign-in page and the /yuanshu-token handoff, publishing __DSH_EXTERNAL_IDENTITY__ for the Harness web app",
-  "version": "0.2.2-rc.5",
+  "version": "0.2.3-alpha.2",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
