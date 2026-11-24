@@ -16,8 +16,9 @@ function liveIdentity(): RawIdentity {
       avatarUrl: '/avatar/52.png',
     },
     profile: { department: '项目管理部', position: '项目经理' },
+    position: '项目经理',
     laborHours: [{ person: '周伟', project: 'EP220501', hours: 32, status: '正常' }],
-    fallback: { user: false, profile: false, laborHours: false },
+    fallback: { user: false, profile: false, position: false, laborHours: false },
     fetchedAt: Date.UTC(2026, 10, 23),
   }
 }
@@ -82,7 +83,7 @@ describe('identity view model', () => {
       user: undefined,
       profile: undefined,
       laborHours: undefined,
-      fallback: { user: true, profile: true, laborHours: true },
+      fallback: { user: true, profile: true, position: true, laborHours: true },
       fetchedAt: undefined,
     }
     const vm = buildIdentityViewModel(demo)
