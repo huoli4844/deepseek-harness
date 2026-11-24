@@ -9,9 +9,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import type { Transport } from '@modelcontextprotocol/client'
+import { InMemoryTransport, type Transport } from '@modelcontextprotocol/client'
+import { McpServer } from '@modelcontextprotocol/server'
+import { serveStdio } from '@modelcontextprotocol/server/stdio'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import { z } from 'zod'
 import { startConnection, resolveReconnectPolicy } from '../src/connection.ts'
 import { McpStatusCell } from '../src/status.ts'
 import { Config } from '../src/index.ts'
@@ -37,7 +40,7 @@ const stdioConfig = (command: string, args: string[]): Config => Config({
 })
 const fixture = fileURLToPath(new URL('./fixtures/negotiation-lifecycle.mjs', import.meta.url))
 
-async function connection(source: Config | (() => Transport), retry: boolean) {
+async function connection(source: Config | (() => Transport), retry: boolean, fixtureConfig = config) {
   const ctx = new Context()
   onTestFinished(() => ctx.fiber.dispose())
   await ctx.plugin(SessionProjectionRegistry)
@@ -55,7 +58,7 @@ async function connection(source: Config | (() => Transport), retry: boolean) {
     return transport
   })
   const status = new McpStatusCell(() => {})
-  const handle = startConnection(ctx, typeof source === 'function' ? config : source, resolveReconnectPolicy({
+  const handle = startConnection(ctx, typeof source === 'function' ? fixtureConfig : source, resolveReconnectPolicy({
     enabled: retry, initialDelayMs: 1, maxDelayMs: 1, maxAttempts: 3,
   }, 'fixture'), status)
   onTestFinished(async () => {
@@ -78,6 +81,37 @@ async function stdioFixture(command?: string) {
 }
 
 describe('SDK negotiation lifecycle', () => {
+  it('serves initial tools while the modern list-change subscription is pending', async () => {
+    const server = new McpServer({ name: 'fixture', version: '1' })
+    server.registerTool('first', { inputSchema: z.object({}) }, async () => ({ content: [] }))
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const serving = serveStdio(() => server, { transport: serverTransport })
+    onTestFinished(() => serving.close())
+    const listen = Promise.withResolvers<() => Promise<void>>()
+    const send = clientTransport.send.bind(clientTransport)
+    clientTransport.send = (message, options) => {
+      if ('method' in message && message.method === 'subscriptions/listen') {
+        listen.resolve(() => send(message, options))
+        return Promise.resolve()
+      }
+      return send(message, options)
+    }
+    const handle = await connection(() => clientTransport, false, httpConfig('http://127.0.0.1/mcp'))
+    const startSubscription = await listen.promise
+
+    await vi.waitFor(() => { expect(handle.status.current()).toMatchObject({ state: 'connected', toolCount: 1 }) })
+    expect(await handle.ready).toEqual({})
+    const read = handle.projectionReader()
+    await expect(read('first', new AbortController().signal)).resolves.toMatchObject({ content: [] })
+
+    server.registerTool('second', { inputSchema: z.object({}) }, async () => ({ content: [] }))
+    await startSubscription()
+    await vi.waitFor(() => { expect(handle.status.current()).toMatchObject({ state: 'connected', toolCount: 2 }) })
+
+    server.registerTool('third', { inputSchema: z.object({}) }, async () => ({ content: [] }))
+    await vi.waitFor(() => { expect(handle.status.current()).toMatchObject({ state: 'connected', toolCount: 3 }) })
+  })
+
   it('starts the serving child once and reaps it on disposal', async () => {
     const { handle, events } = await stdioFixture()
     expect(await handle.ready).toEqual({})

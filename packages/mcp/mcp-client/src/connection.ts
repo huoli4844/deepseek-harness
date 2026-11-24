@@ -32,7 +32,7 @@ import { McpTemplateBinding } from './credentials.ts'
 import { MissingTemplateValue } from './templates.ts'
 import { McpToolRegistrationError, syncTools } from './tools.ts'
 import { McpToolLoader } from './tool-loading.ts'
-import type { ToolDisposers } from './tools.ts'
+import type { ToolBridgeOptions, ToolDisposers } from './tools.ts'
 import type { Config } from './index.ts'
 
 /** Automatic reconnect policy for one MCP server connection. */
@@ -160,7 +160,7 @@ export function startConnection(
   const loader = config.toolLoading === 'on-demand'
     ? new McpToolLoader(ctx, config.serverName, config.catalogDescriptionMaxLength)
     : undefined
-  type Generation = { wire: McpGeneration; connectedAt?: number }
+  type Generation = { wire: McpGeneration; listing: NonNullable<ToolBridgeOptions['listing']>; connectedAt?: number }
   let current: Generation | undefined
   let bindingValue: { config?: Config; grantId?: string } | undefined
   let disposed = false
@@ -228,18 +228,21 @@ export function startConnection(
     return closureFailure === undefined
   }
 
-  function enqueueSync(record: Generation): Promise<void> {
+  function enqueueSync(record: Generation): Promise<boolean> {
     const run = syncChain.then(async () => {
-      if (!isCurrent(record)) return
-      await record.wire.run(async (signal) => {
+      if (!isCurrent(record)) return false
+      return record.wire.run(async (signal) => {
         // Closure waits for this task to take ownership, even if cancellation rejects its caller first.
+        const previous = disposers
         disposers = await syncTools(record.wire.client, ctx, {
           serverName: config.serverName,
           toolCallTimeoutMs: config.toolCallTimeoutMs,
           signal,
+          listing: record.listing,
           ...binding.redacting ? { redact: (text: string) => binding.redact(text) } : {},
           ...loader === undefined ? {} : { loader },
-        }, disposers, () => isCurrent(record))
+        }, previous, () => isCurrent(record))
+        return disposers !== previous
       })
     })
     syncChain = run.then(() => undefined, () => undefined)
@@ -344,48 +347,13 @@ export function startConnection(
 
   async function connectGeneration(): Promise<void> {
     if (isStopped()) return
-    async function refreshTools(): Promise<void> {
-      if (!isCurrent(record)) return
-      ctx.logger.info(`${label}: tool list changed, re-syncing`)
-      try {
-        await enqueueSync(record)
-        if (isCurrent(record) && record.connectedAt !== undefined) {
-          status.update({ state: 'connected', toolCount: loader?.size ?? disposers.size, connectedAt: record.connectedAt })
-        }
-      } catch (error) {
-        if (error instanceof McpToolRegistrationError) lost(record, diagnostic(error, 'tool synchronization'))
-        else if (isCurrent(record)) ctx.logger.error(`${label}: tool re-sync failed: ${diagnostic(error, 'tool synchronization')}`)
-      }
-    }
     const client = new Client({ name: 'dsh-mcp-client', version: '0.0.1' }, {
       capabilities: {},
-      // The Yuanshu MCP backend now speaks the stateless 2026-07-28 protocol
-      // only (see doc/EXTERNAL_MCP_INTEGRATION(1).md): no initialize/
-      // notifications/initialized handshake, no Mcp-Session-Id, no GET SSE.
-      // Every request self-describes via the Mcp-Protocol-Version/Mcp-Method
-      // headers and a params._meta protocol envelope — the SDK attaches all
-      // of those automatically once a modern era is negotiated. Pinning skips
-      // the probe-and-fallback dance entirely and fails loudly if the server
-      // stops advertising 2026-07-28.
-      //
-      // stdio keeps the SDK-default legacy handshake (pinning would probe
-      // stdio children with server/discover, which conventional MCP servers
-      // neither answer nor survive) plus the listChanged re-sync hook: those
-      // sessions are long-lived and servers push change notifications over
-      // them unsolicited.
-      //
-      // No `listChanged` on streamable-http even though the backend
-      // advertises tools.listChanged: with it the SDK auto-opens a
-      // subscriptions/listen stream after a modern connect, and the backend
-      // holds that POST's response headers indefinitely (measured: 12s+ with
-      // zero bytes) — that stall WAS the workbench's 2-5 minute "warm-up".
-      // Stateless streams can't push notifications anyway; tool lists are
-      // instead re-synced wholesale on every (re)connect.
       ...config.transport === 'streamable-http'
         ? { versionNegotiation: { mode: { pin: '2026-07-28' } } }
-        : { listChanged: { tools: { autoRefresh: false, debounceMs: 0, onChanged: () => { void refreshTools() } } } },
+        : {},
     })
-    const record: Generation = { wire: new McpGeneration(client, config.closeTimeoutMs, error => diagnostic(error, 'cleanup')) }
+    const record: Generation = { wire: new McpGeneration(client, config.closeTimeoutMs, error => diagnostic(error, 'cleanup')), listing: {} }
     current = record
     status.opened()
     status.update({ state: 'connecting', attempt: failedAttempts })
@@ -394,15 +362,51 @@ export function startConnection(
     client.onclose = () => {
       if (record.connectedAt !== undefined) lost(record, 'connection closed')
     }
-    if (oauth !== undefined) client.onerror = (error) => {
-      const failure = oauthFailure(error)
-      if (failure === undefined) return
+    function handleAuthorizationFailure(error: unknown): boolean {
+      const failure = oauth === undefined ? undefined : oauthFailure(error)
+      if (failure === undefined) return false
       // A committed grant replacement fails this generation's later requests with `binding` before the
       // pending credential check replaces the generation; that check owns recovery.
-      if (failure.reason === 'binding' && (credentialsDirty || checkingCredentials !== undefined)) return
-      authorizationFailed(record, failure)
+      if (failure.reason !== 'binding' || (!credentialsDirty && checkingCredentials === undefined)) {
+        authorizationFailed(record, failure)
+      }
+      return true
     }
     const startedAt = Date.now()
+    if (oauth !== undefined) client.onerror = handleAuthorizationFailure
+    async function refreshTools(): Promise<void> {
+      if (!isCurrent(record)) return
+      try {
+        const changed = await enqueueSync(record)
+        if (changed && isCurrent(record) && record.connectedAt !== undefined) {
+          ctx.logger.info(`${label}: re-synced updated tool list`)
+          status.update({ state: 'connected', toolCount: loader?.size ?? disposers.size, connectedAt: record.connectedAt })
+        }
+      } catch (error) {
+        if (error instanceof McpToolRegistrationError) lost(record, diagnostic(error, 'tool synchronization'))
+        else if (isCurrent(record)) ctx.logger.error(`${label}: tool re-sync failed: ${diagnostic(error, 'tool synchronization')}`)
+      }
+    }
+    async function subscribeToToolChanges(): Promise<void> {
+      try {
+        await record.wire.run(async (signal) => {
+          const subscription = await client.listen({ toolsListChanged: true }, { signal })
+          if (!isCurrent(record)) return
+          if (subscription.honoredFilter.toolsListChanged) {
+            // Changes between the initial list and subscription confirmation may have gone unreported.
+            void refreshTools()
+          } else {
+            ctx.logger.warn(`${label}: MCP server declined tool-list change notifications`)
+          }
+          await subscription.closed
+          if (isCurrent(record)) ctx.logger.warn(`${label}: tool-list change subscription closed`)
+        })
+      } catch (error) {
+        if (isCurrent(record) && !handleAuthorizationFailure(error)) {
+          ctx.logger.warn(`${label}: tool-list change subscription failed: ${diagnostic(error, 'tool-list change subscription')}`)
+        }
+      }
+    }
     try {
       const remaining = (): number | undefined => config.startupTimeoutMs === undefined ? undefined
         : config.startupTimeoutMs - (Date.now() - startedAt)
@@ -427,6 +431,8 @@ export function startConnection(
       const instructions = text ? `### MCP server: ${config.serverName}\n\n${text}` : ''
       const maxInstructionBytes = config.maxInstructionBytes ?? DEFAULT_MAX_INSTRUCTION_BYTES
       if (Buffer.byteLength(instructions) > maxInstructionBytes) throw new McpLocalError(`${label}: server instructions exceed maxInstructionBytes (${maxInstructionBytes})`, 'MCP_INSTRUCTIONS_TOO_LARGE')
+      const toolChanges = client.getServerCapabilities()?.tools?.listChanged
+      if (toolChanges) client.setNotificationHandler('notifications/tools/list_changed', refreshTools)
       const sync = enqueueSync(record)
       const budget = remaining()
       await (budget === undefined ? sync : withDeadline(sync, budget, `${label}: startup timed out`))
@@ -438,6 +444,7 @@ export function startConnection(
       mcpFileLog('connected', config.serverName,
         `tools=${loader?.size ?? disposers.size} took=${record.connectedAt - startedAt}ms`)
       readiness.resolve({})
+      if (toolChanges && client.getProtocolEra() === 'modern') void subscribeToToolChanges()
       if (failedAttempts > 0) ctx.logger.info(`${label}: reconnected and re-synced tools (attempt ${failedAttempts}/${policy.maxAttempts})`)
     } catch (error) {
       if (current !== record) return

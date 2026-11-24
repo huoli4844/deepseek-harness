@@ -34,6 +34,8 @@ export interface ToolBridgeOptions {
   toolCallTimeoutMs: number
   /** Generation cancellation combined with each tool execution's signal. */
   signal: AbortSignal
+  /** Last published listing for the current connection. */
+  listing?: { tools?: Tool[] }
   /**
    * Remove secret values from tool-call failures before they reach callers;
    * a failure keeps its `name` and `code`.
@@ -131,7 +133,7 @@ export function publicToolName(serverName: string, rawName: string): string {
  *
  * @param client - Connected MCP Client instance used to list and call tools.
  * @param ctx - Cordis context providing the `tools` service for registration.
- * @param opts - server namespace, call timeout, generation signal, optional error formatter, and optional on-demand loader.
+ * @param opts - server namespace, call timeout, generation signal, and optional listing, error formatter, and on-demand loader.
  * @param previous - Disposer map from the prior sync generation; disposed
  *   during the swap phase (only after the fetch phase succeeded).
  * @param eligible - Judged again at the commit point, after the listing
@@ -155,6 +157,7 @@ export async function syncTools(
     ? { tools: [] }
     : await client.listTools(undefined, { cacheMode: 'refresh', signal: opts.signal })
   mcpFileLog('tools-listed', opts.serverName, `${response.tools.length} tools`)
+  if (!eligible() || isDeepStrictEqual(opts.listing?.tools, response.tools)) return previous
   const outputValidators = new AjvJsonSchemaValidator()
   for (const tool of response.tools) {
     const publicName = publicToolName(opts.serverName, tool.name)
@@ -215,10 +218,7 @@ export async function syncTools(
     }) })
   }
 
-  // Phase 2: swap generations — but only for a generation still entitled to
-  // publish. The listing above is the slow await an abandonment can overtake;
-  // state is published at its commit point or not at all.
-  if (!eligible()) return previous
+  // Phase 2: swap registrations after the complete listing has been validated.
   for (const dispose of previous.values()) dispose()
   const disposers: ToolDisposers = new Map()
   try {
@@ -238,6 +238,7 @@ export async function syncTools(
     ctx.logger.error(`mcp-client(${opts.serverName}): tool registration failed, no tools registered: ${String(error)}`)
     throw new McpToolRegistrationError('MCP tool registration failed', { cause: error })
   }
+  if (opts.listing !== undefined) opts.listing.tools = response.tools
   return disposers
 }
 

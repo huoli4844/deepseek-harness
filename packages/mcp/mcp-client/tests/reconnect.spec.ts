@@ -9,7 +9,7 @@ import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import { describe, expect, it, vi, beforeEach, onTestFinished } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { ProtocolError, SdkError, SdkErrorCode, type Transport } from '@modelcontextprotocol/client'
+import { ProtocolError, SdkError, SdkErrorCode, type ServerCapabilities, type Transport } from '@modelcontextprotocol/client'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import McpResources from '@deepseek-ai/dsh-mcp-resources'
@@ -44,14 +44,15 @@ const {
       await mockConnect.call(this)
     }
     close = mockClose
-    getServerCapabilities = (): object => ({ tools: {} })
+    getServerCapabilities = (): ServerCapabilities => ({ tools: { listChanged: true } })
+    getProtocolEra = () => 'legacy'
+    setNotificationHandler = mockSetNotificationHandler
     getInstructions(): string | undefined { return undefined }
     listResources = async () => ({ resources: [] })
     listTools = mockListTools
     callTool = mockCallTool
-    constructor(_info: unknown, options?: { listChanged?: { tools: { onChanged: () => void } } }) {
+    constructor() {
       instances.push(this)
-      if (options?.listChanged?.tools) mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
     }
   }
   const instances: MockClient[] = []

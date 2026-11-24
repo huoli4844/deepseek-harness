@@ -37,10 +37,9 @@ const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotification
     close = mockClose
     listTools = mockListTools
     callTool = mockCallTool
-    constructor(_info: unknown, options?: { listChanged?: { tools: { onChanged: () => void } } }) {
-      if (options?.listChanged?.tools) mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
-    }
-    getServerCapabilities = () => ({ tools: {} })
+    getServerCapabilities = () => ({ tools: { listChanged: true } })
+    getProtocolEra = () => 'legacy'
+    setNotificationHandler = mockSetNotificationHandler
     getInstructions(): string | undefined { return undefined }
   }
   return { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotificationHandler, MockClient }
@@ -370,7 +369,7 @@ describe('apply (plugin lifecycle)', () => {
     expect(mockClose).toHaveBeenCalled()
   })
 
-  it('preserves strict startup registration when list_changed arrives before connect resolves', async () => {
+  it('preserves strict startup registration when list_changed arrives during initial discovery', async () => {
     ctx.tools.register({
       name: 'mcp__srv__remote',
       description: 'Foreign squatter',
@@ -381,9 +380,10 @@ describe('apply (plugin lifecycle)', () => {
       },
       execute: async () => 'foreign',
     })
-    mockConnect.mockImplementation(async () => {
+    mockListTools.mockImplementationOnce(async () => {
       const handler = mockSetNotificationHandler.mock.calls[0]![1] as () => void
       handler()
+      return { tools: [{ name: 'remote', inputSchema: { type: 'object' } }] }
     })
 
     await expect(apply(ctx, {

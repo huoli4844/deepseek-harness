@@ -29,13 +29,14 @@ const { mockConnect, mockClose, mockListTools, mockSetNotificationHandler, MockC
     }
     ping = (): Promise<void> => Promise.resolve()
     close = mockClose
-    getServerCapabilities = () => ({ tools: {} })
+    getServerCapabilities = () => ({ tools: { listChanged: true } })
+    getProtocolEra = () => 'legacy'
+    setNotificationHandler = mockSetNotificationHandler
     getInstructions(): string | undefined { return undefined }
     listResources = async () => ({ resources: [] })
     listTools = mockListTools
-    constructor(_info: unknown, options?: { listChanged?: { tools: { onChanged: () => void } } }) {
+    constructor() {
       instances.push(this)
-      if (options?.listChanged?.tools) mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
     }
   }
   const instances: MockClient[] = []
