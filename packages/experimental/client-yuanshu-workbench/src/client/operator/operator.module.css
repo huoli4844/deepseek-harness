@@ -307,7 +307,7 @@ button.kpiCard:hover {
 
 .projectCardActive {
   border-color: var(--op-accent);
-  box-shadow: inset 0 0 0 1px var(--op-accent);
+  background: var(--dsw-alias-bg-brand-subtlest);
 }
 
 .projectCard small {
@@ -334,7 +334,7 @@ button.kpiCard:hover {
 
 .panelActive {
   border-color: var(--op-accent);
-  box-shadow: inset 0 0 0 1px var(--op-accent);
+  background: var(--dsw-alias-bg-brand-subtlest);
 }
 
 /* 穿透节点区：左侧明细（字段 / 原件 / 事件），右侧节点时间线。 */

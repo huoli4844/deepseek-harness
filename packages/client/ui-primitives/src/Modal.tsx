@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEventHandler, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
@@ -19,6 +19,8 @@ interface ModalBaseProps {
   shortcutModal?: string
   onKeyDownCapture?: KeyboardEventHandler<HTMLDivElement>
   backdropBlur?: boolean
+  /** Header-drag moving; on by default so every dialog can be moved out of the way. */
+  draggable?: boolean
 }
 
 type ModalProps = ModalBaseProps & (
@@ -40,6 +42,7 @@ type ModalProps = ModalBaseProps & (
  * @param props.footer - action row (Cancel / Create).
  * @param props.contentClassName - optional class for a scrollable content region.
  * @param props.backdropBlur - disable when the caller already blurs the page; defaults to true.
+ * @param props.draggable - header-drag moving; defaults to true (ignored for headless cards, which own their chrome).
  * @param props.shortcutModal - command scope allowed by shortcut owners; unnamed
  * dialogs block application commands unless their owner allows the "other" scope.
  * @param props.headless - render children directly in the card (no default
@@ -49,10 +52,58 @@ type ModalProps = ModalBaseProps & (
  */
 export function Modal({
   open, onClose, title, closeLabel, description, children, footer, className, contentClassName,
-  onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone,
+  onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone, draggable = true,
 }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
   useModalLayer(dialog, open, onClose)
+  /** Drag offset from the centered position; recentered on every open. */
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  interface DragState { pointerId: number; startX: number; startY: number; baseX: number; baseY: number; bounds: DOMRect }
+  const dragState = useRef<DragState | undefined>()
+
+  useEffect(() => {
+    if (open) setOffset({ x: 0, y: 0 })
+  }, [open])
+
+  /** Clamp so the header stays reachable inside the viewport while dragging. */
+  const clampOffset = (x: number, y: number): { x: number; y: number } => {
+    const state = dragState.current
+    if (state === undefined) return { x, y }
+    const rect = state.bounds
+    const margin = 24
+    const minX = state.baseX + (margin - rect.left)
+    const maxX = state.baseX + (window.innerWidth - margin - rect.right)
+    const minY = state.baseY + (margin - rect.top)
+    const maxY = state.baseY + (window.innerHeight - margin - rect.bottom)
+    return {
+      x: Math.min(Math.max(x, minX), maxX),
+      y: Math.min(Math.max(y, minY), maxY),
+    }
+  }
+
+  const onHeaderPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggable || headless) return
+    if (event.button !== 0) return
+    if ((event.target as HTMLElement).closest('button')) return
+    const rect = dialog.current?.getBoundingClientRect()
+    if (rect === undefined) return
+    dragState.current = {
+      pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, baseX: offset.x, baseY: offset.y, bounds: rect,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const onHeaderPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragState.current
+    if (state === undefined || state.pointerId !== event.pointerId) return
+    setOffset(clampOffset(state.baseX + event.clientX - state.startX, state.baseY + event.clientY - state.startY))
+  }
+
+  const onHeaderPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragState.current === undefined || dragState.current.pointerId !== event.pointerId) return
+    dragState.current = undefined
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
 
   if (!open) return null
 
@@ -64,6 +115,7 @@ export function Modal({
         tabIndex={-1}
         data-shortcut-modal={shortcutModal}
         className={clsx(css.dialog, !headless && tone === 'warning' && css.warning, className)}
+        style={offset.x !== 0 || offset.y !== 0 ? { transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -73,7 +125,13 @@ export function Modal({
           : (
             <>
               <div className={clsx(css.content, contentClassName)}>
-                <div className={css.header}>
+                <div
+                  className={clsx(css.header, draggable && css.draggableHeader)}
+                  onPointerDown={onHeaderPointerDown}
+                  onPointerMove={onHeaderPointerMove}
+                  onPointerUp={onHeaderPointerEnd}
+                  onPointerCancel={onHeaderPointerEnd}
+                >
                   <h2 className={css.title}>
                     {tone === 'warning' && <IconWarningOutlineRegular size={18} className={css.warningIcon} aria-hidden="true" />}
                     {title}

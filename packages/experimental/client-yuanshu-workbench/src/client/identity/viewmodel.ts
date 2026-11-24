@@ -94,6 +94,14 @@ function profileField(
 function buildProfile(raw: RawIdentity): readonly ProfileEntryModel[] {
   const tier: IdentityFieldTier = raw.fallback.user ? 'demo' : 'live'
   const userSource = raw.fallback.user ? SOURCE.demo : SOURCE.me
+  // 「角色」与侧栏左下角的岗位摘要同源：优先工作台岗位接口（data.title），
+  // 缺失才回退 /user/me 的平台角色，保证两处显示一致。
+  const workbenchPosition = raw.fallback.position ? undefined : raw.position
+  const roleValue = workbenchPosition ?? (buildUser(raw).roleText || undefined)
+  const roleTier: IdentityFieldTier = workbenchPosition !== undefined
+    ? 'live'
+    : tier
+  const roleSource = workbenchPosition !== undefined ? SOURCE.profile : userSource
   return [
     {
       id: 'name',
@@ -108,7 +116,7 @@ function buildProfile(raw: RawIdentity): readonly ProfileEntryModel[] {
     {
       id: 'role',
       labelKey: 'profile.label.role',
-      field: field(buildUser(raw).roleText || undefined, tier, userSource),
+      field: field(roleValue, roleTier, roleSource),
     },
     profileField(raw, 'employee_no', 'profile.label.employeeNo', 'employeeNo'),
     profileField(raw, 'department', 'profile.label.department', 'department'),

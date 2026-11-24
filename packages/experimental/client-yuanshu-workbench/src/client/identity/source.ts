@@ -109,6 +109,8 @@ export function parsePosition(body: unknown): string | undefined {
 /**
  * 归一化档案字段：后台可能返回嵌套对象（如 `department:{name}`）或历史扁平字符串。
  * 嵌套对象按 `name` → `title` → `code` 顺序展平，保证视图模型始终拿到字符串。
+ * 另：档案契约没有 `position` 字段，但有 `workbench:{name}`（如「采购工作台」），
+ * 在缺失时提取它作为岗位展示兜底。
  */
 export function normalizeProfile(raw: Record<string, unknown>): Record<string, unknown> {
   const flattened: Record<string, unknown> = { ...raw }
@@ -117,6 +119,11 @@ export function normalizeProfile(raw: Record<string, unknown>): Record<string, u
     if (nested === undefined) continue
     const name = text(nested.name) ?? text(nested.title) ?? text(nested.code)
     if (name !== undefined) flattened[key] = name
+  }
+  if (text(flattened.position) === undefined) {
+    const workbench = record(raw.workbench)
+    const workbenchName = text(workbench?.name) ?? text(workbench?.title)
+    if (workbenchName !== undefined) flattened.position = workbenchName
   }
   return flattened
 }

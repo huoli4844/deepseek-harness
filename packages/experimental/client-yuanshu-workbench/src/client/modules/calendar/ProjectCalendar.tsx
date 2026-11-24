@@ -1,7 +1,7 @@
 /**
  * 工程日历 — 以日历视角看待全局的待办与已完成事项，事项关联项目任务。
  *
- * 默认月视图（大日历），可切换周 / 年视角；
+ * 默认月视图（大日历），可切换年视角；
  * 支持新增、编辑、删除事项；事项可关联到项目任务。
  * 后台个人日程（/personal/calendar-events）以只读方式并入日历展示；
  * 用户自建事项优先写入后台，写失败（后台契约暂不可用）时降级为本地
@@ -9,13 +9,19 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { taskTitles } from '../../core/fixtures.ts'
 import type { TaskId } from '../../core/model.ts'
 import { createCalendarEvent, fetchCalendarEvents, fetchDefaultCalendarId } from './calendar-api.ts'
 import css from './Calendar.module.css'
 
 type WorkbenchT = PropsLocale<'yuanshu.workbench'>['t']
+
+/** 事项处理状态：待处理为默认；已完成绿色、遗留/待上会黄色、转风险红色、移交蓝色。 */
+export type CalendarStatus = 'pending' | 'completed' | 'deferred' | 'risk' | 'transferred' | 'meeting'
+
+/** 全部合法状态（用于 localStorage 容错解析）。 */
+const STATUSES: readonly CalendarStatus[] = ['pending', 'completed', 'deferred', 'risk', 'transferred', 'meeting']
 
 /** 一个日历事项：本地演示事项（可增删改）或真实日程（只读）。 */
 export interface CalendarItem {
@@ -27,7 +33,8 @@ export interface CalendarItem {
   readonly title: string
   /** 关联的项目任务 id；undefined 表示未关联。 */
   readonly taskId: TaskId | undefined
-  readonly done: boolean
+  /** 处理状态；已完成的事项显示为绿色。 */
+  readonly status: CalendarStatus
   /** 真实日程（来自元枢个人日程）为只读。 */
   readonly readonly?: boolean
 }
@@ -35,7 +42,7 @@ export interface CalendarItem {
 /** 星期文案 key（周一开头，与 `week.*` 文案对应）。 */
 const WEEKDAYS: readonly ('week.0' | 'week.1' | 'week.2' | 'week.3' | 'week.4' | 'week.5' | 'week.6')[] = ['week.0', 'week.1', 'week.2', 'week.3', 'week.4', 'week.5', 'week.6']
 
-type ViewMode = 'month' | 'week' | 'year'
+type ViewMode = 'month' | 'year'
 type FormState =
   | { readonly kind: 'add'; readonly date: string }
   | { readonly kind: 'edit'; readonly id: string }
@@ -70,13 +77,13 @@ function backendEventsToItems(events: readonly { id: number; title: string; star
       time: `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`,
       title: event.title,
       taskId: undefined,
-      done: false,
+      status: 'pending',
       readonly: true,
     }]
   })
 }
 
-/** 从 localStorage 恢复本地事项；解析失败返回演示种子。 */
+/** 从 localStorage 恢复本地事项；解析失败返回演示种子。兼容旧数据的 done 布尔字段。 */
 function loadLocalItems(): CalendarItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_ITEMS_KEY)
@@ -91,13 +98,14 @@ function loadLocalItems(): CalendarItem[] {
       const date = typeof row.date === 'string' ? row.date : undefined
       const title = typeof row.title === 'string' ? row.title : undefined
       if (id === undefined || date === undefined || title === undefined) continue
+      const rawStatus = typeof row.status === 'string' ? row.status as CalendarStatus : undefined
       items.push({
         id,
         date,
         ...(typeof row.time === 'string' ? { time: row.time } : {}),
         title,
         taskId: typeof row.taskId === 'number' ? row.taskId as TaskId : undefined,
-        done: row.done === true,
+        status: rawStatus !== undefined && STATUSES.includes(rawStatus) ? rawStatus : row.done === true ? 'completed' : 'pending',
       })
     }
     return items.length === 0 ? seedItems() : items
@@ -118,13 +126,13 @@ function persistLocalItems(items: readonly CalendarItem[]): void {
 /** 本地演示事项种子：围绕今天分布，并关联到项目任务。 */
 function seedItems(): CalendarItem[] {
   return [
-    { id: 'seed-1', date: isoOffset(0), time: '09:30', title: '二阶段形象进度确认会', taskId: 0, done: false },
-    { id: 'seed-2', date: isoOffset(0), time: '14:00', title: '钢梁焊缝复检整改单跟进', taskId: 1, done: false },
-    { id: 'seed-3', date: isoOffset(1), time: '10:00', title: '供应商产能协调会', taskId: 3, done: false },
-    { id: 'seed-4', date: isoOffset(2), time: '16:30', title: '月度进度报告提交', taskId: 2, done: false },
-    { id: 'seed-5', date: isoOffset(-1), time: '11:00', title: '设备采购合同评审', taskId: 4, done: true },
-    { id: 'seed-6', date: isoOffset(4), time: '09:00', title: '联合巡检 · 现场安全检查', taskId: 5, done: false },
-    { id: 'seed-7', date: isoOffset(-3), time: '15:00', title: '上周质量例会决议复核', taskId: 6, done: true },
+    { id: 'seed-1', date: isoOffset(0), time: '09:30', title: '二阶段形象进度确认会', taskId: 0, status: 'pending' },
+    { id: 'seed-2', date: isoOffset(0), time: '14:00', title: '钢梁焊缝复检整改单跟进', taskId: 1, status: 'pending' },
+    { id: 'seed-3', date: isoOffset(1), time: '10:00', title: '供应商产能协调会', taskId: 3, status: 'meeting' },
+    { id: 'seed-4', date: isoOffset(2), time: '16:30', title: '月度进度报告提交', taskId: 2, status: 'pending' },
+    { id: 'seed-5', date: isoOffset(-1), time: '11:00', title: '设备采购合同评审', taskId: 4, status: 'completed' },
+    { id: 'seed-6', date: isoOffset(4), time: '09:00', title: '联合巡检 · 现场安全检查', taskId: 5, status: 'transferred' },
+    { id: 'seed-7', date: isoOffset(-3), time: '15:00', title: '上周质量例会决议复核', taskId: 6, status: 'deferred' },
   ]
 }
 
@@ -135,12 +143,12 @@ function seedItems(): CalendarItem[] {
 export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
   const [view, setView] = useState<ViewMode>('month')
   const today = useMemo(() => new Date(), [])
-  // 锚点日期：月 / 周视图围绕它渲染；年视图用它取年份。
+  // 锚点日期：月视图围绕它渲染；年视图用它取年份。
   const [anchor, setAnchor] = useState(today)
   const [items, setItems] = useState<CalendarItem[]>(loadLocalItems)
   const [realItems, setRealItems] = useState<CalendarItem[]>([])
   const [form, setForm] = useState<FormState>(undefined)
-  const [draft, setDraft] = useState({ title: '', date: '', time: '', taskId: '', done: false })
+  const [draft, setDraft] = useState({ title: '', date: '', time: '', taskId: '', status: 'pending' as CalendarStatus })
 
   // 本地事项变化即持久化。
   useEffect(() => { persistLocalItems(items) }, [items])
@@ -161,23 +169,28 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
 
   const allItems = useMemo(() => [...realItems, ...items], [realItems, items])
 
-  /** 按日历视图平移锚点（月 / 周 / 年）。 */
+  /** 按日历视图平移锚点（月 / 年）。 */
   const shift = (direction: 1 | -1) => {
     const next = new Date(anchor)
     if (view === 'month') next.setMonth(next.getMonth() + direction)
-    else if (view === 'week') next.setDate(next.getDate() + direction * 7)
     else next.setFullYear(next.getFullYear() + direction)
     setAnchor(next)
   }
 
   const openAdd = (date: string) => {
-    setDraft({ title: '', date, time: '', taskId: '', done: false })
+    setDraft({ title: '', date, time: '', taskId: '', status: 'pending' })
     setForm({ kind: 'add', date })
   }
 
   const openEdit = (item: CalendarItem) => {
     if (item.readonly) return
-    setDraft({ title: item.title, date: item.date, time: item.time ?? '', taskId: item.taskId === undefined ? '' : String(item.taskId), done: item.done })
+    setDraft({
+      title: item.title,
+      date: item.date,
+      time: item.time ?? '',
+      taskId: item.taskId === undefined ? '' : String(item.taskId),
+      status: item.status,
+    })
     setForm({ kind: 'edit', id: item.id })
   }
 
@@ -190,7 +203,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
           ...item,
           title: draft.title.trim(),
           date: draft.date,
-          done: draft.done,
+          status: draft.status,
           ...(draft.time === '' ? {} : { time: draft.time }),
           ...(taskId === undefined ? { taskId: undefined } : { taskId }),
         }
@@ -202,7 +215,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
         ...(draft.time === '' ? {} : { time: draft.time }),
         title: draft.title.trim(),
         taskId,
-        done: draft.done,
+        status: draft.status,
       }])
     }
     setForm(undefined)
@@ -231,14 +244,6 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
     label: t(taskTitles[id]),
   })), [t])
 
-  /** 当前锚点所在周的周一。 */
-  const weekStart = useMemo(() => {
-    const date = new Date(anchor)
-    const weekday = (date.getDay() + 6) % 7
-    date.setDate(date.getDate() - weekday)
-    return date
-  }, [anchor])
-
   /** 月视图的 42 个格子（周一开头）。 */
   const monthCells = useMemo(() => {
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
@@ -251,12 +256,6 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
       return { iso: isoOf(date), date, inMonth: date.getMonth() === anchor.getMonth() }
     })
   }, [anchor])
-
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(weekStart)
-    date.setDate(weekStart.getDate() + index)
-    return { iso: isoOf(date), date }
-  }), [weekStart])
 
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarItem[]>()
@@ -277,11 +276,9 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
   /** 日历头部标题文案。 */
   const periodTitle = view === 'month'
     ? t('calendar.periodTitle', { year: String(anchor.getFullYear()), month: String(anchor.getMonth() + 1) })
-    : view === 'week'
-      ? t('calendar.weekTitle', { start: isoOf(weekStart), end: isoOf(new Date(weekStart.getTime() + 6 * 86_400_000)) })
-      : t('calendar.yearTitle', { year: String(anchor.getFullYear()) })
+    : t('calendar.yearTitle', { year: String(anchor.getFullYear()) })
 
-  const doneCount = items.filter(item => item.done).length
+  const doneCount = items.filter(item => item.status === 'completed').length
 
   /** 渲染单日的事项 chips。 */
   const renderChips = (iso: string, compact: boolean) => {
@@ -292,7 +289,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
         <button
           key={item.id}
           type="button"
-          className={`${css.chip} ${item.done ? css.chipDone : ''} ${item.readonly ? css.chipReal : ''}`}
+          className={`${css.chip} ${css[`status${item.status.charAt(0).toUpperCase()}${item.status.slice(1)}`] ?? ''} ${item.readonly ? css.chipReal : ''}`}
           onClick={(event) => {
             event.stopPropagation()
             openEdit(item)
@@ -308,11 +305,11 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
   }
 
   return <div className={css.screen}>
-    {/* 页头：标题 + 视角切换 + 新建日程。 */}
+    {/* 页头：标题在左，视角切换（仅月 / 年）在右。 */}
     <div className={css.topbar}>
       <h2 className={css.pageTitle}>{t('nav.calendar')}</h2>
       <div className={css.headerActions}>
-        {(['month', 'week', 'year'] as const).map(mode => (
+        {(['month', 'year'] as const).map(mode => (
           <button
             key={mode}
             type="button"
@@ -323,7 +320,6 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
             {t(`calendar.view.${mode}`)}
           </button>
         ))}
-        <Button variant="primary" onClick={() => { openAdd(selectedIso) }}>{t('calendar.newItem')}</Button>
       </div>
     </div>
 
@@ -369,33 +365,6 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
                 >+</button>
               </div>
               <div className={css.chipList}>{renderChips(cell.iso, false)}</div>
-            </div>
-          ))}
-        </div>}
-
-        {/* 周视图：七天列。 */}
-        {view === 'week' && <div className={css.weekGrid} role="grid" aria-label={periodTitle}>
-          {weekDays.map(day => (
-            <div
-              key={day.iso}
-              className={`${css.weekColumn} ${day.iso === selectedIso ? css.daySelected : ''} ${day.iso === todayIso ? css.dayToday : ''}`}
-              onClick={() => { setSelectedIso(day.iso) }}
-            >
-              <div className={css.weekDayHead}>
-                <span>{t(WEEKDAYS[(day.date.getDay() + 6) % 7] ?? 'week.0')}</span>
-                <strong>{day.date.getDate()}</strong>
-                <button
-                  type="button"
-                  className={css.dayAdd}
-                  aria-label={t('calendar.addOn', { date: day.iso })}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setSelectedIso(day.iso)
-                    openAdd(day.iso)
-                  }}
-                >+</button>
-              </div>
-              <div className={css.chipList}>{renderChips(day.iso, false)}</div>
             </div>
           ))}
         </div>}
@@ -456,10 +425,10 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
                 <li key={item.id}>
                   <button
                     type="button"
-                    className={`${css.planRow} ${item.done ? css.planDone : ''} ${item.readonly ? css.planReadonly : ''}`}
+                    className={`${css.planRow} ${item.status === 'completed' ? css.planDone : ''} ${item.readonly ? css.planReadonly : ''}`}
                     onClick={() => { openEdit(item) }}
                   >
-                    <span className={css.planDot} aria-hidden />
+                    <span className={`${css.planDot} ${css[`dot${item.status.charAt(0).toUpperCase()}${item.status.slice(1)}`] ?? ''}`} aria-hidden />
                     {item.time !== undefined && <small>{item.time}</small>}
                     <span className={css.planTitleText}>{item.title}</span>
                   </button>
@@ -486,42 +455,47 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
       </aside>
     </div>
 
-    {/* 新增 / 编辑事项弹窗。 */}
-    {form !== undefined && <div className={css.overlay} role="dialog" aria-modal onClick={() => { setForm(undefined) }}>
-      <div className={css.dialog} onClick={(event) => { event.stopPropagation() }}>
-        <h3>{form.kind === 'add' ? t('calendar.formAdd') : t('calendar.formEdit')}</h3>
-        <label className={css.formRow}>
-          <span>{t('calendar.title')}</span>
-          <Input value={draft.title} onChange={(event) => { setDraft({ ...draft, title: event.target.value }) }} />
-        </label>
-        <label className={css.formRow}>
-          <span>{t('calendar.fieldDate')}</span>
-          <input type="date" className={css.nativeInput} value={draft.date}
-            onChange={(event) => { setDraft({ ...draft, date: event.target.value }) }} />
-        </label>
-        <label className={css.formRow}>
-          <span>{t('calendar.fieldTime')}</span>
-          <input type="time" className={css.nativeInput} value={draft.time}
-            onChange={(event) => { setDraft({ ...draft, time: event.target.value }) }} />
-        </label>
-        <label className={css.formRowCheck}>
-          <input type="checkbox" checked={draft.done} onChange={(event) => { setDraft({ ...draft, done: event.target.checked }) }} />
-          <span>{t('calendar.fieldDone')}</span>
-        </label>
-        <label className={css.formRow}>
-          <span>{t('calendar.fieldTask')}</span>
-          <select className={css.nativeInput} value={draft.taskId}
-            onChange={(event) => { setDraft({ ...draft, taskId: event.target.value }) }}>
-            <option value="">{t('calendar.taskNone')}</option>
-            {taskOptions.map(option => <option key={option.id} value={String(option.id)}>{option.label}</option>)}
-          </select>
-        </label>
-        <div className={css.formActions}>
-          {form.kind === 'edit' && <Button variant="outline" onClick={() => { removeItem() }}>{t('calendar.remove')}</Button>}
-          <Button variant="primary" onClick={() => { saveItem() }}>{t('calendar.save')}</Button>
-          <Button onClick={() => { setForm(undefined) }}>{t('cancel')}</Button>
-        </div>
-      </div>
-    </div>}
+    {/* 新增 / 编辑事项弹窗（共享 Modal：可拖动、遮罩压暗）。 */}
+    {form !== undefined && <Modal
+      open
+      title={form.kind === 'add' ? t('calendar.formAdd') : t('calendar.formEdit')}
+      closeLabel={t('close')}
+      onClose={() => { setForm(undefined) }}
+      footer={<>
+        {form.kind === 'edit' && <Button variant="outline" onClick={() => { removeItem() }}>{t('calendar.remove')}</Button>}
+        <Button variant="primary" onClick={() => { saveItem() }}>{t('calendar.save')}</Button>
+        <Button onClick={() => { setForm(undefined) }}>{t('cancel')}</Button>
+      </>}
+    >
+      <label className={css.formRow}>
+        <span>{t('calendar.title')}</span>
+        <Input value={draft.title} onChange={(event) => { setDraft({ ...draft, title: event.target.value }) }} />
+      </label>
+      <label className={css.formRow}>
+        <span>{t('calendar.fieldDate')}</span>
+        <input type="date" className={css.nativeInput} value={draft.date}
+          onChange={(event) => { setDraft({ ...draft, date: event.target.value }) }} />
+      </label>
+      <label className={css.formRow}>
+        <span>{t('calendar.fieldTime')}</span>
+        <input type="time" className={css.nativeInput} value={draft.time}
+          onChange={(event) => { setDraft({ ...draft, time: event.target.value }) }} />
+      </label>
+      <label className={css.formRow}>
+        <span>{t('calendar.fieldStatus')}</span>
+        <select className={css.nativeInput} value={draft.status}
+          onChange={(event) => { setDraft({ ...draft, status: event.target.value as CalendarStatus }) }}>
+          {STATUSES.map(status => <option key={status} value={status}>{t(`calendar.status.${status}`)}</option>)}
+        </select>
+      </label>
+      <label className={css.formRow}>
+        <span>{t('calendar.fieldTask')}</span>
+        <select className={css.nativeInput} value={draft.taskId}
+          onChange={(event) => { setDraft({ ...draft, taskId: event.target.value }) }}>
+          <option value="">{t('calendar.taskNone')}</option>
+          {taskOptions.map(option => <option key={option.id} value={String(option.id)}>{option.label}</option>)}
+        </select>
+      </label>
+    </Modal>}
   </div>
 }

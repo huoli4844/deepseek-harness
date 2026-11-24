@@ -75,6 +75,17 @@
   padding: 22px 24px 12px;
 }
 
+/* Draggable dialogs: the header doubles as the grab handle. */
+.draggableHeader {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.draggableHeader:active {
+  cursor: grabbing;
+}
+
 .title {
   margin: 0;
   font-size: 16px;

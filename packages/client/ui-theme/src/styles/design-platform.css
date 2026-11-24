@@ -181,6 +181,16 @@ body {
   --dsw-alias-bg-layer-1: var(--dsw-static-neutral-bluish-00);
   --dsw-alias-bg-layer-2: var(--dsw-static-neutral-bluish-00);
   --dsw-alias-bg-layer-3: var(--dsw-static-neutral-bluish-00);
+  /* Experimental-workbench surface aliases (bg-primary/-secondary, brand accent, fills). */
+  --dsw-alias-bg-primary: var(--dsw-alias-bg-layer-2);
+  --dsw-alias-bg-secondary: var(--dsw-alias-bg-layer-3);
+  --dsw-alias-bg-brand-strong: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+  --dsw-alias-bg-brand-subtlest: color-mix(in srgb, var(--dsw-alias-bg-brand-strong) 10%, transparent);
+  --dsw-alias-bg-success-subtlest: color-mix(in srgb, var(--dsw-alias-state-success-primary) 12%, transparent);
+  --dsw-alias-fill-hover: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
+  --dsw-alias-fill-selected: color-mix(in srgb, var(--dsw-alias-bg-brand-strong) 18%, transparent);
+  --dsw-alias-line-secondary: var(--dsw-alias-border-l3);
+  --dsw-alias-state-info-primary: var(--dsw-static-blue-500);
   --dsw-alias-bg-mask-1: rgba(0, 0, 0, 0.24);
   --dsw-alias-bg-mask-2: rgba(0, 0, 0, 0.12);
   --dsw-alias-bg-mask-3: rgba(0, 0, 0, 0.48);
@@ -333,6 +343,16 @@ body[data-ds-dark-theme] {
   --dsw-alias-bg-layer-1: var(--dsw-static-neutral-bluish-875);
   --dsw-alias-bg-layer-2: var(--dsw-static-neutral-bluish-850);
   --dsw-alias-bg-layer-3: var(--dsw-static-neutral-bluish-800);
+  /* Experimental-workbench surface aliases (bg-primary/-secondary, brand accent, fills). */
+  --dsw-alias-bg-primary: var(--dsw-alias-bg-layer-2);
+  --dsw-alias-bg-secondary: var(--dsw-alias-bg-layer-3);
+  --dsw-alias-bg-brand-strong: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
+  --dsw-alias-bg-brand-subtlest: color-mix(in srgb, var(--dsw-alias-bg-brand-strong) 14%, transparent);
+  --dsw-alias-bg-success-subtlest: color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent);
+  --dsw-alias-fill-hover: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
+  --dsw-alias-fill-selected: color-mix(in srgb, var(--dsw-alias-bg-brand-strong) 22%, transparent);
+  --dsw-alias-line-secondary: var(--dsw-alias-border-l3);
+  --dsw-alias-state-info-primary: var(--dsw-static-blue-500);
   --dsw-alias-bg-mask-1: rgba(0, 0, 0, 0.5);
   --dsw-alias-bg-mask-2: rgba(0, 0, 0, 0.2);
   --dsw-alias-bg-mask-3: rgba(0, 0, 0, 0.48);
