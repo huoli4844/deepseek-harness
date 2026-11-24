@@ -1,6 +1,6 @@
 /** Resolve direct third-party browser inputs through the shipping build configurations, without emitting files. */
 
-import { globSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, globSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -138,7 +138,10 @@ async function collectShell(
     const vite = await import(pathToFileURL(vitePath).href) as ViteApi
     const config = await vite.resolveConfig({ root: dir, logLevel: 'error' }, 'build', 'production', 'production')
     const input = config.build.rollupOptions?.input
-    const entries = typeof input === 'string' ? [input] : Object.values(input ?? {})
+    // Vite falls back to the app's index.html when no input is declared; follow
+    // that default so apps like the sign-in shell still contribute their bundles.
+    const defaults = existsSync(resolve(dir, 'index.html')) ? { index: 'index.html' } : {}
+    const entries = typeof input === 'string' ? [input] : Object.values(input ?? defaults)
     const pages = entries.filter(entry => entry.endsWith('.html'))
     if (pages.length === 0) throw new Error(`browser notices: ${manifest.name} has no HTML build entry`)
     await vite.build({

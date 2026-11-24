@@ -77,6 +77,8 @@ export interface SessionPromptParams {
   idempotencyKey?: string
   /** The prompt content blocks, sent verbatim as the user message. */
   contentBlocks: SdkPromptContentBlock[]
+  /** User time zone for this prompt: UTC or IANA Area/Location. Omitted: the runtime samples its process zone for this prompt. */
+  timeZone?: string
 }
 
 /** Inline raster input admitted into the runtime's durable attachment store. */
@@ -123,6 +125,8 @@ export interface SessionQueryParams {
   sessionId: SessionId
   /** Ordered prompt blocks; a native command occupies its only text block and may accompany encoded images. */
   contentBlocks: SdkPromptContentBlock[]
+  /** User time zone for this prompt: UTC or IANA Area/Location. Omitted: the runtime samples its process zone for this prompt. */
+  timeZone?: string
 }
 
 /**
@@ -141,6 +145,8 @@ export type { CommandExecution }
 export interface SessionResumeParams {
   /** Persisted session identity; missing or already owned sessions are rejected. */
   sessionId: string
+  /** Configured permission preset to persist before execution; omission retains saved permissions. */
+  permissionMode?: string
 }
 
 /** Wait for an existing SDK session and its managed descendants to finish. */
@@ -195,7 +201,7 @@ export interface SessionWorkingDirectoryParams {
   sessionId: string
 }
 
-/** Change one Session's effective directory without changing its origin or permissions. */
+/** Change one Session's effective directory without changing its origin; the workspace-write boundary follows it. */
 export interface SessionWorkingDirectorySetParams extends SessionWorkingDirectoryParams {
   /** Directory to enter; relative paths resolve against the Session's current directory. */
   path: string
