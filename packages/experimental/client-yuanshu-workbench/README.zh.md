@@ -81,8 +81,9 @@ pnpm dsh web
 | [清单](package.json) | 组合包与浏览器导出 |
 | [补丁](dsh/cordis.patch.yml) | 工作台启用条目 |
 | [浏览器入口](src/client/index.ts) | 生命周期托管的注册 |
-| [工作台](src/client/Workbench.tsx) | 岗位与公共页面 |
-| [状态](src/client/model.ts) | 浏览器本地工作台状态与已保存快照 |
+| [工作台](src/client/app/Workbench.tsx) | 岗位与公共页面 |
+| [状态](src/client/core/model.ts) | 浏览器本地工作台状态与已保存快照 |
+| [模块目录](src/client/modules/) | 每个导航模块一个目录（Screen、模块文案、index 公共出口） |
 
 </details>
 

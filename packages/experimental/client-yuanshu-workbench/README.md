@@ -81,8 +81,9 @@ The manifest declares both `dsh.bundle.patch` and `dsh.client`. The patch insert
 | [Manifest](package.json) | Bundle and browser exports |
 | [Patch](dsh/cordis.patch.yml) | Workbench activation row |
 | [Browser entry](src/client/index.ts) | Lifecycle-owned registrations |
-| [Workbench](src/client/Workbench.tsx) | Position and common views |
-| [Store](src/client/model.ts) | Browser-local workbench state and saved snapshots |
+| [Workbench](src/client/app/Workbench.tsx) | Position and common views |
+| [Store](src/client/core/model.ts) | Browser-local workbench state and saved snapshots |
+| [Modules](src/client/modules/) | One directory per navigation module (screen, locales, public index) |
 
 </details>
 
