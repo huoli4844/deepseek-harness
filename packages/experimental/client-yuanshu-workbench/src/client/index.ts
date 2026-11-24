@@ -10,10 +10,10 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { createElement, Fragment } from 'react'
-import { Workbench, WorkbenchIcon } from './Workbench.tsx'
-import { loadOemBrand, OemBrandMark, OemBrandName, PRODUCT_TITLE_EVENT } from './OemBrand.tsx'
-import { createWorkbenchStore } from './model.ts'
-import { en, zh } from './locales.ts'
+import { Workbench, WorkbenchIcon } from './app/Workbench.tsx'
+import { loadOemBrand, OemBrandMark, OemBrandName, PRODUCT_TITLE_EVENT } from './app/OemBrand.tsx'
+import { createWorkbenchStore } from './core/model.ts'
+import { en, zh } from './core/locales/locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {

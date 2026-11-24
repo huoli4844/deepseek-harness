@@ -1,11 +1,11 @@
 /** Draft snapshots and shared collaboration state remain browser-local demonstration data. */
 import { describe, expect, it } from 'vitest'
-import { createWorkbenchStore } from '../src/client/model.ts'
-import { dailyWorkForRole, positionScenarios, workItemForScenario, workItemsForRole } from '../src/client/scenario-data.ts'
-import { roleIds, roleFixtures } from '../src/client/fixtures.ts'
-import { roleMethods } from '../src/client/methodology-data.ts'
-import { prioritiesForRole, priorityItems } from '../src/client/priorities-data.ts'
-import { projectSchedule } from '../src/client/project-operations.ts'
+import { createWorkbenchStore } from '../src/client/core/model.ts'
+import { dailyWorkForRole, positionScenarios, workItemForScenario, workItemsForRole } from '../src/client/core/data/scenario-data.ts'
+import { roleIds, roleFixtures } from '../src/client/core/fixtures.ts'
+import { roleMethods } from '../src/client/core/data/methodology-data.ts'
+import { prioritiesForRole, priorityItems } from '../src/client/core/data/priorities-data.ts'
+import { projectSchedule } from '../src/client/core/data/project-operations.ts'
 
 describe('workbench demonstration state', () => {
   it('calculates delivery delay along the longest dependency chain and preserves parallel float', () => {

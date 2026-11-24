@@ -49,12 +49,16 @@ export interface IdentityFallback {
   readonly user: boolean
   readonly profile: boolean
   readonly laborHours: boolean
+  /** 工作台岗位接口是否缺失。 */
+  readonly position: boolean
 }
 
 /** 数据层产出、尚未解释的身份快照。 */
 export interface RawIdentity {
   readonly user: RawUser | undefined
   readonly profile: Record<string, unknown> | undefined
+  /** 工作台岗位名称（如「采购」），来自 `/apps/shaoshi/workbench/position`。 */
+  readonly position: string | undefined
   readonly laborHours: readonly RawLaborRow[] | undefined
   readonly fallback: IdentityFallback
   readonly fetchedAt: number | undefined
@@ -64,8 +68,9 @@ export interface RawIdentity {
 export const EMPTY_IDENTITY: RawIdentity = {
   user: undefined,
   profile: undefined,
+  position: undefined,
   laborHours: undefined,
-  fallback: { user: false, profile: false, laborHours: false },
+  fallback: { user: false, profile: false, laborHours: false, position: false },
   fetchedAt: undefined,
 }
 
@@ -86,6 +91,8 @@ export interface IdentityUserModel {
   /** 无头像接口时生成的蓝绿渐变色对。 */
   readonly gradient: readonly [string, string]
   readonly tier: IdentityFieldTier
+  /** 「部门 · 岗位」摘要行；两者皆缺时为空串（徽章不渲染该行）。 */
+  readonly orgText: string
 }
 
 /** 个人资料中的一行。 */

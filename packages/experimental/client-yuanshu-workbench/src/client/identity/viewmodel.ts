@@ -55,6 +55,9 @@ function buildUser(raw: RawIdentity): IdentityUserModel {
   const displayName = raw.user?.nickname ?? ''
   const roles = raw.user?.roles.map(role => role.name).filter(name => name !== '') ?? []
   const tier: IdentityFieldTier = fallback ? 'demo' : 'live'
+  // 「部门 · 岗位」摘要：部门来自档案，岗位来自工作台岗位接口；两者任一缺失就只显示另一个。
+  const department = typeof raw.profile?.department === 'string' ? raw.profile.department : undefined
+  const orgParts = [department, raw.position].filter(part => part !== undefined && part !== '')
   return {
     displayName,
     initials: initialsOf(displayName),
@@ -64,6 +67,7 @@ function buildUser(raw: RawIdentity): IdentityUserModel {
     avatarUrl: raw.user?.avatarUrl,
     gradient: gradientOf(displayName),
     tier,
+    orgText: orgParts.join(' · '),
   }
 }
 

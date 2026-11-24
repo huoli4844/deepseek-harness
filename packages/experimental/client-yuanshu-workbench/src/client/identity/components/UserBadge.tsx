@@ -8,7 +8,7 @@ import type { IdentityT } from './ProfileScreen.tsx'
 import css from '../identity.module.css'
 
 /**
- * 渲染当前登录用户摘要（仅头像与姓名，不显示 ID 与角色）。
+ * 渲染当前登录用户摘要：头像 + 姓名，第二行小字显示「部门 · 岗位」。
  * @param props.user - 视图模型中的用户展示数据。
  * @param props.t - 命名空间翻译函数。
  */
@@ -19,6 +19,9 @@ export function UserBadge({ user, t }: {
   const name = user.displayName || t('profile.value.unknown')
   return <div className={css.userBadge} aria-label={name}>
     <Avatar model={user} size={24} />
-    <strong className={css.userName}>{name}</strong>
+    <span className={css.userText}>
+      <strong className={css.userName}>{name}</strong>
+      {user.orgText !== '' && <small className={css.userOrg}>{user.orgText}</small>}
+    </span>
   </div>
 }

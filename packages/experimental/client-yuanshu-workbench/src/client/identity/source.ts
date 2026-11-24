@@ -13,6 +13,7 @@ import { EMPTY_IDENTITY } from './model.ts'
 const ROUTES = {
   me: '/yuanshu-workbench/identity/me',
   profile: '/yuanshu-workbench/identity/profile',
+  position: '/yuanshu-workbench/identity/position',
   laborHours: '/yuanshu-workbench/identity/labor-hours',
 } as const
 
@@ -98,6 +99,28 @@ export function parseProfile(body: unknown): Record<string, unknown> | undefined
   return supervisor === undefined ? data : { ...data, supervisor }
 }
 
+/** 宽松解析工作台岗位响应（`{data:{title:'采购',...}}`）。 */
+export function parsePosition(body: unknown): string | undefined {
+  const data = record(record(body)?.data)
+  if (data === undefined) return undefined
+  return text(data.title) ?? text(data.position) ?? text(data.name)
+}
+
+/**
+ * 归一化档案字段：后台可能返回嵌套对象（如 `department:{name}`）或历史扁平字符串。
+ * 嵌套对象按 `name` → `title` → `code` 顺序展平，保证视图模型始终拿到字符串。
+ */
+export function normalizeProfile(raw: Record<string, unknown>): Record<string, unknown> {
+  const flattened: Record<string, unknown> = { ...raw }
+  for (const key of ['department', 'position'] as const) {
+    const nested = record(raw[key])
+    if (nested === undefined) continue
+    const name = text(nested.name) ?? text(nested.title) ?? text(nested.code)
+    if (name !== undefined) flattened[key] = name
+  }
+  return flattened
+}
+
 /** 从多种响应形态中取出工时数组。 */
 function laborRows(value: unknown): readonly unknown[] | undefined {
   if (Array.isArray(value)) return value as readonly unknown[]
@@ -150,24 +173,29 @@ async function get(path: string, signal: AbortSignal): Promise<unknown> {
 export function createLiveIdentitySource(): IdentitySource {
   return {
     async load(signal: AbortSignal): Promise<RawIdentity> {
-      const [meBody, profileBody, laborBody] = await Promise.all([
+      const [meBody, profileBody, positionBody, laborBody] = await Promise.all([
         get(ROUTES.me, signal).catch(() => undefined),
         get(ROUTES.profile, signal).catch(() => undefined),
+        get(ROUTES.position, signal).catch(() => undefined),
         get(ROUTES.laborHours, signal).catch(() => undefined),
       ])
       const user = parseMe(meBody)
-      const profile = parseProfile(profileBody)
+      const profileRaw = parseProfile(profileBody)
+      const profile = profileRaw === undefined ? undefined : normalizeProfile(profileRaw)
+      const position = parsePosition(positionBody)
       const laborHours = parseLaborHours(laborBody)
-      const fetchedAt = user !== undefined || profile !== undefined || laborHours !== undefined
+      const fetchedAt = user !== undefined || profile !== undefined || position !== undefined || laborHours !== undefined
         ? Date.now()
         : undefined
       return {
         user: user ?? DEMO_USER,
         profile: profile ?? DEMO_PROFILE,
+        position: position ?? DEMO_PROFILE.position,
         laborHours: laborHours ?? DEMO_LABOR,
         fallback: {
           user: user === undefined,
           profile: profile === undefined,
+          position: position === undefined,
           laborHours: laborHours === undefined,
         },
         fetchedAt,

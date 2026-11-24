@@ -1,0 +1,606 @@
+/** 工程日历样式：页头 / 主区（月·周·年网格）+ 右侧栏（当天安排、我的日历）/ 编辑弹窗。
+ *  主体始终保持左右两栏（左日历、右侧栏）；尺寸自适应基于容器查询（container query）：
+ *  跟随日历所在内容区的实际宽度变化，而不是整个窗口宽度——工作台左侧有导航栏，窗口宽 ≠ 内容区宽。 */
+
+.screen {
+  container-type: inline-size;
+  container-name: calendar;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 页头：标题在左，视角切换 + 新建在右。 */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 主体两栏：左日历、右侧栏；始终保持左右布局，侧栏宽度随容器伸缩（cqw = 容器宽的 1%）。 */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(200px, 21cqw, 300px);
+  gap: 16px;
+  align-items: start;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navArrow {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.navArrow:hover {
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.periodTitle {
+  margin: 0;
+  font-size: 17px;
+}
+
+.viewButton,
+.viewButtonActive {
+  padding: 6px 14px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.viewButtonActive {
+  border-color: var(--dsw-alias-bg-brand-strong);
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+  font-weight: 600;
+}
+
+.summary {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 月视图网格：7 列强制等分（minmax(0,1fr) 防止 nowrap 事项条把列撑出容器、
+ * 与右侧栏重叠），格内超出的文字以省略号截断；每个日期格独立外框。 */
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.weekday {
+  padding: 8px 4px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+}
+
+.dayCell {
+  /* 单元格高度随容器宽度伸缩：宽屏更高（最多 104px），窄屏压缩（最低 64px）。 */
+  min-height: clamp(64px, 8cqw, 104px);
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.dayOutside {
+  opacity: 0.45;
+}
+
+.daySelected {
+  border-color: var(--dsw-alias-bg-brand-strong);
+  background: var(--dsw-alias-bg-brand-subtlest);
+}
+
+.dayToday .dayNumber {
+  background: var(--dsw-alias-bg-brand-strong);
+  color: var(--dsw-alias-label-invert, #fff);
+}
+
+.dayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dayNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dayAdd {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dayAdd:hover {
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+}
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+}
+
+.chip {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  /* 允许在网格列内收缩：配合 span 的 ellipsis，超长标题截断而不是撑开布局。 */
+  min-width: 0;
+  width: 100%;
+  padding: 3px 6px;
+  border: none;
+  border-left: 2px solid var(--dsw-alias-bg-brand-strong);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-secondary);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip small {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.chipDone {
+  opacity: 0.55;
+}
+
+.chipDone span {
+  text-decoration: line-through;
+}
+
+.chipReal {
+  border-left-color: var(--dsw-alias-state-success-primary);
+  background: var(--dsw-alias-bg-success-subtlest);
+}
+
+.more {
+  font-size: 10px;
+  color: var(--dsw-alias-label-secondary);
+  padding-left: 6px;
+}
+
+/* 周视图：七天列（同样强制等分防溢出）。 */
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.weekColumn {
+  min-height: clamp(240px, 28cqw, 340px);
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.weekDayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* 年视图：12 个迷你月历。 */
+.yearGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.miniMonth {
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+}
+
+.miniTitle {
+  margin-bottom: 6px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.miniTitle:hover {
+  color: var(--dsw-alias-bg-brand-strong);
+}
+
+.miniGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.miniDay {
+  font-size: 10px;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.miniDayBusy {
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+  font-weight: 600;
+}
+
+.miniDayToday {
+  outline: 1px solid var(--dsw-alias-bg-brand-strong);
+}
+
+/* 右侧栏：当天安排 + 我的日历。 */
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.asideCard {
+  padding: 14px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asideCard h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.asideHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.asideDate {
+  display: block;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.asideHead h3 {
+  margin: 2px 0 0;
+}
+
+.asideAdd {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-secondary);
+  color: var(--dsw-alias-label-primary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.asideAdd:hover {
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+}
+
+.asideEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 0;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.asideEmpty span {
+  font-size: 16px;
+  letter-spacing: 4px;
+}
+
+.asideEmpty p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.planList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.planRow:hover {
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.planDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-brand-strong);
+}
+
+.planReadonly .planDot {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.planRow small {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.planTitleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planDone {
+  opacity: 0.55;
+}
+
+.planDone .planTitleText {
+  text-decoration: line-through;
+}
+
+/* 我的日历清单。 */
+.calList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.calDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.calDotProject {
+  background: var(--dsw-alias-bg-brand-strong);
+}
+
+.calDotReal {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.calTag {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+  font-size: 11px;
+}
+
+/* 窄容器紧凑模式：缩小字号与留白，避免月网格/周列溢出。 */
+@container calendar (max-width: 700px) {
+  .pageTitle {
+    font-size: 16px;
+  }
+
+  .periodTitle {
+    font-size: 15px;
+  }
+
+  .viewButton,
+  .viewButtonActive {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .weekday {
+    padding: 6px 2px;
+    font-size: 11px;
+  }
+
+  .dayCell {
+    padding: 5px;
+    gap: 3px;
+  }
+
+  .dayNumber {
+    min-width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .chip {
+    padding: 2px 4px;
+    font-size: 10px;
+  }
+
+  .weekColumn {
+    padding: 6px;
+  }
+
+  .asideCard {
+    padding: 12px;
+  }
+}
+
+/* 新增 / 编辑弹窗。 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.dialog {
+  width: min(420px, 92vw);
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-primary);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 24%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialog h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.formRowCheck {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.nativeInput {
+  padding: 7px 10px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-secondary);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

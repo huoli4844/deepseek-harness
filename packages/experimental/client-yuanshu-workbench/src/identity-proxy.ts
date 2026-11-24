@@ -34,6 +34,7 @@ function upstreamUrl(incoming: ProxyRequest, api: string): URL | undefined {
   const endpoint = url.pathname.slice('/yuanshu-workbench/identity/'.length)
   if (endpoint === 'me') return new URL(`${api}/api/v1/user/me`)
   if (endpoint === 'profile') return new URL(`${api}/api/v1/apps/shaoshi/workbench/profile`)
+  if (endpoint === 'position') return new URL(`${api}/api/v1/apps/shaoshi/workbench/position`)
   if (endpoint === 'labor-hours') {
     const code = url.searchParams.get('code') ?? DEFAULT_PROJECT_CODE
     if (!PROJECT_CODE.test(code)) return undefined

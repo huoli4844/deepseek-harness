@@ -31,7 +31,7 @@
   object-fit: cover;
 }
 
-/* 侧栏左下角当前用户：紧凑单行（头像 + 姓名）。 */
+/* 侧栏左下角当前用户：紧凑两行（头像 + 姓名 / 部门·岗位）。 */
 .userBadge {
   display: flex;
   align-items: center;
@@ -40,10 +40,27 @@
   padding: 0;
 }
 
+.userText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
 .userName {
   overflow: hidden;
   font-size: 12px;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 部门 · 岗位摘要：弱化小字，与姓名同宽截断。 */
+.userOrg {
+  overflow: hidden;
+  color: var(--dsw-alias-text-tertiary, inherit);
+  font-size: 11px;
+  opacity: 0.75;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

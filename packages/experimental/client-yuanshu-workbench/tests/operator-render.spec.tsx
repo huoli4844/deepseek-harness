@@ -3,7 +3,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { OperatorWorkbench } from '../src/client/operator/index.ts'
-import { zh } from '../src/client/locales.ts'
+import { zh } from '../src/client/core/locales/locales.ts'
 import type { ProjectionSource } from '../src/client/operator/source.ts'
 import { EMPTY_PROJECTIONS, type RawProjections } from '../src/client/operator/source.ts'
 import type { OperatorScreenId } from '../src/client/operator/index.ts'

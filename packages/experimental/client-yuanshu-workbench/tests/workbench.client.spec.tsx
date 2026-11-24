@@ -7,12 +7,12 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { apply, inject } from '../src/client/index.ts'
-import { roleMethods } from '../src/client/methodology-data.ts'
-import { createWorkbenchStore } from '../src/client/model.ts'
-import { roleFixtures, roleIds, taskTitles } from '../src/client/fixtures.ts'
-import { positionScenarios } from '../src/client/scenario-data.ts'
-import { prioritiesForRole } from '../src/client/priorities-data.ts'
-import { zh } from '../src/client/locales.ts'
+import { roleMethods } from '../src/client/core/data/methodology-data.ts'
+import { createWorkbenchStore } from '../src/client/core/model.ts'
+import { roleFixtures, roleIds, taskTitles } from '../src/client/core/fixtures.ts'
+import { positionScenarios } from '../src/client/core/data/scenario-data.ts'
+import { prioritiesForRole } from '../src/client/core/data/priorities-data.ts'
+import { zh } from '../src/client/core/locales/locales.ts'
 
 usePinnedBrowserLanguages('zh-CN')
 const runtimes = new Set<SlotTestRuntime>()

@@ -4,7 +4,7 @@ import { afterEach, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { Avatar, ProfileScreen, UserBadge, buildIdentityViewModel } from '../src/client/identity/index.ts'
 import type { RawIdentity } from '../src/client/identity/model.ts'
-import { zh } from '../src/client/locales.ts'
+import { zh } from '../src/client/core/locales/locales.ts'
 
 afterEach(() => { cleanup() })
 
