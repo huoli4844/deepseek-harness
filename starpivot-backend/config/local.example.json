@@ -1,0 +1,7 @@
+{
+  "address": "127.0.0.1:3081",
+  "database_url": "postgres://<用户名>:<密码>@<数据库地址>:5432/<数据库名>?sslmode=disable",
+  "gateway_key": "替换为32字节的网关密钥",
+  "database_ssl_mode": "disable",
+  "temporary_read_tenant_id": 0
+}

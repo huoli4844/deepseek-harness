@@ -1,0 +1,6 @@
+/database.txt
+/.env
+/database/*.json
+/.local/
+/config/local.json
+/config/local-backup.json
