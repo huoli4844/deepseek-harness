@@ -22,6 +22,15 @@ import { filesEn, filesZh } from '../../modules/files/files-locales.ts'
 import { prioritiesEn, prioritiesZh } from '../../modules/priorities/priorities-locales.ts'
 import { projectOpsEn, projectOpsZh } from '../../modules/project-ops/project-ops-locales.ts'
 import { managementEn, managementZh } from './management-locales.ts'
+import { customerResourcesEn, customerResourcesZh } from '../../modules/business-modules/customer-resources-locales.ts'
+import { supplierManagementEn, supplierManagementZh } from '../../modules/business-modules/supplier-management-locales.ts'
+import { recordListEn, recordListZh } from '../../modules/business-modules/record-list-locales.ts'
+import { materialEn, materialZh } from '../../modules/business-modules/material-locales.ts'
+import { equipmentEn, equipmentZh } from '../../modules/business-modules/equipment-locales.ts'
+import { contractEn, contractZh } from '../../modules/business-modules/contract-locales.ts'
+import { registrationEn, registrationZh } from '../../modules/business-modules/project-registration-locales.ts'
+import { weeklyItemsEn, weeklyItemsZh } from '../../modules/business-modules/weekly-items-locales.ts'
+import { organizationEn, organizationZh } from '../../modules/business-modules/organization-locales.ts'
 
 /** English workbench labels and shared chart vocabulary. */
 export const en = {
@@ -39,6 +48,15 @@ export const en = {
   ...prioritiesEn,
   ...projectOpsEn,
   ...managementEn,
+  ...customerResourcesEn,
+  ...supplierManagementEn,
+  ...recordListEn,
+  ...materialEn,
+  ...equipmentEn,
+  ...contractEn,
+  ...registrationEn,
+  ...weeklyItemsEn,
+  ...organizationEn,
   ...dashboardEn,
   ...methodologyEn,
   ...positionOperationsEn,
@@ -65,6 +83,15 @@ export const zh: Record<keyof typeof en, string> = {
   ...prioritiesZh,
   ...projectOpsZh,
   ...managementZh,
+  ...customerResourcesZh,
+  ...supplierManagementZh,
+  ...recordListZh,
+  ...materialZh,
+  ...equipmentZh,
+  ...contractZh,
+  ...registrationZh,
+  ...weeklyItemsZh,
+  ...organizationZh,
   ...dashboardZh,
   ...methodologyZh,
   ...positionOperationsZh,

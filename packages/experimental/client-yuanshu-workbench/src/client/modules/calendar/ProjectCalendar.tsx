@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Checkbox, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { taskTitles } from '../../core/fixtures.ts'
 import type { TaskId } from '../../core/model.ts'
 import { createCalendarEvent, fetchCalendarEvents, fetchDefaultCalendarId } from './calendar-api.ts'
@@ -169,6 +169,18 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
 
   const allItems = useMemo(() => [...realItems, ...items], [realItems, items])
 
+  // 「我的日历」来源筛选：与我相关的（本地个人事项）/ 项目日历（关联项目任务）/ 元枢同步日程。
+  const [calMine, setCalMine] = useState(true)
+  const [calProject, setCalProject] = useState(true)
+  const [calReal, setCalReal] = useState(true)
+
+  /** 按右侧复选框过滤后展示的事项。 */
+  const isVisible = (item: CalendarItem): boolean =>
+    (item.readonly && calReal)
+    || (!item.readonly && calMine)
+    || (!item.readonly && item.taskId !== undefined && calProject)
+  const visibleItems = useMemo(() => allItems.filter(isVisible), [allItems, calMine, calProject, calReal])
+
   /** 按日历视图平移锚点（月 / 年）。 */
   const shift = (direction: 1 | -1) => {
     const next = new Date(anchor)
@@ -259,7 +271,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
 
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarItem[]>()
-    for (const item of allItems) {
+    for (const item of visibleItems) {
       const list = map.get(item.date) ?? []
       map.set(item.date, [...list, item])
     }
@@ -267,7 +279,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
       list.sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))
     }
     return map
-  }, [allItems])
+  }, [visibleItems])
 
   const todayIso = isoOf(today)
   // 右侧「当天安排」聚焦的日期（默认今天；点击日历格切换）。
@@ -278,7 +290,7 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
     ? t('calendar.periodTitle', { year: String(anchor.getFullYear()), month: String(anchor.getMonth() + 1) })
     : t('calendar.yearTitle', { year: String(anchor.getFullYear()) })
 
-  const doneCount = items.filter(item => item.status === 'completed').length
+  const doneCount = visibleItems.filter(item => item.status === 'completed').length
 
   /** 渲染单日的事项 chips。 */
   const renderChips = (iso: string, compact: boolean) => {
@@ -340,8 +352,9 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
           {Array.from({ length: 7 }, (_, index) => (
             <div key={`wd-${index}`} className={css.weekday}>{t(WEEKDAYS[index] ?? 'week.0')}</div>
           ))}
-          {monthCells.map(cell => (
-            <div
+          {monthCells.map((cell) => {
+            const dayItems = itemsByDate.get(cell.iso) ?? []
+            return <div
               key={cell.iso}
               className={[
                 css.dayCell,
@@ -365,8 +378,19 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
                 >+</button>
               </div>
               <div className={css.chipList}>{renderChips(cell.iso, false)}</div>
+              {/* 悬停 tooltip：鼠标移入日期格时展示当天事项完整列表，移走即消失（pointer-events 穿透不挡点击）。 */}
+              {dayItems.length > 0 && <div className={css.dayTooltip} aria-hidden>
+                <div className={css.dayTooltipHead}>{cell.iso}</div>
+                <ul className={css.dayTooltipList}>
+                  {dayItems.map(item => <li key={item.id}>
+                    <span className={`${css.planDot} ${css[`dot${item.status.charAt(0).toUpperCase()}${item.status.slice(1)}`] ?? ''}`} aria-hidden />
+                    {item.time !== undefined && <small>{item.time}</small>}
+                    <span>{item.title}</span>
+                  </li>)}
+                </ul>
+              </div>}
             </div>
-          ))}
+          })}
         </div>}
 
         {/* 年视图：12 个迷你月历。 */}
@@ -439,18 +463,12 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
 
         <section className={css.asideCard} aria-label={t('calendar.myCalendars')}>
           <h3>{t('calendar.myCalendars')}</h3>
-          <ul className={css.calList}>
-            <li>
-              <span className={`${css.calDot} ${css.calDotProject}`} aria-hidden />
-              <span>{t('calendar.calProject')}</span>
-              <span className={css.calTag}>{t('calendar.defaultTag')}</span>
-            </li>
-            {realItems.length > 0 && <li>
-              <span className={`${css.calDot} ${css.calDotReal}`} aria-hidden />
-              <span>{t('calendar.calReal')}</span>
-            </li>}
-          </ul>
-          <p className={css.summary}>{t('calendar.summary', { total: String(allItems.length), done: String(doneCount) })}</p>
+          <div className={css.calChecks}>
+            <Checkbox checked={calMine} onChange={setCalMine} label={t('calendar.calMine')} />
+            <Checkbox checked={calProject} onChange={setCalProject} label={t('calendar.calProjectCal')} />
+            <Checkbox checked={calReal} onChange={setCalReal} label={t('calendar.calReal')} />
+          </div>
+          <p className={css.summary}>{t('calendar.summary', { total: String(visibleItems.length), done: String(doneCount) })}</p>
         </section>
       </aside>
     </div>

@@ -64,7 +64,7 @@ it('presents all 18 positions and company management with shared navigation and 
     const value = option.getAttribute('value')
     const role = roleIds.find(id => id === value)
     if (role === undefined) throw new Error('each position option must have a known id')
-    fireEvent.click(within(dialog).getByRole('button', { name: '待办事项' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /^待办事项[0-9]*$/ }))
     const scenes = openKpiScenarios()
     fireEvent.click(within(dialog).getByText('常用工作场景', { selector: 'summary' }))
     const dailyWork = within(dialog).getByRole('region', { name: '常用工作场景' })
@@ -76,7 +76,7 @@ it('presents all 18 positions and company management with shared navigation and 
     expect(sopFlows).toHaveLength(3)
     for (const flow of sopFlows) expect(within(flow).getAllByRole('listitem')).toHaveLength(4)
     expect(prioritiesForRole(role).length).toBeGreaterThan(0)
-    fireEvent.click(within(dialog).getByRole('button', { name: '待办事项' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /^待办事项[0-9]*$/ }))
     for (const scenario of positionScenarios[role]) {
       if (scenario === undefined) throw new Error('each position must have a KPI scenario')
       const scenarioButtons = within(openKpiScenarios()).getAllByRole('button', { name: /^让助理带我处理/ })
@@ -86,7 +86,7 @@ it('presents all 18 positions and company management with shared navigation and 
         `${zh[`${role}.metric${scenario.kpiIndex + 1}` as keyof typeof zh]} · ${roleFixtures[role].metrics[scenario.kpiIndex]}`,
       )).toBeDefined()
       expect(within(dialog).getByRole('heading', { name: '候选修改 · 尚未写入草稿' })).toBeDefined()
-      fireEvent.click(within(dialog).getByRole('button', { name: '待办事项' }))
+      fireEvent.click(within(dialog).getByRole('button', { name: /^待办事项[0-9]*$/ }))
     }
     fireEvent.click(within(dialog).getByRole('button', { name: '岗位工作台' }))
     expect(dialog.querySelectorAll('[data-dashboard-chart]')).toHaveLength(
@@ -120,6 +120,43 @@ it('presents all 18 positions and company management with shared navigation and 
     views.push({ position: option.textContent, dashboard, tasks })
   }
   expect(views).toMatchSnapshot()
+})
+
+it('shows every business module in the project position view', async () => {
+  await bench()
+  const dialog = screen.getByRole('dialog', { name: '元枢工作台' })
+  fireEvent.change(within(dialog).getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'project' } })
+  const navigation = within(dialog).getByRole('navigation')
+  const parentMenu = within(navigation).getByRole('button', { name: '岗位运营' })
+  expect(parentMenu.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(parentMenu)
+  expect(parentMenu.getAttribute('aria-expanded')).toBe('false')
+  expect(within(navigation).queryByRole('button', { name: '客户资源' })).toBeNull()
+  fireEvent.click(parentMenu)
+  expect(parentMenu.getAttribute('aria-expanded')).toBe('true')
+
+  for (const label of ['客户资源', '物料管理', '供应商管理', '设备台账', '合同管理', '预算与成本', '工时填报', '周报管理/登记']) {
+    expect(within(navigation).getByText(label)).toBeDefined()
+    fireEvent.click(within(navigation).getByRole('button', { name: label }))
+    const search = new Map([['客户资源', '搜索客户'], ['供应商管理', '搜索供应商'], ['物料管理', '物料筛选'], ['合同管理', '合同筛选']]).get(label)
+    if (search !== undefined) {
+      expect(within(dialog).getByRole('form', { name: search })).toBeDefined()
+      expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
+    } else if (label === '工时填报') {
+      expect(within(dialog).getByRole('button', { name: '上一周' })).toBeDefined()
+      expect(within(dialog).getAllByRole('combobox', { name: '项目' })).toHaveLength(7)
+      expect(within(dialog).getAllByRole('combobox', { name: '完成状态' })).toHaveLength(7)
+      expect(within(dialog).getAllByRole('button', { name: '添加项目' })).toHaveLength(7)
+      expect(within(dialog).getByText('本周工时汇总')).toBeDefined()
+      expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
+    } else if (label === '周报管理/登记') {
+      expect(within(dialog).getByLabelText('月份')).toBeDefined()
+      expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
+    } else {
+      expect(within(dialog).getByRole('heading', { name: label })).toBeDefined()
+    }
+  }
+  expect(within(dialog).getByRole('combobox', { name: '周次' })).toBeDefined()
 })
 
 it('keeps saved work when an older browser record lacks new fields', () => {
@@ -206,7 +243,7 @@ it('separates the position inbox from role switching and position data', async (
   const inbox = screen.getByRole('region', { name: '建议优先处理' })
   expect(within(inbox).getByText('采购订单 PO-2611-048 · 供应商交期回执')).toBeDefined()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: 'quality' } })
-  fireEvent.click(screen.getByRole('button', { name: '待办事项' }))
+  fireEvent.click(screen.getByRole('button', { name: /^待办事项[0-9]*$/ }))
   // 页面标题区已移除：断言工作首页的「其他待处理事项」收件箱区块正常渲染。
   expect(screen.getByRole('region', { name: '其他待处理事项' })).toBeDefined()
 })
@@ -328,7 +365,7 @@ it('requires a recorded result before completing a reviewed work item', async ()
   expect(complete).toHaveProperty('disabled', false)
   fireEvent.click(complete)
   expect(screen.getAllByText('结果已记录在本地原型中。').length).toBeGreaterThan(0)
-  fireEvent.click(screen.getByRole('button', { name: '待办事项' }))
+  fireEvent.click(screen.getByRole('button', { name: /^待办事项[0-9]*$/ }))
   const inbox = screen.getByRole('region', { name: '其他待处理事项' })
   expect(within(inbox).queryByRole('heading', { name: 'PCBA 来料异常处置' })).toBeNull()
   fireEvent.click(screen.getByText(/^等待协作与已完成/, { selector: 'summary' }))
@@ -344,7 +381,7 @@ it('resumes a scene from its saved step and handoff note', async () => {
   fireEvent.change(screen.getByRole('textbox', { name: '交接摘要' }), {
     target: { value: '供应商交期仍未确认，下一步核对新版发运记录。' },
   })
-  fireEvent.click(screen.getByRole('button', { name: '待办事项' }))
+  fireEvent.click(screen.getByRole('button', { name: /^待办事项[0-9]*$/ }))
   const resume = screen.getByRole('region', { name: '其他待处理事项' })
   expect(within(resume).getByText('供应商交期仍未确认，下一步核对新版发运记录。')).toBeDefined()
   fireEvent.click(within(resume).getByRole('button', { name: /PCBA 来料异常处置/ }))

@@ -132,6 +132,8 @@
   flex-direction: column;
   gap: 4px;
   cursor: pointer;
+  /* 悬停 tooltip 的定位锚点。 */
+  position: relative;
 }
 
 .dayOutside {
@@ -260,6 +262,70 @@
   font-size: 10px;
   color: var(--dsw-alias-label-secondary);
   padding-left: 6px;
+}
+
+/* 日期格悬停 tooltip：移入显示当天事项完整列表，移走即消失。 */
+.dayTooltip {
+  display: none;
+  position: absolute;
+  /* 显示在格子上方（bottom 锚定顶边），避免向下遮挡后续行。 */
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 190px;
+  max-width: 280px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+  box-shadow: 0 6px 18px color-mix(in srgb, #000 22%, transparent);
+  pointer-events: none;
+  font-size: 11px;
+}
+
+.dayCell:hover .dayTooltip {
+  display: block;
+}
+
+/* 右侧两列的格子：tooltip 改为右对齐，避免溢出画布。 */
+.monthGrid > .dayCell:nth-child(7n) .dayTooltip,
+.monthGrid > .dayCell:nth-child(7n + 6) .dayTooltip {
+  left: auto;
+  right: 0;
+}
+
+.dayTooltipHead {
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 600;
+}
+
+.dayTooltipList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dayTooltipList li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dayTooltipList small {
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dayTooltipList li > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 年视图：12 个迷你月历。 */
@@ -471,45 +537,12 @@
   background: var(--dsw-alias-state-info-primary);
 }
 
-/* 我的日历清单。 */
-.calList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* 我的日历清单：来源复选框（与我相关的 / 项目日历 / 元枢同步日程）。 */
+.calChecks {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.calList li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 13px;
-}
-
-.calDot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-
-.calDotProject {
-  background: var(--dsw-alias-bg-brand-strong);
-}
-
-.calDotReal {
-  background: var(--dsw-alias-state-success-primary);
-}
-
-.calTag {
-  margin-left: auto;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--dsw-alias-bg-brand-subtlest);
-  color: var(--dsw-alias-bg-brand-strong);
-  font-size: 11px;
 }
 
 /* 窄容器紧凑模式：缩小字号与留白，避免月网格/周列溢出。 */

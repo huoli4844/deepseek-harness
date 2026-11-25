@@ -31,7 +31,7 @@ Set `mcp.url` and `mcp.clientId` on the `yuanshu-workbench` plugin row for a sin
 
 For the source checkout, copy the root `.env.example` to `.env`. Leave `YUANSHU_MCP_TARGET=local` for the local server. Set `YUANSHU_MCP_TARGET=remote` and provide `YUANSHU_REMOTE_API_URL` and `YUANSHU_REMOTE_MCP_URL` to use a remote deployment. The Web login server and the workbench MCP client read the same selection. `YUANSHU_MCP_STARTUP_TIMEOUT_MS` limits each MCP connection attempt and initial tool discovery independently of API and tool-call requests; it defaults to `30000` ms, while `requestTimeoutMs` defaults to `90000` ms.
 
-In connected mode, Today’s work, Position dashboard, Project operations, Business priorities, and Work methods continue to use the employee MCP projection. My tasks and Calendar read and write the personal task, calendar, and event REST resources through the Host proxy. Workgroups, notifications, and files show a missing source message until a platform data source is connected.
+In connected mode, Today’s work, Position dashboard, Project operations, Business priorities, and Work methods continue to use the employee MCP projection. My tasks and Calendar read and write the personal task, calendar, and event REST resources through the Host proxy. Notifications are merged into the To-dos page. Workgroups and files show a missing source message until a platform data source is connected.
 
 ### Preview from this checkout
 
@@ -45,6 +45,12 @@ pnpm dsh web
 Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **Today’s work**, with only its own navigation and content visible. The page surfaces the next action and its reason for the selected role; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
 ### What you can try
+
+In Time entry, select a project to view and submit work hours. In Weekly report registration, select a project and a Beijing calendar week, save a draft, and submit it to lock the report. The approved-hours summary links to the selected project's time entries for that week. Saving and submitting require a trusted YuanShu gateway identity. The weekly report service also requires the database migration.
+
+The Customer resources and Supplier management tables keep row actions fixed on the right during horizontal scrolling. Their audit timestamps are displayed in Beijing time (`Asia/Shanghai`).
+
+Submit customer or supplier search filters to query the business backend. Choose a supplier category from the current tenant's categories. Click a data column header to sort the full result set before pagination. The archive total sits before the pagination controls, which show the matching page count. In a desktop development run, request diagnostics go to the launcher log.
 
 In the project operations view, expand ECN-204 and select **Prepare DSH analysis draft**. DSH adds the demo evidence and your constraints to the current or most recent workspace’s new conversation draft. Review it before sending. Once sent, the standard DSH session tracks any native Subagents it starts.
 

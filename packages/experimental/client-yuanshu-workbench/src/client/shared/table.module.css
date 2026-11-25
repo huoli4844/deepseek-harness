@@ -1,0 +1,120 @@
+/** 工作台数据表格的共用样式，不包含业务字段或交互逻辑。 */
+.tableWrap {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: auto;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+.table th {
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table tbody tr:hover {
+  background: var(--dsw-alias-bg-layer-2);
+}
+.wideTable {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table .actionCell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  min-width: 88px;
+  text-align: center;
+  white-space: nowrap;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: -5px 0 8px -7px var(--dsw-alias-label-secondary);
+}
+.table thead .actionCell {
+  z-index: 2;
+  background: var(--dsw-alias-bg-layer-2);
+}
+.table tbody tr:hover .actionCell {
+  background: var(--dsw-alias-bg-layer-2);
+}
+.numericCell {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.archiveTable {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.archiveTable th {
+  position: relative;
+}
+.archiveStickyHeader th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.archiveStickyHeader thead .actionCell {
+  z-index: 3;
+}
+.archiveValue {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archiveSort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.archiveSort svg {
+  flex: none;
+}
+.archiveResize {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 1;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+.archiveResize::after {
+  position: absolute;
+  inset: 6px 2px 6px auto;
+  width: 1px;
+  background: var(--dsw-alias-border-l3);
+  content: '';
+}
+.archiveResize:hover::after,
+.archiveResize:focus-visible::after {
+  background: var(--dsw-alias-label-secondary);
+}

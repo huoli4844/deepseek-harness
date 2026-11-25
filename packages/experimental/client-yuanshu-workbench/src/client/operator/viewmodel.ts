@@ -14,6 +14,8 @@ import type {
   AttainmentTone,
   Availability,
   DecisionCenterModel,
+  DepartmentHealth,
+  DepartmentSuggestion,
   EvidenceScreenModel,
   Field,
   FunctionalScreenModel,
@@ -384,13 +386,62 @@ function panelDrillDown(panelId: string, values: readonly [string, string], proj
   }
 }
 
-/** 职能专题账本的静态定义。 */
-interface LedgerSpec {
+/** 职能专题的部门演示快照静态定义（类型化元组，map 后即为领域模型）。 */
+interface DepartmentSpec {
   readonly id: string
   readonly nameKey: OperatorLocaleKey
-  readonly table: string
-  readonly columns: readonly OperatorLocaleKey[]
+  readonly health: DepartmentHealth
+  /** 综合状态指标：[标签, 值]。 */
+  readonly metrics: readonly (readonly [string, string])[]
+  /** 优化建议：[优先级, 建议, 依据]。 */
+  readonly suggestions: readonly (readonly [DepartmentSuggestion['priority'], string, string])[]
 }
+
+/**
+ * 公司运营视角的职能部门演示快照：
+ * 综合状态（在岗 / 支撑项目 / 投入 / 风险计数）+ 优化调整建议。
+ */
+const DEPARTMENT_DEMO: readonly DepartmentSpec[] = [
+  {
+    id: 'dept-quality', nameKey: 'operator.dept.quality', health: 'watch',
+    metrics: [
+      ['在岗人数', '24 人'], ['支撑项目', '4 个'], ['本周投入', '412 工时'], ['开放异常', '2 项'],
+    ],
+    suggestions: [
+      ['high', '二期钢梁焊缝复检建议在 11-26 前闭环，临时增派 1 名检验员', '依据：复检已排队 3 天，逼近承诺交付窗口'],
+      ['medium', '来料检验抽检比例由 20% 提升至 30%', '依据：一次合格率 96.0%，低于 98% 目标线'],
+    ],
+  },
+  {
+    id: 'dept-supply', nameKey: 'operator.dept.supply', health: 'risk',
+    metrics: [
+      ['在岗人数', '16 人'], ['支撑项目', '4 个'], ['本周投入', '288 工时'], ['延迟订单', '1 单'],
+    ],
+    suggestions: [
+      ['high', '华南钢构 PO-1031 延迟单升级为风险，并同步启动备选供应商询价', '依据：延迟已拖累智能工厂二期阶段进度 5 天'],
+      ['medium', '长周期设备类采购设置 15 天到货预警', '依据：本季度 2 次延迟均发生在设备类订单'],
+    ],
+  },
+  {
+    id: 'dept-delivery', nameKey: 'operator.dept.delivery', health: 'good',
+    metrics: [
+      ['在岗人数', '31 人'], ['支撑项目', '3 个'], ['本周投入', '520 工时'], ['准时发运率', '90.1%'],
+    ],
+    suggestions: [
+      ['medium', '数据中心改造建议提前与客户锁定验收窗口', '依据：验收阶段进度 81%，剩余 3 项验收动作待排期'],
+    ],
+  },
+  {
+    id: 'dept-finance', nameKey: 'operator.dept.finance', health: 'watch',
+    metrics: [
+      ['在岗人数', '12 人'], ['支撑项目', '4 个'], ['本周投入', '168 工时'], ['待回款', '¥ 1,240 万'],
+    ],
+    suggestions: [
+      ['high', '智慧园区一期二阶段进度款（¥ 560 万）在决策会前完成放款资料复核', '依据：回款进度落后合同节点 12 天'],
+      ['low', '将月度资金例会与项目阶段门禁对齐', '依据：可减少跨部门对账往返 1 轮'],
+    ],
+  },
+]
 
 /** 公司级 KPI 卡片：数值随时间范围切换，目标为全年目标分解，完成率 = 当前值 / 目标值。 */
 const KPIS: readonly KpiSpec[] = [
@@ -508,46 +559,6 @@ const KPIS: readonly KpiSpec[] = [
       year: { value: 91.0, target: 95 },
       all: { value: 91.6 },
     },
-  },
-]
-
-/** 各职能账本的列名 key 与演示行。 */
-const LEDGER_SPECS: readonly (LedgerSpec & { readonly demoRows: readonly (readonly string[])[] })[] = [
-  {
-    id: 'quality', nameKey: 'operator.ledger.quality', table: SOURCE.inspections,
-    columns: ['operator.col.date', 'operator.col.object', 'operator.col.result', 'operator.col.owner'],
-    demoRows: [
-      ['2026-11-18', '一期幕墙铝材', '合格', '周伟'],
-      ['2026-11-20', '二期钢梁焊缝', '待复检', '李娜'],
-      ['2026-11-21', '数据中心机柜', '合格', '王强'],
-    ],
-  },
-  {
-    id: 'supply', nameKey: 'operator.ledger.supply', table: 'pur_purchase_orders',
-    columns: ['operator.col.order', 'operator.col.supplier', 'operator.col.amount', 'operator.col.status'],
-    demoRows: [
-      ['PO-1024', '华东建材', '¥ 86 万', '已下单'],
-      ['PO-1031', '华南钢构', '¥ 132 万', '延迟'],
-      ['PO-1042', '苏州机电', '¥ 45 万', '已到货'],
-    ],
-  },
-  {
-    id: 'delivery', nameKey: 'operator.ledger.delivery', table: SOURCE.shipments,
-    columns: ['operator.col.project', 'operator.col.commitDate', 'operator.col.status'],
-    demoRows: [
-      ['智慧园区一期', '2026-11-28', '按时'],
-      ['智能工厂二期', '2026-12-05', '风险'],
-      ['数据中心改造', '2026-11-30', '按时'],
-    ],
-  },
-  {
-    id: 'finance', nameKey: 'operator.ledger.finance', table: SOURCE.contracts,
-    columns: ['operator.col.contract', 'operator.col.amount', 'operator.col.status'],
-    demoRows: [
-      ['HT-2026-018', '¥ 1,860 万', '已回款 60%'],
-      ['HT-2026-022', '¥ 920 万', '已回款 35%'],
-      ['HT-2026-027', '¥ 480 万', '未回款'],
-    ],
   },
 ]
 
@@ -805,17 +816,18 @@ function buildProjectDetail(card: ProjectCardModel | undefined, cardIndex: numbe
   return { projectId: card.id, projectName: card.name, panels }
 }
 
-/** 构造职能专题账本（演示行）。 */
+/** 构造职能专题：部门综合状态 + 优化调整建议（演示）。 */
 function buildFunctional(): FunctionalScreenModel {
-  const ledgers = LEDGER_SPECS.map(spec => ({
+  const departments = DEPARTMENT_DEMO.map(spec => ({
     id: spec.id,
     nameKey: spec.nameKey,
-    table: spec.table,
-    columnKeys: spec.columns,
-    rows: spec.demoRows.map((row, rowIndex) =>
-      row.map(cell => demo(cell, `${spec.table}#${rowIndex}`))),
+    health: spec.health,
+    metrics: spec.metrics.map(([label, value]) => ({ label, value })),
+    suggestions: spec.suggestions.map(([priority, text, basis]) => ({
+      priority, text, basis,
+    })),
   }))
-  return { ledgers }
+  return { departments }
 }
 
 /** 构造证据链（演示摘要）。 */

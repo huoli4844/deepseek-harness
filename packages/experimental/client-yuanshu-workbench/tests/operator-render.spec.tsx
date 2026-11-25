@@ -104,7 +104,7 @@ it('renders every screen from the screen prop without an inner sidebar', async (
   const source = fakeSource(withRealBriefing())
   const cases: readonly [OperatorScreenId, string][] = [
     ['projects', '项目阶段'],
-    ['functional', '供应'],
+    ['functional', '部门综合状态'],
     ['evidence', '证据链'],
     ['decisions', '事件要素'],
   ]

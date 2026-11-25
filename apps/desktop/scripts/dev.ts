@@ -120,7 +120,8 @@ async function main(): Promise<void> {
     release,
     target: resolveDesktopBuildTarget(),
   })
-  await preparePrimaryRuntime()
+  // 开发启动复用未变更的运行时产物，避免每次重装重拷数百 MB；打包流程仍走完整装配。
+  await preparePrimaryRuntime({ reuse: true })
   await launchElectron()
 }
 

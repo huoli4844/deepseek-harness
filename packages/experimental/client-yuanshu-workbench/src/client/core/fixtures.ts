@@ -121,8 +121,15 @@ export const roleFixtures: Record<RoleId, RoleFixture> = {
     tasks: ['executive.0', 'executive.1', 'executive.2'],
   },
 }
-/** Every position exposes the same collaboration destinations. */
-export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team' | 'agent' | 'versions'>; readonly label: WorkbenchKey }[] = [
+/** 侧栏导航项可包含二级业务模块，子项仍由工作台统一路由。 */
+export interface NavigationItem {
+  readonly id: ViewId
+  readonly label: WorkbenchKey
+  readonly children?: readonly NavigationItem[]
+}
+
+/** 每个岗位都显示完整导航，业务模块挂在岗位运营下。 */
+export const navigation: readonly NavigationItem[] = [
   { id: 'operator-overview', label: 'operator.screen.overview' },
   { id: 'operator-decisions', label: 'operator.screen.decisions' },
   { id: 'operator-projects', label: 'operator.screen.projects' },
@@ -131,10 +138,23 @@ export const navigation: readonly { readonly id: Exclude<ViewId, 'work' | 'team'
   { id: 'assistant', label: 'nav.assistant' },
   { id: 'dashboard', label: 'nav.dashboard' },
   { id: 'project-operations', label: 'nav.projectOperations' },
-  { id: 'position-operations', label: 'nav.positionOperations' },
+  {
+    id: 'position-operations',
+    label: 'nav.positionOperations',
+    children: [
+      { id: 'customer-resources', label: 'position.module.customer' },
+      { id: 'material-management', label: 'position.module.material' },
+      { id: 'supplier-management', label: 'position.module.supplier' },
+      { id: 'equipment-ledger', label: 'position.module.equipment' },
+      { id: 'contract-management', label: 'position.module.contract' },
+      { id: 'budget-cost', label: 'position.module.budget' },
+      { id: 'work-hours', label: 'position.module.hours' },
+      { id: 'weekly-daily-reports', label: 'position.module.reports' },
+    ],
+  },
+  { id: 'organization', label: 'nav.organization' },
   { id: 'groups', label: 'nav.groups' },
   { id: 'calendar', label: 'nav.calendar' },
-  { id: 'notifications', label: 'nav.notifications' },
   { id: 'files', label: 'nav.files' },
   { id: 'profile', label: 'nav.profile' },
 ]

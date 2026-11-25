@@ -1,0 +1,13 @@
+/** 业务模块公共出口，工作台通过 ViewId 选择对应模块页面。 */
+export { accessRoleOf } from './access-role.ts'
+export type { AccessRole } from './access-role.ts'
+export { BusinessModuleScreen } from './BusinessModuleScreen.tsx'
+export { CustomerResourcesScreen } from './CustomerResourcesScreen.tsx'
+export { MaterialManagementScreen } from './MaterialManagementScreen.tsx'
+export { SupplierManagementScreen } from './SupplierManagementScreen.tsx'
+export { EquipmentLedgerScreen } from './EquipmentLedgerScreen.tsx'
+export { ContractManagementScreen } from './ContractManagementScreen.tsx'
+export { BudgetCostScreen } from './BudgetCostScreen.tsx'
+export { WorkHoursScreen } from './WorkHoursScreen.tsx'
+export { WeeklyDailyReportsScreen } from './WeeklyDailyReportsScreen.tsx'
+export { OrganizationScreen } from './OrganizationScreen.tsx'

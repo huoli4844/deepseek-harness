@@ -185,10 +185,12 @@ describe('SidebarRoot.module.css', () => {
     expect(declarations('.collapsed .newSession')?.get('width')).toBe('36px')
   })
 
-  it('keeps full-size brand artwork with a compact mark-to-name gap', () => {
+  it('保留图标尺寸和间距，并为两行品牌名称预留高度', () => {
     expect(declarations('.brandIdentity')?.get('gap')).toBe('5px')
-    expect(declarations('.brandIdentity')?.get('height')).toBe('24px')
-    expect(declarations('.brandName')?.get('height')).toBe('24px')
+    for (const selector of ['.brandIdentity', '.brandName']) {
+      expect(declarations(selector)?.get('min-height')).toBe('24px')
+      expect(declarations(selector)?.has('height')).toBe(false)
+    }
     expect(declarations('.brandName')?.get('line-height')).toBe('24px')
     expect(declarations('.brandName')?.get('font-size')).toBe('18px')
     expect(declarations('.fallbackBrandName')?.get('font-size')).toBe('17px')

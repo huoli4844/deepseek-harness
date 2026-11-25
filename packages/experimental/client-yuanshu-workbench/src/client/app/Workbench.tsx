@@ -38,7 +38,8 @@ import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SidebarPanelIconOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { RoleId, TaskId, WorkbenchStoreProps } from '../core/model.ts'
-import { isOperatorView } from '../core/model.ts'
+import { isOperatorView, NOTIFICATION_IDS } from '../core/model.ts'
+import { workbenchVersion } from '../workbench-config.ts'
 import type { WorkgroupKind } from '../core/data/workgroup-data.ts'
 import type { WorkbenchKey } from '../core/locales/locales.ts'
 import { navigation, roleFixtures, roleGroups, roleIds, taskTitles } from '../core/fixtures.ts'
@@ -50,7 +51,19 @@ import { projectActions, projectById } from '../core/data/project-operations.ts'
 import { WorkbenchPageContext, type WorkbenchPageApi } from './page-api.ts'
 import { OperatorWorkbench, screenOfView, viewOfScreen } from '../operator/index.ts'
 import { ProfileScreen, UserBadge, useIdentity } from '../identity/index.ts'
-import { PositionOperations } from '../modules/position-ops/PositionOperations.tsx'
+import { PositionOperations } from '../modules/position-ops/index.ts'
+import {
+  accessRoleOf,
+  BudgetCostScreen,
+  ContractManagementScreen,
+  CustomerResourcesScreen,
+  EquipmentLedgerScreen,
+  MaterialManagementScreen,
+  OrganizationScreen,
+  SupplierManagementScreen,
+  WeeklyDailyReportsScreen,
+  WorkHoursScreen,
+} from '../modules/business-modules/index.ts'
 import { positionSignals } from '../core/data/position-operations.ts'
 import css from './Workbench.module.css'
 
@@ -82,7 +95,7 @@ export function WorkbenchIcon(props: SidebarPanelIconOwnerProps) {
   return <IconLayersOutlineRegular size={props.size} />
 }
 
-const navIcons = {
+const navIcons: Record<string, typeof IconLayersOutlineRegular> = {
   'operator-overview': IconLayersOutlineRegular,
   'operator-decisions': IconArchiveOutlineRegular,
   'operator-projects': IconChecklistOutlineRegular,
@@ -95,11 +108,19 @@ const navIcons = {
   tasks: IconChecklistOutlineRegular,
   calendar: IconClockOutlineRegular,
   groups: IconNewChatOutlineRegular,
-  notifications: IconArchiveOutlineRegular,
   files: IconPaperclipOutlineRegular,
   methods: IconLayersOutlineRegular,
   'project-operations': IconChecklistOutlineRegular,
   'position-operations': IconChecklistOutlineRegular,
+  'customer-resources': IconLayersOutlineRegular,
+  'material-management': IconLayersOutlineRegular,
+  'supplier-management': IconLayersOutlineRegular,
+  'equipment-ledger': IconLayersOutlineRegular,
+  'contract-management': IconChecklistOutlineRegular,
+  'budget-cost': IconLayersOutlineRegular,
+  'work-hours': IconClockOutlineRegular,
+  'weekly-daily-reports': IconArchiveOutlineRegular,
+  organization: IconLayersOutlineRegular,
 }
 
 /**
@@ -114,11 +135,15 @@ export function Workbench(props: WorkbenchProps) {
   const liveHome = Object.getOwnPropertyDescriptor(globalThis, '__DSH_YUANSHU_HOME__')?.value === true
   // 当前登录用户与角色来自后台身份接口；本页只消费视图模型，不直接发请求。
   const identity = useIdentity()
+  // 视角只由真实身份的角色编码决定；身份未加载完或为演示数据时不推断。
+  const accessRole = accessRoleOf(identity.user.roleCodes, identity.user.tier === 'live' && identity.fetchedAt !== undefined)
   const key = `${role}:${state.task}`
   const fixture = roleFixtures[role]
   const [milestoneOpen, setMilestoneOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState<ReadonlySet<string>>(() => new Set(['position-operations']))
   const [query, setQuery] = useState('')
+  const [laborLink, setLaborLink] = useState<Parameters<typeof WorkHoursScreen>[0]['initial']>()
   const stage = state.sceneCheckpoints[key]?.stage ?? 0
   const [candidate, setCandidate] = useState(false)
   const [sourceIndex, setSourceIndex] = useState(0)
@@ -206,7 +231,7 @@ export function Workbench(props: WorkbenchProps) {
   const currentWorkStatus = currentWorkItem === undefined ? undefined : workStatus(currentWorkItem.id, currentWorkItem.status)
   const taskDeliveries = view === 'work' ? state.followUps.filter(item =>
     item.workItemId === key && item.groupId !== undefined && item.projectActionId === undefined && item.positionCase === undefined) : []
-  const unread = [0, 1, 2].filter(id => !state.read.includes(id)).length
+  const unread = NOTIFICATION_IDS.filter(id => !state.read.includes(id)).length
   const statusLabel = (status: WorkStatus) => t(({
     attention: 'status.attention', inProgress: 'status.inProgress', waiting: 'status.waiting',
     review: 'status.review', done: 'status.done',
@@ -292,6 +317,7 @@ export function Workbench(props: WorkbenchProps) {
     return () => { window.removeEventListener('resize', onResize) }
   }, [assistantFloatPosition])
   const selectView = (next: typeof view) => {
+    setLaborLink(undefined)
     actions.navigate(next)
     setProjectFocusId(undefined)
     setGroupFocusId(undefined)
@@ -446,7 +472,7 @@ export function Workbench(props: WorkbenchProps) {
             <div className={css.brand}>
               <IconLayersOutlineRegular size={22} />
               <div>
-                <strong>{t('panel')}</strong>
+                <strong>{t('panel')}<span className={css.version}>({workbenchVersion})</span></strong>
                 {!liveHome && <small>{t('tenant')}</small>}
               </div>
             </div>
@@ -475,13 +501,9 @@ export function Workbench(props: WorkbenchProps) {
             </label>}
             {!liveHome && <small className={css.positionCount}>{t('roleCount')}</small>}
             <nav>
-              {navigation.filter((n) => {
-                if (liveHome) return n.id !== 'position-operations'
-                if (n.id === 'project-operations') return role === 'project'
-                if (n.id === 'position-operations') return role !== 'project'
-                return true
-              }).map((n) => {
-                const Icon = navIcons[n.id]
+              {navigation.map((n) => {
+                const Icon = navIcons[n.id] ?? IconLayersOutlineRegular
+                const parentActive = view === n.id || n.children?.some(child => child.id === view) === true
                 return (
                   <div key={n.id}>
                     {n.id === 'operator-overview' && <p className={css.groupLabel}>{t('operator.group.operations')}</p>}
@@ -489,16 +511,41 @@ export function Workbench(props: WorkbenchProps) {
                     {n.id === 'tasks' && <p className={css.groupLabel}>{t('public')}</p>}
                     {n.id === 'files' && <p className={css.groupLabel}>{t('resources')}</p>}
                     <button
-                      className={view === n.id || (view === 'team' && n.id === 'groups') ? css.activeNav : ''}
+                      className={parentActive || (view === 'team' && n.id === 'groups') ? css.activeNav : ''}
                       onClick={() => {
                         selectView(n.id)
+                        if (n.children !== undefined) {
+                          setExpandedMenus((previous) => {
+                            const next = new Set(previous)
+                            if (next.has(n.id)) next.delete(n.id)
+                            else next.add(n.id)
+                            return next
+                          })
+                        }
                       }}
-                      aria-current={view === n.id || (view === 'team' && n.id === 'groups') ? 'page' : undefined}
+                      aria-current={parentActive || (view === 'team' && n.id === 'groups') ? 'page' : undefined}
+                      aria-expanded={n.children === undefined ? undefined : expandedMenus.has(n.id)}
                     >
                       <Icon size={17} />
                       <span>{t(n.label)}</span>
-                      {!liveHome && n.id === 'notifications' && unread > 0 && <b>{unread}</b>}
+                      {!liveHome && n.id === 'assistant' && unread > 0 && <b>{unread}</b>}
                     </button>
+                    {n.children !== undefined && expandedMenus.has(n.id) && (
+                      <div className={css.submenu} aria-label={t(n.label)}>
+                        {n.children.map((child) => {
+                          const ChildIcon = navIcons[child.id] ?? IconLayersOutlineRegular
+                          return <button
+                            key={child.id}
+                            className={view === child.id ? css.submenuActive : ''}
+                            onClick={() => { selectView(child.id) }}
+                            aria-current={view === child.id ? 'page' : undefined}
+                          >
+                            <ChildIcon size={15} />
+                            <span>{t(child.label)}</span>
+                          </button>
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -538,8 +585,34 @@ export function Workbench(props: WorkbenchProps) {
                 />
               ) : view === 'profile' ? (
                 <ProfileScreen model={identity} t={t} />
+              ) : view === 'customer-resources' ? (
+                <CustomerResourcesScreen t={t} />
+              ) : view === 'material-management' ? (
+                <MaterialManagementScreen t={t} />
+              ) : view === 'supplier-management' ? (
+                <SupplierManagementScreen t={t} />
+              ) : view === 'equipment-ledger' ? (
+                <EquipmentLedgerScreen t={t} />
+              ) : view === 'contract-management' ? (
+                <ContractManagementScreen t={t} />
+              ) : view === 'budget-cost' ? (
+                <BudgetCostScreen t={t} />
+              ) : view === 'work-hours' ? (
+                <WorkHoursScreen t={t} initial={laborLink} userId={identity.user.userId} />
+              ) : view === 'weekly-daily-reports' ? (
+                <WeeklyDailyReportsScreen t={t} role={accessRole} onLabor={(range, project) => {
+                  selectView('work-hours')
+                  setLaborLink({ range, project })
+                }} />
+              ) : view === 'organization' ? (
+                <OrganizationScreen t={t} />
               ) : liveHome ? (
-                ['assistant', 'dashboard', 'priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
+                view === 'assistant' ? (
+                  <>
+                    <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
+                    <NotificationsScreen t={t} />
+                  </>
+                ) : ['dashboard', 'priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
                   ? <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
                   : view === 'tasks'
                     ? <PersonalWorkspace key={view} t={t} section={view} />
@@ -549,29 +622,38 @@ export function Workbench(props: WorkbenchProps) {
                         ? <FilesScreen t={t} />
                         : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
               ) : view === 'assistant' ? (
-                <WorkHomeScreen t={t} />
+                <>
+                  <WorkHomeScreen t={t} />
+                  <NotificationsScreen t={t} />
+                </>
               ) : view === 'dashboard' ? (
                 <DashboardScreen t={t} />
               ) : view === 'project-operations' ? (
                 <ProjectOpsScreen t={t} />
-              ) : view === 'position-operations' && role !== 'project' ? (
-                <PositionOperations
-                  key={role}
-                  t={t}
-                  role={role}
-                  record={positionCase}
-                  delivery={positionDelivery}
-                  myTasks={<TaskRows compact />}
-                  onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
-                  onGroup={openWorkgroup}
-                  onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
-                  onReview={(note, outcome, checks) => {
-                    const reviewText = outcome === 'rework'
-                      ? t('position.returned', { note })
-                      : `${t('position.status.accepted')} · ${note}`
-                    actions.reviewPositionCase(role, note, outcome, checks, reviewText)
-                  }}
-                />
+              ) : view === 'position-operations' ? (
+                role === 'project' ? (
+                  <section className={css.card}>
+                    <p>{t('position.module.pending')}</p>
+                  </section>
+                ) : (
+                  <PositionOperations
+                    key={role}
+                    t={t}
+                    role={role}
+                    record={positionCase}
+                    delivery={positionDelivery}
+                    myTasks={<TaskRows compact />}
+                    onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
+                    onGroup={openWorkgroup}
+                    onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
+                    onReview={(note, outcome, checks) => {
+                      const reviewText = outcome === 'rework'
+                        ? t('position.returned', { note })
+                        : `${t('position.status.accepted')} · ${note}`
+                      actions.reviewPositionCase(role, note, outcome, checks, reviewText)
+                    }}
+                  />
+                )
               ) : view === 'priorities' ? (
                 <PrioritiesScreen t={t} />
               ) : view === 'agent' ? (
@@ -595,8 +677,6 @@ export function Workbench(props: WorkbenchProps) {
                 <ProjectCalendar t={t} />
               ) : view === 'team' || view === 'groups' ? (
                 <GroupsScreen t={t} />
-              ) : view === 'notifications' ? (
-                <NotificationsScreen t={t} />
               ) : view === 'work' ? (
                 <TaskWorkScreen t={t} />
               ) : view === 'files' ? (

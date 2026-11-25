@@ -7,19 +7,23 @@
  * 界面上不展示接口状态 / 数据来源等元信息。
  */
 import { useState } from 'react'
-import { Button, Modal, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { Severity } from '../model.ts'
 import type { KpiGroup, OperatorPeriod } from '../model.ts'
 import type {
+  DepartmentHealth,
+  DepartmentSuggestion,
   DecisionCenterModel,
   EvidenceScreenModel,
   FunctionalScreenModel,
   OverviewModel,
   ProjectScreenModel,
+  QueueItemModel,
 } from '../model.ts'
 import { metricKeysForPanel } from '../viewmodel.ts'
 import { EmptyLine, FieldValue, PLACEHOLDER, Section, type OperatorT } from './Primitives.tsx'
 import css from '../operator.module.css'
+import tableCss from '../../shared/table.module.css'
 
 /** 严重度 → 颜色 token（红=超期，琥珀=待处理，无=中性）。 */
 function severityTone(severity: Severity): 'danger' | 'warning' | 'neutral' {
@@ -108,29 +112,69 @@ export function OverviewScreen({ model, t, period, onPeriodChange, laborDetailOp
 
     {/* 工时详情弹窗：由人员总工时 KPI 卡打开，展示各项目的投入 / 请假 / 净工时。 */}
     {laborDetailOpen && <Modal open title={t('operator.labor.modalTitle')} closeLabel={t('close')} onClose={onCloseLaborDetail}>
-      <table className={css.table}>
-        <thead><tr>
-          <th>{t('operator.col.laborProject')}</th>
-          <th>{t('operator.col.laborInput')}</th>
-          <th>{t('operator.col.laborLeave')}</th>
-          <th>{t('operator.col.laborNet')}</th>
-        </tr></thead>
-        <tbody>
-          {model.laborHours.projectRows.map(row => <tr key={row.id}>
-            <td>{row.project}</td>
-            <td>{row.inputHours}</td>
-            <td>{row.leaveHours}</td>
-            <td>{row.netHours}</td>
-          </tr>)}
-        </tbody>
-      </table>
+      <div className={tableCss.tableWrap}>
+        <table className={tableCss.table}>
+          <thead><tr>
+            <th>{t('operator.col.laborProject')}</th>
+            <th>{t('operator.col.laborInput')}</th>
+            <th>{t('operator.col.laborLeave')}</th>
+            <th>{t('operator.col.laborNet')}</th>
+          </tr></thead>
+          <tbody>
+            {model.laborHours.projectRows.map(row => <tr key={row.id}>
+              <td>{row.project}</td>
+              <td>{row.inputHours}</td>
+              <td>{row.leaveHours}</td>
+              <td>{row.netHours}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
     </Modal>}
   </div>
 }
 
+/** AI 推理弹窗中的一条对话消息。 */
+interface AiChatMessage {
+  readonly role: 'user' | 'assistant'
+  readonly text: string
+}
+
+/** 预设追问（label 为文案 key，reply 为演示回复内容）。 */
+const AI_FOLLOWUPS: readonly { readonly id: string; readonly labelKey: 'operator.ai.qCause' | 'operator.ai.qAction'; readonly reply: string }[] = [
+  {
+    id: 'cause', labelKey: 'operator.ai.qCause',
+    reply: '原因推理（演示）：该事项的直接触发点是上游输入延迟，叠加关键事实补充不及时，导致评审环节停滞；根因更偏向跨部门信息同步问题，而非单一责任人问题。',
+  },
+  {
+    id: 'action', labelKey: 'operator.ai.qAction',
+    reply: '处理推理（演示）：第一步由建议处理人当天发起关键事实补充；第二步 2 个工作日内完成评审并留证；第三步若仍无法闭环，按治理流程转为风险或上会决策。',
+  },
+]
+
+/** 由队列事项构造 AI 的开场推理（演示数据，无真实推理）。 */
+function aiOpeningMessages(item: QueueItemModel): AiChatMessage[] {
+  const title = item.title.value ?? '该事项'
+  const meta = item.meta.value ?? ''
+  return [
+    {
+      role: 'assistant',
+      text: `围绕「${title}」，我先做事件过程还原：回溯事项的提出时间与来源${meta === '' ? '' : `（${meta}）`}，再核对建议处理人、关联项目与当前所处环节，最后对照治理流程检查闭环条件。`,
+    },
+    {
+      role: 'assistant',
+      text: '过程推理（演示）：事项从提出到当前共经历 3 个环节，其中「评审」环节停留时间最长，主要在等待关键事实补充；影响目前集中在交付进度与成本两个维度，尚未向质量维度传导。',
+    },
+    {
+      role: 'assistant',
+      text: '初步结论（演示）：建议尽快补齐关键事实并明确处理人，按现有治理流程推进闭环；若超过建议闭环时间仍未收敛，应升级上会并同步留证。',
+    },
+  ]
+}
+
 /**
  * 页面二 — 风险与决策：顶部分类筛选 tab（风险事件 / 异常事件 / 决策），
- * 左侧队列，右侧详情（事件要素 + 影响域分析 + 建议方案）。
+ * 左侧队列（每条事项右上角带 AI 过程推理入口），右侧详情（事件要素 + 影响域分析 + 建议方案）。
  */
 export function DecisionScreen({ model, t, activeFilter, onFilterChange, onSelect }: {
   readonly model: DecisionCenterModel
@@ -139,6 +183,28 @@ export function DecisionScreen({ model, t, activeFilter, onFilterChange, onSelec
   readonly onFilterChange: (filterId: string) => void
   readonly onSelect: (id: string) => void
 }) {
+  // AI 事件过程推理弹窗：当前事项 + 对话消息 + 输入草稿（演示模式，无真实推理）。
+  const [aiItem, setAiItem] = useState<QueueItemModel>()
+  const [aiMessages, setAiMessages] = useState<readonly AiChatMessage[]>([])
+  const [aiDraft, setAiDraft] = useState('')
+  const openAiReasoning = (item: QueueItemModel): void => {
+    setAiItem(item)
+    setAiMessages(aiOpeningMessages(item))
+    setAiDraft('')
+  }
+  const askAiFollowup = (reply: string, label: string): void => {
+    setAiMessages(previous => [...previous, { role: 'user', text: label }, { role: 'assistant', text: reply }])
+  }
+  const sendAiMessage = (): void => {
+    const text = aiDraft.trim()
+    if (text === '' || aiItem === undefined) return
+    setAiMessages(previous => [
+      ...previous,
+      { role: 'user', text },
+      { role: 'assistant', text: t('operator.ai.fallbackReply') },
+    ])
+    setAiDraft('')
+  }
   return <div className={css.screen}>
     {/* 分类筛选 tab：点击后队列只显示对应分类的事项。 */}
     <div className={css.filterRow} role="group" aria-label={t('operator.filter.all')}>
@@ -166,6 +232,24 @@ export function DecisionScreen({ model, t, activeFilter, onFilterChange, onSelec
                 <Tag tone={severityTone(item.severity)}>{t(item.categoryKey)}</Tag>
                 <span className={css.queueTitle}>{item.title.value ?? PLACEHOLDER}</span>
                 <small>{item.meta.value ?? PLACEHOLDER}</small>
+                {/* AI 过程推理入口：右上角徽标，点击打开演示对话弹窗。 */}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className={css.aiBadge}
+                  aria-label={`${t('operator.ai.open')}: ${item.title.value ?? ''}`}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    openAiReasoning(item)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      openAiReasoning(item)
+                    }
+                  }}
+                >AI</span>
               </button>
             </li>)}
           </ul>}
@@ -201,6 +285,42 @@ export function DecisionScreen({ model, t, activeFilter, onFilterChange, onSelec
           </>}
       </Section>
     </div>
+
+    {/* AI 事件过程推理弹窗：演示对话，开场推理 + 预设追问 + 自由输入。 */}
+    {aiItem !== undefined && <Modal
+      open
+      title={t('operator.ai.title')}
+      closeLabel={t('close')}
+      onClose={() => { setAiItem(undefined) }}
+    >
+      <p className={css.aiDemoNote}>{t('operator.ai.demoNote')}</p>
+      <div className={css.aiChat} aria-live="polite">
+        {aiMessages.map((message, index) => <div
+          key={index}
+          className={message.role === 'user'
+            ? `${css.aiMessage} ${css.aiMessageUser}`
+            : `${css.aiMessage} ${css.aiMessageAssistant}`}
+        >{message.text}</div>)}
+      </div>
+      <div className={css.aiChips}>
+        {AI_FOLLOWUPS.map(followup => <Button
+          key={followup.id}
+          size="sm"
+          onClick={() => { askAiFollowup(followup.reply, t(followup.labelKey)) }}
+        >{t(followup.labelKey)}</Button>)}
+      </div>
+      <div className={css.aiInputRow}>
+        <Input
+          value={aiDraft}
+          placeholder={t('operator.ai.inputPlaceholder')}
+          onChange={(event) => { setAiDraft(event.target.value) }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') { sendAiMessage() }
+          }}
+        />
+        <Button size="sm" disabled={!aiDraft.trim()} onClick={sendAiMessage}>{t('operator.ai.send')}</Button>
+      </div>
+    </Modal>}
   </div>
 }
 
@@ -336,27 +456,55 @@ export function ProjectScreen({ model, t, onSelect }: {
 }
 
 /**
- * 页面四 — 职能专题：质量 / 供应 / 交付 / 财务账本。
+ * 页面四 — 职能专题：公司运营视角的部门综合状态与优化调整建议。
  */
 export function FunctionalScreen({ model, t }: {
   readonly model: FunctionalScreenModel
   readonly t: OperatorT
 }) {
+  const healthTone = (health: DepartmentHealth): 'success' | 'warning' | 'danger' =>
+    health === 'good' ? 'success' : health === 'watch' ? 'warning' : 'danger'
+  const priorityTone = (priority: DepartmentSuggestion['priority']): 'danger' | 'warning' | 'neutral' =>
+    priority === 'high' ? 'danger' : priority === 'medium' ? 'warning' : 'neutral'
+  const priorityKey = (priority: DepartmentSuggestion['priority']): 'operator.functional.priority.high' | 'operator.functional.priority.medium' | 'operator.functional.priority.low' =>
+    priority === 'high' ? 'operator.functional.priority.high'
+      : priority === 'medium' ? 'operator.functional.priority.medium'
+        : 'operator.functional.priority.low'
   return <div className={css.screen}>
-    {model.ledgers.length === 0
-      ? <EmptyLine text={t('operator.functional.empty')} />
-      : model.ledgers.map(ledger => <Section key={ledger.id} title={t(ledger.nameKey)}>
-        <table className={css.table}>
-          <thead><tr>{ledger.columnKeys.map((key, index) => <th key={index}>{t(key)}</th>)}</tr></thead>
-          <tbody>
-            {ledger.rows.map((row, rowIndex) => <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => <td key={cellIndex}>
-                <FieldValue field={cell} />
-              </td>)}
-            </tr>)}
-          </tbody>
-        </table>
-      </Section>)}
+    {/* 部门综合状态：公司运营视角下各职能部门的健康度与关键指标。 */}
+    <Section title={t('operator.functional.statusTitle')}>
+      {model.departments.length === 0
+        ? <EmptyLine text={t('operator.functional.empty')} />
+        : <div className={css.deptGrid}>
+          {model.departments.map(department => <article key={department.id} className={css.deptCard}>
+            <div className={css.deptHead}>
+              <h3>{t(department.nameKey)}</h3>
+              <Tag tone={healthTone(department.health)}>{t(`operator.functional.health.${department.health}`)}</Tag>
+            </div>
+            <ul className={css.deptMetrics}>
+              {department.metrics.map((metric, index) => <li key={index}>
+                <span>{metric.label}:</span>{' '}
+                <strong>{metric.value}</strong>
+              </li>)}
+            </ul>
+          </article>)}
+        </div>}
+    </Section>
+
+    {/* 优化调整建议：按部门汇总，附优先级与数据依据。 */}
+    <Section title={t('operator.functional.suggestionTitle')}>
+      <ul className={css.suggestionList}>
+        {model.departments.flatMap(department => department.suggestions.map((suggestion, index) => (
+          <li key={`${department.id}-${index}`} className={css.suggestionItem}>
+            <Tag tone={priorityTone(suggestion.priority)}>{t(priorityKey(suggestion.priority))}</Tag>
+            <span className={css.suggestionBody}>
+              <strong>{t(department.nameKey)} · {suggestion.text}</strong>
+              <small>{suggestion.basis}</small>
+            </span>
+          </li>
+        )))}
+      </ul>
+    </Section>
   </div>
 }
 

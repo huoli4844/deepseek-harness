@@ -288,13 +288,12 @@
   cursor: default;
 }
 
-/* Mark and name are independent slots; the shell owns their shared baseline,
-   spacing, and height so either occupant can vary in width. */
+/* 品牌名称插槽可能占两行，容器随内容增高，避免裁切文字。 */
 .brandIdentity {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 24px;
+  min-height: 24px;
   min-width: 0;
 }
 
@@ -310,7 +309,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  height: 24px;
+  min-height: 24px;
   font-size: 18px;
   font-weight: 600;
   line-height: 24px;

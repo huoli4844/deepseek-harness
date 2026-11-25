@@ -132,6 +132,17 @@ export function primaryRuntimePayloadDigest(
 }
 
 /**
+ * 计算本机已安装 pnpm 对应的载荷摘要，供比对已完成装配的运行时。
+ * @param target - 待比对的构建目标。
+ * @returns 与装配阶段写入 `runtime.json` 的 `payloadDigest` 同口径的 SHA-256 摘要。
+ */
+export function expectedPrimaryRuntimeDigest(target: PrimaryRuntimeTarget): string {
+  const pnpmManifest = createRequire(import.meta.url).resolve('pnpm')
+  const pnpmVersion = (JSON.parse(readFileSync(pnpmManifest, 'utf8')) as { version: string }).version
+  return primaryRuntimePayloadDigest(target, lock, pnpmVersion)
+}
+
+/**
  * Unpack a locked library wheel, retaining auxiliary scripts in its distribution data directory.
  * @param archive - Hash-verified wheel archive.
  * @param destination - Absolute site-packages directory.

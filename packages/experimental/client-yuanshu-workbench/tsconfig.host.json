@@ -7,8 +7,11 @@
   },
   "include": [
     "src/employee.ts",
+    "src/holiday-calendar.ts",
     "src/identity-proxy.ts",
     "src/index.ts",
+    "src/master-data-proxy.ts",
+    "src/project-proxy.ts",
     "src/platform-home.ts"
   ],
   "references": [

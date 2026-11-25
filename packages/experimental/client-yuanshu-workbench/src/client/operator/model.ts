@@ -138,15 +138,26 @@ export interface ProjectDetailModel {
   readonly panels: readonly PanelModel[]
 }
 
-/** 职能专题账本（质量 / 供应 / 交付 / 财务）。 */
-export interface LedgerModel {
+/** 职能部门的综合健康档位（决定状态标签颜色）。 */
+export type DepartmentHealth = 'good' | 'watch' | 'risk'
+
+/** 职能部门的优化调整建议。 */
+export interface DepartmentSuggestion {
+  readonly priority: 'high' | 'medium' | 'low'
+  readonly text: string
+  /** 建议依据（数据或事实来源说明）。 */
+  readonly basis: string
+}
+
+/** 职能专题中的单个职能部门视图：综合状态 + 优化建议。 */
+export interface DepartmentModel {
   readonly id: string
-  /** 账本名称的文案 key。 */
+  /** 部门名称的文案 key。 */
   readonly nameKey: OperatorLocaleKey
-  readonly table: string
-  /** 表头文案的 key 列表。 */
-  readonly columnKeys: readonly OperatorLocaleKey[]
-  readonly rows: readonly (readonly Field<string>[])[]
+  readonly health: DepartmentHealth
+  /** 综合状态指标行（label 为演示中文文案，与事件要素的 label 同约定）。 */
+  readonly metrics: readonly { readonly label: string; readonly value: string }[]
+  readonly suggestions: readonly DepartmentSuggestion[]
 }
 
 /** 决策 → 记录 → 文档 → 知识 证据链中的一个节点。 */
@@ -210,9 +221,9 @@ export interface ProjectScreenModel {
   readonly detail: ProjectDetailModel | undefined
 }
 
-/** 职能专题页。 */
+/** 职能专题页：公司运营视角的部门综合状态 + 优化调整建议。 */
 export interface FunctionalScreenModel {
-  readonly ledgers: readonly LedgerModel[]
+  readonly departments: readonly DepartmentModel[]
 }
 
 /** 证据与追溯页。 */

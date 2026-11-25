@@ -7,3 +7,5 @@
           apiUrl: !!js "process.env.YUANSHU_MCP_TARGET === 'remote' ? process.env.YUANSHU_REMOTE_API_URL : process.env.YUANSHU_MCP_TARGET === undefined || process.env.YUANSHU_MCP_TARGET === 'local' ? 'http://localhost:8081' : undefined"
           startupTimeoutMs: !!js "Number(process.env.YUANSHU_MCP_STARTUP_TIMEOUT_MS ?? 30000)"
           clientId: !!js "process.env.YUANSHU_MCP_CLIENT_ID ?? 'dsh-yuanshu'"
+        data:
+          apiUrl: !!js "process.env.YUANSHU_LOCAL_DATA_API_URL ?? 'http://127.0.0.1:3081'"

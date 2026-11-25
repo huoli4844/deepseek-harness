@@ -146,7 +146,7 @@ describe('workbench demonstration state', () => {
     first.actions.openTask(3)
     first.actions.navigate('calendar')
     first.actions.markAllRead()
-    expect(first.getSnapshot()).toMatchObject({ role: 'quality', task: 3, view: 'calendar', read: [0, 1, 2] })
+    expect(first.getSnapshot()).toMatchObject({ role: 'quality', task: 3, view: 'calendar', read: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] })
     expect(second.getSnapshot()).toMatchObject({ role: 'procurement', view: 'assistant', read: [] })
   })
 

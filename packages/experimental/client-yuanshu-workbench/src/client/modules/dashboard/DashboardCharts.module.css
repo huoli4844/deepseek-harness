@@ -267,29 +267,6 @@
   font-size: 12px;
   color: var(--dsw-alias-label-secondary);
 }
-.tableScroll {
-  overflow-x: auto;
-  margin-bottom: 20px;
-}
-.dataTable {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: start;
-  font-size: 12px;
-}
-.dataTable th,
-.dataTable td {
-  padding: 10px 8px;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
-}
-.dataTable th {
-  font-weight: 500;
-}
-.dataTable th:not(:first-child),
-.dataTable td:not(:first-child) {
-  text-align: end;
-  font-variant-numeric: tabular-nums;
-}
 @media (hover: hover) {
   .plot:hover {
     opacity: 0.85;

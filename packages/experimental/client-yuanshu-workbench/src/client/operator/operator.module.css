@@ -212,12 +212,14 @@ button.kpiCard:hover {
 
 .queueItem,
 .queueItemActive {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px;
+  /* 右侧为 AI 推理徽标预留空间，避免标题文字压到徽标。 */
+  padding: 10px 36px 10px 10px;
   border: 0.5px solid transparent;
   border-radius: 8px;
   color: var(--dsw-alias-label-primary);
@@ -242,6 +244,83 @@ button.kpiCard:hover {
 
 .queueItem small {
   color: var(--op-muted);
+}
+
+/* 队列事项右上角的 AI 过程推理入口徽标。 */
+.aiBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0.5px solid var(--op-accent);
+  border-radius: 50%;
+  color: var(--op-accent);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aiBadge:hover,
+.aiBadge:focus-visible {
+  background: var(--dsw-alias-fill-hover);
+}
+
+/* AI 事件过程推理弹窗：对话气泡 + 预设追问 + 自由输入。 */
+.aiDemoNote {
+  margin: 0 0 10px;
+  color: var(--op-muted);
+  font-size: 11px;
+}
+
+.aiChat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aiMessage {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.aiMessageAssistant {
+  align-self: flex-start;
+  border: 0.5px solid var(--op-line);
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.aiMessageUser {
+  align-self: flex-end;
+  border: 0.5px solid var(--op-accent);
+  color: var(--op-accent);
+  background: transparent;
+}
+
+.aiChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.aiInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.aiInputRow > :first-child {
+  flex: 1 1 auto;
 }
 
 .detailPane h4 {
@@ -307,7 +386,9 @@ button.kpiCard:hover {
 
 .projectCardActive {
   border-color: var(--op-accent);
-  background: var(--dsw-alias-bg-brand-subtlest);
+  box-shadow: inset 0 0 0 0.5px var(--op-accent);
+  background: var(--dsw-alias-bg-primary);
+  font-weight: 600;
 }
 
 .projectCard small {
@@ -334,7 +415,9 @@ button.kpiCard:hover {
 
 .panelActive {
   border-color: var(--op-accent);
-  background: var(--dsw-alias-bg-brand-subtlest);
+  box-shadow: inset 0 0 0 0.5px var(--op-accent);
+  background: var(--dsw-alias-bg-primary);
+  font-weight: 600;
 }
 
 /* 穿透节点区：左侧明细（字段 / 原件 / 事件），右侧节点时间线。 */
@@ -522,25 +605,88 @@ button.kpiCard:hover {
   padding: 2px 0;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
+/* 工时区已并入 KPI 卡：此处仅保留弹窗内的表格样式。 */
+
+/* 职能专题：部门综合状态卡。 */
+.deptGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.deptCard {
+  padding: 12px;
+  border: 0.5px solid var(--op-line);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+}
+
+.deptHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.deptHead h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.deptMetrics {
+  margin: 0;
+  padding-left: 16px;
   font-size: 12px;
 }
 
-.table th,
-.table td {
-  padding: 8px 10px;
-  border-bottom: 0.5px solid var(--op-line);
-  text-align: left;
+.deptMetrics li {
+  padding: 2px 0;
 }
 
-.table th {
-  color: var(--op-soft);
+.deptMetrics strong {
   font-weight: 600;
 }
 
-/* 工时区已并入 KPI 卡：此处仅保留弹窗内的表格样式。 */
+/* 职能专题：部门 × 项目关联行（表格复用 .table）。 */
+
+/* 职能专题：优化调整建议列表。 */
+.suggestionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestionItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--op-line);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-primary);
+}
+
+.suggestionBody {
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.suggestionBody strong {
+  font-weight: 600;
+}
+
+.suggestionBody small {
+  color: var(--op-muted);
+  font-size: 11px;
+}
 
 .chain {
   display: flex;

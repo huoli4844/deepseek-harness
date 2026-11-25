@@ -24,13 +24,16 @@ it.each([
   const register = vi.fn(() => () => {})
   root.provide('mcpManager', { register } as never)
   root.provide('mcpAccounts', { register: () => () => {} } as never)
-  const config: Config = { mcp: {
-    url: 'http://localhost:8081/api/v1/client/mcp',
-    clientId: 'dsh-yuanshu',
-    apiUrl: 'http://localhost:8081',
-    startupTimeoutMs,
-    requestTimeoutMs: 90_000,
-  } }
+  const config: Config = {
+    mcp: {
+      url: 'http://localhost:8081/api/v1/client/mcp',
+      clientId: 'dsh-yuanshu',
+      apiUrl: 'http://localhost:8081',
+      startupTimeoutMs,
+      requestTimeoutMs: 90_000,
+    },
+    data: { apiUrl: 'http://localhost:3081' },
+  }
 
   const plugin = root.plugin({ apply: (ctx) => { apply(ctx, config) } })
   await plugin

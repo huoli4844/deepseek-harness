@@ -1,5 +1,6 @@
 /** YuanShu OEM branding, fetched through the same-origin workbench proxy. */
 import { useEffect, useState } from 'react'
+import css from './OemBrand.module.css'
 
 /** Resolved OEM brand identity. */
 export interface OemBrand {
@@ -77,12 +78,12 @@ export function OemBrandName() {
     return () => { live = false }
   }, [])
   if (brand === null) {
-    return <span style={{ fontSize: '15px', letterSpacing: 0, whiteSpace: 'nowrap' }}>元枢智能工作台</span>
+    return <span className={css.brandName}>元枢智能工作台</span>
   }
   return (
-    <span style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: '14px', fontWeight: 600, lineHeight: '15px' }}>{brand.systemName}</span>
-      <span style={{ fontSize: '14px', fontWeight: 600, lineHeight: '15px', opacity: 0.78 }}>
+    <span className={css.brandName} title={brand.title}>
+      <span className={css.systemName}>{brand.systemName}</span>
+      <span className={css.workbenchLabel}>
         {WORKBENCH_LABEL}
       </span>
     </span>

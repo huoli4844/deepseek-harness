@@ -24,9 +24,6 @@ function allFields(vm: ReturnType<typeof buildOperatorViewModel>): Field<string>
   for (const panel of vm.projects.detail?.panels ?? []) {
     for (const metric of panel.metrics) push(metric)
   }
-  for (const ledger of vm.functional.ledgers) {
-    for (const row of ledger.rows) for (const cell of row) push(cell)
-  }
   for (const node of vm.evidence.chain) push(node.field)
   return fields
 }

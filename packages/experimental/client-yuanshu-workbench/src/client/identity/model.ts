@@ -82,11 +82,15 @@ export interface IdentitySource {
 /** 用于头像渲染的用户展示模型。 */
 export interface IdentityUserModel {
   readonly displayName: string
+  /** 当前用户的数字 ID，用于按人筛选工时；演示数据时为 undefined。 */
+  readonly userId: number | undefined
   /** 姓名首字（中文取第一个字，英文取首字母大写）。 */
   readonly initials: string
   readonly idText: string
   readonly roleText: string
   readonly roles: readonly string[]
+  /** 后台角色编码（来自 `/user/me` 的 roles），用于判定工作台视角；演示数据为空。 */
+  readonly roleCodes: readonly string[]
   readonly avatarUrl: string | undefined
   /** 无头像接口时生成的蓝绿渐变色对。 */
   readonly gradient: readonly [string, string]

@@ -5,7 +5,10 @@ import type {} from '@deepseek-ai/dsh-mcp-manager'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { loadEmployee, YuanShuIdentityUnavailable, YuanShuSessionExpired } from './employee.ts'
+import { loadHolidayYear } from './holiday-calendar.ts'
 import { proxyIdentityRequest } from './identity-proxy.ts'
+import { shaoshiMasterMethodAllowed } from './master-data-proxy.ts'
+import { projectProxyRoute } from './project-proxy.ts'
 import { PlatformHomeLoader, YuanShuGrantMismatch } from './platform-home.ts'
 import z from '@deepseek-ai/schemastery'
 
@@ -27,6 +30,11 @@ export interface Config {
     /** Deadline for workbench API and MCP tool requests, in milliseconds. */
     requestTimeoutMs: number
   }
+  /** Local business-data service configuration. */
+  data: {
+    /** Local API base URL. */
+    apiUrl: string
+  }
 }
 
 /** Validation and defaults for the optional employee connection. */
@@ -38,6 +46,9 @@ export const Config: z<Config> = z.object({
     startupTimeoutMs: z.number().min(1000).max(300_000).default(30_000),
     requestTimeoutMs: z.number().min(1000).max(300_000).default(90_000),
   })]).default(false),
+  data: z.object({
+    apiUrl: z.string().default('http://127.0.0.1:3081'),
+  }).default({}),
 })
 
 const account = { en: 'YuanShu account', zh: '元枢账号' }
@@ -74,6 +85,15 @@ function field(value: unknown, key: string): unknown {
 }
 
 const PERSONAL_ROUTE = /^\/yuanshu-workbench\/personal\/(calendars|calendar-events|tasks)(?:\/([1-9]\d*))?$/u
+/** 主数据代理放行的资源集合，设备台账、合同与少仕主数据共用同一路由。 */
+const MASTER_RESOURCES = 'customers|suppliers|supplier-categories|materials|material-categories|equipments|contracts'
+const SHAOSHI_MASTER_ROUTE = new RegExp(`^/yuanshu-workbench/(${MASTER_RESOURCES})(?:/([1-9]\\d*))?$`, 'u')
+
+/** 设备台账与合同注册在独立应用命名空间下，其余主数据沿用少仕应用。 */
+function masterUpstreamPath(resource: string, id: string | undefined): string {
+  const app = resource === 'equipments' || resource === 'contracts' ? 'deepseek-harness' : 'shaoshi'
+  return `/api/v1/apps/${app}/${resource}${id === undefined ? '' : `/${id}`}`
+}
 
 async function requestBody(req: IncomingMessage): Promise<Buffer<ArrayBuffer> | undefined> {
   const chunks: Buffer[] = []
@@ -138,6 +158,91 @@ async function proxyPersonalRequest(
   res.end(result)
 }
 
+async function proxyShaoshiMasterRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  api: string,
+  authorization: string,
+  activeTenant: string | undefined,
+  signal: AbortSignal,
+): Promise<void> {
+  const incoming = new URL(req.url ?? '/', 'http://localhost')
+  const route = SHAOSHI_MASTER_ROUTE.exec(incoming.pathname)
+  const method = req.method ?? ''
+  const project = projectProxyRoute(incoming.pathname)
+  const upstreamPath = project?.path ?? (route === null ? undefined : masterUpstreamPath(route[1] ?? '', route[2]))
+  const allowed = project?.methods.includes(method)
+    ?? (route !== null && shaoshiMasterMethodAllowed(route[1] ?? '', method, route[2] !== undefined))
+  if (upstreamPath === undefined || !allowed) {
+    res.writeHead(upstreamPath === undefined ? 404 : 405, { 'cache-control': 'no-store' })
+    res.end()
+    return
+  }
+  const remote = new URL(`${api}${upstreamPath}`)
+  remote.search = incoming.search
+  const headers: Record<string, string> = { authorization, accept: 'application/json' }
+  if (activeTenant !== undefined && activeTenant !== '') headers['X-Active-Tenant'] = activeTenant
+  let body: Buffer<ArrayBuffer> | null = null
+  if (method === 'POST' || method === 'PUT') {
+    const payload = await requestBody(req)
+    if (payload === undefined) {
+      res.writeHead(413, { 'cache-control': 'no-store', connection: 'close' })
+      res.end()
+      return
+    }
+    body = payload
+    headers['content-type'] = 'application/json'
+  }
+  const response = await fetch(remote, { method, headers, body, signal, redirect: 'error' })
+  const result = new Uint8Array(await response.arrayBuffer())
+  res.writeHead(response.status, {
+    'cache-control': 'no-store',
+    'content-type': 'application/json; charset=utf-8',
+    'x-content-type-options': 'nosniff',
+  })
+  res.end(result)
+}
+
+/** 组织架构接口只读，转发到本地后台后由后台携带同一凭证访问元枢。 */
+const ORGANIZATION_ROUTES: Readonly<Record<string, string>> = {
+  '/yuanshu-workbench/organization/departments/tree': '/api/v1/departments/tree',
+  '/yuanshu-workbench/organization/users': '/api/v1/users',
+}
+
+async function proxyOrganizationRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  api: string,
+  authorization: string,
+  activeTenant: string | undefined,
+  signal: AbortSignal,
+): Promise<void> {
+  const incoming = new URL(req.url ?? '/', 'http://localhost')
+  const target = ORGANIZATION_ROUTES[incoming.pathname]
+  if (target === undefined) {
+    res.writeHead(404, { 'cache-control': 'no-store' })
+    res.end()
+    return
+  }
+  if (req.method !== 'GET') {
+    res.writeHead(405, { 'cache-control': 'no-store' })
+    res.end()
+    return
+  }
+  const remote = new URL(`${api}${target}`)
+  remote.search = incoming.search
+  const headers: Record<string, string> = { authorization, accept: 'application/json' }
+  if (activeTenant !== undefined && activeTenant !== '') headers['X-Active-Tenant'] = activeTenant
+  const response = await fetch(remote, { method: 'GET', headers, signal, redirect: 'error' })
+  const result = new Uint8Array(await response.arrayBuffer())
+  res.writeHead(response.status, {
+    'cache-control': 'no-store',
+    'content-type': 'application/json; charset=utf-8',
+    'x-content-type-options': 'nosniff',
+  })
+  res.end(result)
+}
+
 /**
  * Register the employee connection when the profile enables it.
  * @param ctx - Workbench plugin context.
@@ -146,6 +251,7 @@ async function proxyPersonalRequest(
 export function apply(ctx: Context, config: Config): void {
   const mcp = config.mcp
   if (mcp === false) return
+  const dataApi = config.data.apiUrl.replace(/\/+$/u, '')
   let connecting = false
   /** Live explicit-consent authorization: URL handed to the browser, awaiting the callback. */
   let pendingConsent: { url: string } | undefined
@@ -448,6 +554,7 @@ export function apply(ctx: Context, config: Config): void {
             req,
             res,
             mcp.apiUrl.replace(/\/+$/u, ''),
+            dataApi,
             authorization,
             typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
             AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
@@ -457,6 +564,39 @@ export function apply(ctx: Context, config: Config): void {
         }
       },
     }), 'yuanshu: identity API')
+
+    // 节假日：宿主侧代理公开数据源并按年缓存，浏览器不直连第三方；
+    // 失败时由 loadHolidayYear 回退磁盘缓存或报 502，客户端降级为仅周末=休。
+    scope.effect(() => scope.webServer.register({
+      kind: 'exact',
+      path: '/yuanshu-workbench/holidays',
+      auth: 'required',
+      async handler(req, res) {
+        const send = (status: number, payload?: object): void => {
+          res.writeHead(status, { 'cache-control': 'no-store', 'content-type': 'application/json' })
+          res.end(payload === undefined ? undefined : JSON.stringify(payload))
+        }
+        if (req.method !== 'GET') {
+          send(405)
+          return
+        }
+        const authorization = req.headers.authorization
+        if (authorization === undefined || !/^Bearer [^\s]+$/u.test(authorization)) {
+          send(401)
+          return
+        }
+        const year = Number(new URL(req.url ?? '/', 'http://localhost').searchParams.get('year'))
+        if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+          send(400)
+          return
+        }
+        try {
+          send(200, { data: await loadHolidayYear(year, scope.logger) })
+        } catch {
+          send(502)
+        }
+      },
+    }), 'yuanshu: holiday calendar')
 
     scope.effect(() => scope.webServer.register({
       kind: 'prefix',
@@ -481,7 +621,7 @@ export function apply(ctx: Context, config: Config): void {
           await proxyPersonalRequest(
             req,
             res,
-            mcp.apiUrl.replace(/\/+$/u, ''),
+            dataApi,
             authorization,
             typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
             AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
@@ -499,6 +639,103 @@ export function apply(ctx: Context, config: Config): void {
         }
       },
     }), 'yuanshu: personal workspace API')
+
+    for (const [resource, unavailable] of [
+      ['customers', 'YuanShu customer API unavailable'],
+      ['suppliers', 'YuanShu supplier API unavailable'],
+      ['supplier-categories', 'YuanShu supplier categories API unavailable'],
+      ['materials', 'YuanShu material API unavailable'],
+      ['material-categories', 'YuanShu material categories API unavailable'],
+      ['equipments', 'YuanShu equipment API unavailable'],
+      ['contracts', 'YuanShu contract API unavailable'],
+      ['projects', 'YuanShu project API unavailable'],
+      ['weekly-reports', 'YuanShu weekly report API unavailable'],
+    ] as const) {
+      scope.effect(() => scope.webServer.register({
+        kind: 'prefix',
+        path: `/yuanshu-workbench/${resource}`,
+        auth: 'required',
+        async handler(req, res) {
+          const authorization = req.headers.authorization
+          if (authorization === undefined || !/^Bearer [^\s]+$/u.test(authorization)) {
+            res.writeHead(401, { 'cache-control': 'no-store' })
+            res.end()
+            return
+          }
+          if (req.method !== 'GET' && req.headers['sec-fetch-site'] !== 'same-origin') {
+            res.writeHead(403, { 'cache-control': 'no-store' })
+            res.end()
+            return
+          }
+          const lifetime = new AbortController()
+          const close = () => { lifetime.abort() }
+          res.once('close', close)
+          const startedAt = Date.now()
+          try {
+            await proxyShaoshiMasterRequest(
+              req,
+              res,
+              dataApi,
+              authorization,
+              typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
+              AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
+            )
+            scope.logger.info('元枢档案请求', {
+              resource, method: req.method, upstream: new URL(dataApi).origin,
+              status: res.statusCode, durationMs: Date.now() - startedAt,
+            })
+          } catch (error) {
+            if (!lifetime.signal.aborted && !res.headersSent) {
+              scope.logger.warn(unavailable, error instanceof Error ? error.name : 'unknown error')
+              res.writeHead(502, {
+                'cache-control': 'no-store',
+                'content-type': 'application/json',
+              })
+              res.end(JSON.stringify({ error: unavailable }))
+            }
+          } finally {
+            res.off('close', close)
+          }
+        },
+      }), `yuanshu: ${resource} API`)
+    }
+    for (const path of Object.keys(ORGANIZATION_ROUTES)) {
+      const unavailable = 'YuanShu organization API unavailable'
+      scope.effect(() => scope.webServer.register({
+        kind: 'exact',
+        path,
+        auth: 'required',
+        async handler(req, res) {
+          const authorization = req.headers.authorization
+          if (authorization === undefined || !/^Bearer [^\s]+$/u.test(authorization)) {
+            res.writeHead(401, { 'cache-control': 'no-store' })
+            res.end()
+            return
+          }
+          const lifetime = new AbortController()
+          const close = () => { lifetime.abort() }
+          res.once('close', close)
+          try {
+            await proxyOrganizationRequest(
+              req,
+              res,
+              dataApi,
+              authorization,
+              typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
+              AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
+            )
+          } catch (error) {
+            if (!lifetime.signal.aborted && !res.headersSent) {
+              scope.logger.warn(unavailable, error instanceof Error ? error.name : 'unknown error')
+              res.writeHead(502, { 'cache-control': 'no-store', 'content-type': 'application/json' })
+              res.end(JSON.stringify({ error: unavailable }))
+            }
+          } finally {
+            res.off('close', close)
+          }
+        },
+      }), `yuanshu: organization ${path}`)
+    }
   })
   ctx.inject(['mcpManager', 'mcpAccounts'], (scope) => {
     scope.mcpManager.register(name, {

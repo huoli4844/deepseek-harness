@@ -1,0 +1,253 @@
+// @vitest-environment jsdom
+/** 验证周报和工时填报的交互及同源请求。 */
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
+import { zh } from '../src/client/core/locales/locales.ts'
+import { WeeklyDailyReportsScreen } from '../src/client/modules/business-modules/WeeklyDailyReportsScreen.tsx'
+import { accessRoleOf } from '../src/client/modules/business-modules/access-role.ts'
+import { WorkHoursScreen } from '../src/client/modules/business-modules/WorkHoursScreen.tsx'
+import { DailyLaborEntry } from '../src/client/modules/business-modules/DailyLaborEntry.tsx'
+import { beijingDate, moveDate, validLaborHours, weekStart } from '../src/client/modules/business-modules/project-registration-viewmodel.ts'
+import { parsePlanRows, parseRiskRows } from '../src/client/modules/business-modules/weekly-report-rows.ts'
+
+const t = (key: keyof typeof zh, params?: Readonly<Record<string, unknown>>) => Object.entries(params ?? {}).reduce(
+  (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)), zh[key],
+)
+const project = { id: 4, code: 'PRJ-01', name: '测试项目' }
+const start = '2026-11-23'
+const end = '2026-11-29'
+const list = { items: [project], total: 1, page: 1, page_size: 20 }
+// 后台快照必须带完整 report，表单才会解除加载态。
+const blankReport = () => ({
+  id: 1, project_id: project.id, period_start: start, period_end: end, created_by: 10, status: 'draft',
+  progress_summary: '', completed_work: '', planned_work: '', issues_and_risks: null, need_support: null,
+})
+
+afterEach(() => {
+  cleanup()
+  localStorage.clear()
+  vi.unstubAllGlobals()
+})
+
+it('按北京时间确定自然周，通过十进制文本限制工时精度', () => {
+  const day = beijingDate(new Date('2026-11-22T16:01:00Z'))
+  expect(day).toBe(start)
+  expect(weekStart(end)).toBe(start)
+  expect(moveDate(start, 6)).toBe(end)
+  expect(['1.50', '0.01', '999.99'].every(validLaborHours)).toBe(true)
+  expect(['0', '0.001', '1000', 'abc'].some(validLaborHours)).toBe(false)
+})
+
+it('仅用真实后台角色编码判定管理层视角，演示身份不参与', () => {
+  expect(accessRoleOf(['shaoshi_management'], true)).toBe('management')
+  expect(accessRoleOf(['shaoshi_admin'], true)).toBe('management')
+  expect(accessRoleOf(['shaoshi_purchase'], true)).toBe('employee')
+  expect(accessRoleOf(['shaoshi_management'], false)).toBeUndefined()
+})
+
+it('解析下周计划与风险 JSON，旧纯文本回退为单行', () => {
+  const plan = { project_code: 'PRJ-01', project_name: '测试项目', task_id: 10, task_name: '实施', priority: 'high', description: '联调' } as const
+  const legacy = { project: '旧项目', stage: '旧阶段', priority: 'low', description: '旧计划' } as const
+  const risk = { description: '物料延期', impact: '影响交付', support: '采购协助' } as const
+  expect(parsePlanRows(JSON.stringify([plan]))).toEqual([plan])
+  expect(parsePlanRows(JSON.stringify([legacy]))).toEqual([{
+    project_code: '', project_name: '旧项目', task_id: undefined, task_name: '旧阶段', priority: 'low', description: '旧计划',
+  }])
+  expect(parsePlanRows('旧计划')).toEqual([{
+    project_code: '', project_name: '', task_id: undefined, task_name: '', priority: 'mid', description: '旧计划',
+  }])
+  expect(parsePlanRows('   ')).toEqual([])
+  expect(parseRiskRows(JSON.stringify([risk]))).toEqual([risk])
+  expect(parseRiskRows('旧风险')).toEqual([{ description: '旧风险', impact: '', support: '' }])
+  expect(parseRiskRows('')).toEqual([])
+})
+
+it('编辑已有周报只提交正文，失败保留输入，提交后锁定并跳转到已批准工时', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  const onLabor = vi.fn()
+  const edits: unknown[] = []
+  let rejectNext = true
+  let weekly = {
+    id: 8, project_id: 4, period_start: start, period_end: end, created_by: 10, status: 'draft',
+    progress_summary: '原进展', completed_work: '工作', planned_work: '计划', issues_and_risks: null, need_support: null,
+  }
+  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input, init) => {
+    if (typeof input !== 'string') throw new Error('应使用同源请求路径')
+    const url = new URL(input, 'http://localhost')
+    if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
+    if (url.pathname === '/yuanshu-workbench/weekly-reports') return Response.json({ data: { items: [{
+      id: 5, project_code: project.code, project_name: project.name, task_id: 10, task_name: '任务甲',
+      work_type: 'direct', completion_status: 'completed', has_risk: false, risk_details: '', report_status: 'submitted',
+    }] } })
+    if (init?.method === 'PUT') {
+      if (rejectNext) { rejectNext = false; return Response.json({}, { status: 403 }) }
+      if (typeof init.body !== 'string') throw new Error('缺少周报正文')
+      const body: unknown = JSON.parse(init.body)
+      edits.push(body)
+      weekly = { ...weekly, progress_summary: '新进展' }
+    } else if (init?.method === 'POST') {
+      weekly = { ...weekly, status: 'submitted' }
+    } else {
+      expect(url.searchParams.get('period_start')).toBe(start)
+    }
+    return Response.json({ data: { report: weekly, labor: { total_hours: '1.50', employees: [{ user_id: 10, hours: '1.50' }] } } })
+  }))
+  render(<WeeklyDailyReportsScreen t={t} role="management" onLabor={onLabor} />)
+  await screen.findByRole('option', { name: /测试项目/u })
+  fireEvent.change(screen.getByLabelText('月份'), { target: { value: '2026-11' } })
+  fireEvent.change(screen.getByRole('combobox', { name: '周次' }), { target: { value: start } })
+  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
+  // 旧版纯文本完成内容会回退为一条事项，可直接改写描述。
+  const progress = await screen.findByRole('textbox', { name: '事项描述' })
+  const report = within(screen.getByRole('region', { name: '提交前检查' }))
+  fireEvent.change(progress, { target: { value: '新进展' } })
+  fireEvent.click(report.getByRole('button', { name: '保存草稿' }))
+  await screen.findByRole('alert')
+  expect(progress).toHaveProperty('value', '新进展')
+  fireEvent.click(report.getByRole('button', { name: '保存草稿' }))
+  await screen.findByText('草稿已保存')
+  expect(edits).toEqual([{
+    period_start: start, progress_summary: '新进展', planned_work: '计划', issues_and_risks: null, need_support: null,
+    completed_work: JSON.stringify([{
+      project_code: '', project_name: '', task_name: '', completion_status: '', description: '新进展',
+    }]),
+  }])
+  fireEvent.click(report.getByRole('button', { name: '提交周报' }))
+  await waitFor(() => { expect(progress).toHaveProperty('disabled', true) })
+  fireEvent.click(screen.getByRole('button', { name: '查看工时明细' }))
+  expect(onLabor).toHaveBeenCalledWith({ projectCode: project.code, dateFrom: start, dateTo: end, status: 'approved' }, project)
+})
+
+it('未选项目时新增事项禁用，选择项目后可连续新增多条事项', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input) => {
+    if (typeof input !== 'string') throw new Error('应使用同源请求路径')
+    const url = new URL(input, 'http://localhost')
+    if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
+    return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+  }))
+  render(<WeeklyDailyReportsScreen t={t} onLabor={() => undefined} />)
+  const add = screen.getByRole('button', { name: '新增事项' })
+  expect(add).toHaveProperty('disabled', true)
+  await screen.findByRole('option', { name: /测试项目/u })
+  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
+  await waitFor(() => { expect(add).toHaveProperty('disabled', false) })
+  fireEvent.click(add)
+  fireEvent.click(add)
+  expect(screen.getByText('事项 1')).toBeDefined()
+  expect(screen.getByText('事项 2')).toBeDefined()
+  expect(screen.getAllByRole('combobox', { name: '项目' })).toHaveLength(2)
+  expect(screen.getAllByRole('combobox', { name: '阶段名称' })).toHaveLength(2)
+  expect(screen.getAllByRole('combobox', { name: '完成状态' })).toHaveLength(2)
+  expect(screen.getAllByRole('textbox', { name: '事项描述' })).toHaveLength(2)
+})
+
+it('周报事项按项目、阶段、状态和描述保存，并自动汇总进展摘要', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  const tasks = { items: [{ id: 10, code: 'T-1', name: '任务甲', status: 'in_progress' }], total: 1, page: 1, page_size: 20 }
+  let put: Record<string, unknown> | undefined
+  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input, init) => {
+    if (typeof input !== 'string') throw new Error('应使用同源请求路径')
+    const url = new URL(input, 'http://localhost')
+    if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
+    if (url.pathname === '/yuanshu-workbench/projects/PRJ-01/tasks') return Response.json({ data: tasks })
+    if (url.pathname === '/yuanshu-workbench/projects/PRJ-01/weekly-reports') {
+      if (init?.method === 'PUT') put = JSON.parse(String(init.body)) as Record<string, unknown>
+      return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+    }
+    return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+  }))
+  render(<WeeklyDailyReportsScreen t={t} onLabor={() => undefined} />)
+  await screen.findByRole('option', { name: /测试项目/u })
+  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
+  const add = screen.getByRole('button', { name: '新增事项' })
+  await waitFor(() => { expect(add).toHaveProperty('disabled', false) })
+  fireEvent.click(add)
+  fireEvent.click(add)
+  for (const select of screen.getAllByRole('combobox', { name: '项目' })) {
+    fireEvent.change(select, { target: { value: project.code } })
+  }
+  await waitFor(() => { expect(screen.getAllByRole('option', { name: /任务甲/u })).toHaveLength(2) })
+  for (const select of screen.getAllByRole('combobox', { name: '阶段名称' })) {
+    fireEvent.change(select, { target: { value: '10' } })
+  }
+  for (const select of screen.getAllByRole('combobox', { name: '完成状态' })) {
+    fireEvent.change(select, { target: { value: 'in_progress' } })
+  }
+  const descriptions = screen.getAllByRole('textbox', { name: '事项描述' })
+  fireEvent.change(descriptions[0], { target: { value: '完成联调' } })
+  fireEvent.change(descriptions[1], { target: { value: '补充自测' } })
+  fireEvent.click(within(screen.getByRole('region', { name: '提交前检查' })).getByRole('button', { name: '保存草稿' }))
+  await waitFor(() => { expect(put).toBeDefined() })
+  expect(put?.progress_summary).toBe('完成联调\n补充自测')
+  const completed = JSON.parse(String(put?.completed_work)) as readonly Record<string, unknown>[]
+  expect(completed).toEqual([
+    { project_code: 'PRJ-01', project_name: '测试项目', task_id: 10, task_name: '任务甲', completion_status: 'in_progress', description: '完成联调' },
+    { project_code: 'PRJ-01', project_name: '测试项目', task_id: 10, task_name: '任务甲', completion_status: 'in_progress', description: '补充自测' },
+  ])
+})
+
+it('接收项目和已批准工时筛选，并用弹窗新建草稿', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  const labor = { id: 6, user_id: 10, project_id: 4, work_date: start, hours: '1.50', work_type: 'direct', status: 'approved' }
+  const calls = vi.fn<typeof fetch>(async (input, init) => {
+    if (typeof input !== 'string') throw new Error('应使用同源请求路径')
+    const url = new URL(input, 'http://localhost')
+    if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
+    if (init?.method === 'POST') return Response.json({ data: { ...labor, status: 'draft' } })
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ date_from: start, date_to: end, status: 'approved' })
+    return Response.json({ data: { items: [labor], total: 1, archive_total: 3, page: 1, page_size: 20 } })
+  })
+  vi.stubGlobal('fetch', calls)
+  render(<WorkHoursScreen t={t} initial={{ project, range: { projectCode: project.code, dateFrom: start, dateTo: end, status: 'approved' } }} />)
+  await screen.findByRole('cell', { name: '1.50' })
+  expect(screen.getByRole('combobox', { name: '状态' })).toHaveProperty('value', 'approved')
+  expect(screen.getByText('3', { exact: true })).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: '填报工时' }))
+  const dialog = within(screen.getByRole('dialog', { name: '填报工时' }))
+  fireEvent.change(dialog.getByRole('textbox', { name: '小时数' }), { target: { value: '1.50' } })
+  fireEvent.click(dialog.getByRole('button', { name: '保存草稿' }))
+  await waitFor(() => { expect(screen.queryByRole('dialog', { name: '填报工时' })).toBeNull() })
+  const submitted = calls.mock.calls.find(([, request]) => request?.method === 'POST')
+  expect(submitted?.[0]).toBe('/yuanshu-workbench/projects/PRJ-01/labor-hours')
+  expect(submitted?.[1]?.body).toBe(JSON.stringify({ hours: '1.50', work_date: start, work_type: 'direct', description: '' }))
+})
+
+it('按每天的项目分割比例拆分并保存工时', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  const projects = { items: [project, { id: 5, code: 'PRJ-02', name: '另一项目' }], total: 2, page: 1, page_size: 20 }
+  const writes: { readonly path: string; readonly body: string }[] = []
+  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input, init) => {
+    if (typeof input !== 'string') throw new Error('应使用同源请求路径')
+    const url = new URL(input, 'http://localhost')
+    if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: projects })
+    if (url.pathname.endsWith('/labor-hours') && init?.method === 'POST') {
+      const body = String(init.body)
+      writes.push({ path: url.pathname, body })
+      const submitted: { readonly hours: string; readonly work_date: string; readonly work_type: string; readonly description: string; readonly completion_status: string } = JSON.parse(body)
+      const code = url.pathname.includes('PRJ-02') ? 'PRJ-02' : 'PRJ-01'
+      const id = code === 'PRJ-02' ? 5 : 4
+      return Response.json({ data: { ...submitted, id: writes.length, user_id: 10, project_id: id, status: 'draft', can_edit: true, can_submit: true } })
+    }
+    return Response.json({ data: { items: [], total: 0, page: 1, page_size: 100 } })
+  }))
+  const view = render(<DailyLaborEntry t={t} />)
+  await screen.findAllByRole('combobox', { name: '项目' })
+  const projectFields = screen.getAllByRole('combobox', { name: '项目' })
+  fireEvent.change(projectFields[0], { target: { value: 'PRJ-01' } })
+  fireEvent.click(screen.getAllByRole('button', { name: '添加项目' })[0])
+  const ratios = screen.getAllByRole('textbox', { name: '分割比例' })
+  fireEvent.change(ratios[0], { target: { value: '60' } })
+  fireEvent.change(ratios[1], { target: { value: '40' } })
+  const secondProject = screen.getAllByRole('combobox', { name: '项目' })[1]
+  fireEvent.change(secondProject, { target: { value: 'PRJ-02' } })
+  fireEvent.change(screen.getAllByRole('textbox', { name: '小时数' })[0], { target: { value: '8' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存草稿' }))
+  await waitFor(() => { expect(writes).toHaveLength(2) })
+  expect(writes.map(item => JSON.parse(item.body).hours)).toEqual(['4.80', '3.20'])
+  expect(writes.map(item => item.path)).toEqual([
+    '/yuanshu-workbench/projects/PRJ-01/labor-hours',
+    '/yuanshu-workbench/projects/PRJ-02/labor-hours',
+  ])
+  view.unmount()
+})

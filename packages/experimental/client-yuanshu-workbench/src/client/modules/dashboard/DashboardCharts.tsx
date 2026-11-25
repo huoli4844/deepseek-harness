@@ -6,6 +6,7 @@ import type { DashboardChart, DashboardKey } from './dashboard-data.ts'
 import type { TaskId } from '../../core/model.ts'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import css from './DashboardCharts.module.css'
+import tableCss from '../../shared/table.module.css'
 
 type ChartProps = PropsLocale<'yuanshu.workbench'> & {
   readonly charts: readonly DashboardChart[]
@@ -230,8 +231,8 @@ export function DashboardCharts({ t, charts, tasks, onTask }: ChartProps) {
             <Tag>{t('demoSample')}</Tag>
             <p className={css.detailNote}>{t('chart.demoDetails')}</p>
             <p className={css.detailNote}>{t(unitKey(selected))}</p>
-            <div className={css.tableScroll}>
-              <table className={css.dataTable}>
+            <div className={tableCss.tableWrap}>
+              <table className={tableCss.table}>
                 <thead>
                   <tr>
                     <th>{t('chart.dimension')}</th>
@@ -247,19 +248,19 @@ export function DashboardCharts({ t, charts, tasks, onTask }: ChartProps) {
                           <td>
                             {t('chart.impact')} {t(levels[impact])} · {t('chart.urgency')} {t(levels[urgency])}
                           </td>
-                          <td>{selected.cells[impact * 3 + urgency]}</td>
+                          <td className={tableCss.numericCell}>{selected.cells[impact * 3 + urgency]}</td>
                         </tr>
                       )),
                     )
                     : selected.points.map(point => (
                       <tr key={point.label}>
                         <td>{t(point.label)}</td>
-                        <td>
+                        <td className={tableCss.numericCell}>
                           {point.value}
                           {selected.kind === 'comparison' ? '%' : ''}
                         </td>
                         {'target' in point && (
-                          <td>
+                          <td className={tableCss.numericCell}>
                             {point.target}
                             {selected.kind === 'comparison' ? '%' : ''}
                           </td>

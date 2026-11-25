@@ -101,7 +101,7 @@
   padding: 28px 14px 16px;
   padding-top: max(28px, var(--dsh-frame-top-clearance, 0px));
   border-right: 0.5px solid var(--work-line);
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--dsw-alias-bg-layer-1);
   /* 注意：侧栏不能设为 -webkit-app-region: drag ——
      Electron 拖拽区会吞掉滚轮事件，导致菜单栏经常无法滚动。 */
@@ -121,6 +121,15 @@
 }
 .brand strong {
   font-size: 16px;
+}
+/* 标题右侧的版本号：弱化显示，随 package.json 版本自动更新。 */
+.brand .version {
+  margin-inline-start: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+  color: var(--work-muted);
+  white-space: nowrap;
 }
 .brand small {
   letter-spacing: 0.4px;
@@ -144,10 +153,11 @@
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
 }
-/* 导航列表保持自然高度，滚动统一交给外层 .navigation，
-   避免出现两个嵌套滚动容器。 */
+/* 菜单列表单独滚动，品牌区与底部「返回 + 当前用户」保持固定不动。 */
 .navigation nav {
-  flex: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -181,6 +191,23 @@
   color: var(--work-muted);
   margin: 15px 10px 5px;
   letter-spacing: 0.8px;
+}
+.submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 4px 24px;
+  border-left: 1px solid var(--work-line);
+  padding-left: 6px;
+}
+.navigation nav .submenu button {
+  min-height: 32px;
+  padding: 7px 8px;
+  font-size: 12px;
+}
+.navigation nav .submenu .submenuActive {
+  background: var(--dsw-alias-interactive-bg-active);
+  color: var(--work-accent);
 }
 /* 底部一行：「返回」按钮 + 当前用户（头像/姓名/部门·岗位）紧靠在按钮右侧。 */
 .return {
@@ -1735,6 +1762,33 @@
 }
 .readDot {
   background: var(--work-line);
+}
+/* 通知分类筛选 chips：全部 / 项目 / 邮件 / 会议 / 付款 / 待审批。 */
+.notifFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.notifFilter,
+.notifFilterActive {
+  padding: 4px 14px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.notifFilter:hover {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+}
+.notifFilterActive {
+  border-color: var(--work-accent);
+  background: var(--work-accent);
+  color: #fff;
 }
 .workHeading h1 {
   font-size: 22px;

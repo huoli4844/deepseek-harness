@@ -26,19 +26,20 @@ const DEFAULT_PROJECT_CODE = 'EP220501'
 /**
  * 把同源路径解析为后台真实地址；未知路径返回 undefined。
  * @param incoming - 浏览器请求。
- * @param api - 元枢后台 API 根地址（不带末尾斜杠）。
+ * @param authApi - 云端身份 API 根地址（不带末尾斜杠）。
+ * @param dataApi - 本地业务数据 API 根地址（不带末尾斜杠）。
  * @returns 后台地址，或 undefined 表示路由不存在。
  */
-function upstreamUrl(incoming: ProxyRequest, api: string): URL | undefined {
+function upstreamUrl(incoming: ProxyRequest, authApi: string, dataApi: string): URL | undefined {
   const url = new URL(incoming.url ?? '/', 'http://localhost')
   const endpoint = url.pathname.slice('/yuanshu-workbench/identity/'.length)
-  if (endpoint === 'me') return new URL(`${api}/api/v1/user/me`)
-  if (endpoint === 'profile') return new URL(`${api}/api/v1/apps/shaoshi/workbench/profile`)
-  if (endpoint === 'position') return new URL(`${api}/api/v1/apps/shaoshi/workbench/position`)
+  if (endpoint === 'me') return new URL(`${authApi}/api/v1/user/me`)
+  if (endpoint === 'profile') return new URL(`${authApi}/api/v1/apps/shaoshi/workbench/profile`)
+  if (endpoint === 'position') return new URL(`${authApi}/api/v1/apps/shaoshi/workbench/position`)
   if (endpoint === 'labor-hours') {
     const code = url.searchParams.get('code') ?? DEFAULT_PROJECT_CODE
     if (!PROJECT_CODE.test(code)) return undefined
-    return new URL(`${api}/api/v1/apps/shaoshi/projects/${encodeURIComponent(code)}/labor-hours`)
+    return new URL(`${dataApi}/api/v1/apps/shaoshi/projects/${encodeURIComponent(code)}/labor-hours`)
   }
   return undefined
 }
@@ -47,7 +48,8 @@ function upstreamUrl(incoming: ProxyRequest, api: string): URL | undefined {
  * 代理一个身份类 GET 请求；响应体与状态码原样透传，便于客户端按既有契约解析。
  * @param req - 浏览器请求。
  * @param res - 浏览器响应。
- * @param api - 元枢后台 API 根地址。
+ * @param authApi - 云端身份 API 根地址。
+ * @param dataApi - 本地业务数据 API 根地址。
  * @param authorization - 浏览器携带的后台 Bearer 凭证。
  * @param activeTenant - 当前租户编码。
  * @param signal - 请求生命周期信号。
@@ -55,7 +57,8 @@ function upstreamUrl(incoming: ProxyRequest, api: string): URL | undefined {
 export async function proxyIdentityRequest(
   req: ProxyRequest,
   res: ProxyResponse,
-  api: string,
+  authApi: string,
+  dataApi: string,
   authorization: string,
   activeTenant: string | undefined,
   signal: AbortSignal,
@@ -69,7 +72,7 @@ export async function proxyIdentityRequest(
     res.end()
     return
   }
-  const remote = upstreamUrl(req, api)
+  const remote = upstreamUrl(req, authApi, dataApi)
   if (remote === undefined) {
     send(404)
     return

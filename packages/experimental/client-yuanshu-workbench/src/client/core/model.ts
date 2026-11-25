@@ -44,8 +44,9 @@ export type OperatorViewId = typeof OPERATOR_VIEW_IDS[number]
 
 export type ViewId =
   'assistant' | 'dashboard' | 'project-operations' | 'position-operations' | 'priorities' | 'agent'
-  | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'notifications' | 'files' | 'methods' | 'work'
-  | 'profile'
+  | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'files' | 'methods' | 'work'
+  | 'profile' | 'customer-resources' | 'material-management' | 'supplier-management' | 'equipment-ledger'
+  | 'contract-management' | 'budget-cost' | 'work-hours' | 'weekly-daily-reports' | 'organization'
   | OperatorViewId
 
 /** 判断一个 ViewId 是否属于运营者视角五屏。 */
@@ -97,6 +98,9 @@ export interface SceneCheckpoint {
   note: string
   kpiIndex?: 0 | 1 | 2 | 3
 }
+/** 通知中心的全部演示事项 id（未读徽标与「全部标为已读」共用同一份清单）。 */
+export const NOTIFICATION_IDS: readonly number[] = Array.from({ length: 10 }, (_, index) => index)
+
 /** Browser-local prototype data; it is not a YuanShu business record. */
 export interface WorkbenchState {
   role: RoleId
@@ -212,7 +216,7 @@ const workbenchActions = {
     if (!state.read.includes(id)) state.read.push(id)
   },
   markAllRead: (state: WorkbenchState) => {
-    state.read = [0, 1, 2]
+    state.read = [...NOTIFICATION_IDS]
   },
   selectDay: (state: WorkbenchState, day: number) => {
     state.day = day

@@ -1,0 +1,30 @@
+/** 供应商表格横向浏览与固定操作列样式。 */
+.viewport {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+.supplierTable {
+  table-layout: auto;
+}
+.supplierTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.supplierTable th,
+.supplierTable td {
+  white-space: nowrap;
+}
+.supplierTable .dataCell {
+  min-width: 104px;
+  max-width: 280px;
+}
+.supplierTable .dataCell:nth-child(2) {
+  min-width: 220px;
+}
+.supplierTable .dataCell:nth-child(5),
+.supplierTable .dataCell:nth-child(8) {
+  min-width: 144px;
+}
