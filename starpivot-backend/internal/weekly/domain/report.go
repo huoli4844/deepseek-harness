@@ -2,8 +2,10 @@
 package domain
 
 import (
+	"encoding/json"
 	"errors"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -62,6 +64,12 @@ type Draft struct {
 	NeedSupport     *string `json:"need_support"`
 }
 
+// DraftInput 是保存与提交请求体：自然周周一日期加可编辑正文。
+type DraftInput struct {
+	PeriodStart string `json:"period_start"`
+	Draft
+}
+
 // Validate 检查正文能否由 PostgreSQL UTF-8 文本列保存。
 func (d Draft) Validate() error {
 	for _, value := range []string{d.ProgressSummary, d.CompletedWork, d.PlannedWork} {
@@ -88,11 +96,35 @@ func validText(value string) bool {
 	return utf8.ValidString(value) && !strings.ContainsRune(value, 0)
 }
 
-// Report 是单个租户的项目周报和服务端审计信息。
+// RowProjectCodes 提取完成与计划正文中 JSON 行内引用的项目编码，去重排序后返回；
+// 正文不是 JSON 数组时视为纯文本，不产生编码。
+func (d Draft) RowProjectCodes() []string {
+	codes := map[string]struct{}{}
+	for _, value := range []string{d.CompletedWork, d.PlannedWork} {
+		var rows []struct {
+			ProjectCode string `json:"project_code"`
+		}
+		if json.Unmarshal([]byte(value), &rows) != nil {
+			continue
+		}
+		for _, row := range rows {
+			if row.ProjectCode != "" {
+				codes[row.ProjectCode] = struct{}{}
+			}
+		}
+	}
+	result := make([]string, 0, len(codes))
+	for code := range codes {
+		result = append(result, code)
+	}
+	slices.Sort(result)
+	return result
+}
+
+// Report 是单个租户的用户周报和服务端审计信息；项目关联保存在正文事项行内。
 type Report struct {
 	ID               int64  `json:"id"`
 	BusinessTenantID int64  `json:"business_tenant_id"`
-	ProjectID        int64  `json:"project_id"`
 	PeriodStart      string `json:"period_start"`
 	PeriodEnd        string `json:"period_end"`
 	Draft

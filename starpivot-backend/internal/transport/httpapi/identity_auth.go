@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -83,10 +84,20 @@ func (a bearerIdentity) AuthorizeCustomer(r *http.Request) (CustomerAccess, bool
 	if user.Data.ID <= 0 || tenants.Data.Current.ID <= 0 {
 		return CustomerAccess{}, false
 	}
-	if code != "" && tenants.Data.Current.Code != code {
+	// 工作台登录侧把当前租户 ID 写入本地存储，因此请求头可能是租户编码或租户 ID，两者都视为匹配。
+	if code != "" && tenants.Data.Current.Code != code && activeTenantID(code) != tenants.Data.Current.ID {
 		return CustomerAccess{}, false
 	}
 	return CustomerAccess{UserID: user.Data.ID, TenantID: tenants.Data.Current.ID, CanWrite: true}, true
+}
+
+// activeTenantID 把请求头里的纯数字租户 ID 还原为整数；不是数字时返回 0 表示无法按 ID 匹配。
+func activeTenantID(code string) int64 {
+	id, err := strconv.ParseInt(code, 10, 64)
+	if err != nil || id <= 0 {
+		return 0
+	}
+	return id
 }
 
 // fetch 用同一份凭证请求身份接口，只接受 200 和 JSON 正文。

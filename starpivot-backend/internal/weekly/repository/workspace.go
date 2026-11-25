@@ -78,6 +78,17 @@ func ensureWorkspaceProjects(ctx context.Context, tx pgx.Tx, tenant, user int64,
 	return projects, nil
 }
 
+// projectID 校验项目属于当前租户，并返回未删除项目的主键。
+func projectID(ctx context.Context, tx pgx.Tx, tenant int64, code string, _ bool) (int64, error) {
+	var id int64
+	err := tx.QueryRow(ctx, `SELECT id FROM public.prj_projects
+		WHERE business_tenant_id=$1 AND code=$2 AND deleted_at IS NULL`, tenant, code).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, domain.ErrNotFound
+	}
+	return id, err
+}
+
 type workspaceHeader struct {
 	ProjectID int64
 	ID        int64

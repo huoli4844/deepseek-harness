@@ -118,3 +118,9 @@ go build ./...
 ```
 
 数据库集成测试可在空的本机 PostgreSQL 数据库 `dsh_customer_test` 中运行，设置 `DSH_TEST_DATABASE_URL` 后执行 `go test ./internal/customer/repository -count=1`。测试会初始化该库并执行迁移，禁止使用业务数据库。
+
+### 个人工作日报
+
+独立接口契约见 `api/daily-reports.openapi.json`，主 `api/openapi.json` 通过 Path Item 引用挂载。新增 `GET /api/v1/apps/deepseek-harness/daily-reports/schema`、`GET /api/v1/apps/deepseek-harness/daily-reports/{date}`、`PUT /api/v1/apps/deepseek-harness/daily-reports/{date}`。只允许当前可信用户在当前租户下读取和登记本人日报，禁止临时租户读降级；不接受用户、租户和审计时间字段。PUT 根据 `status` 保存草稿或原子提交，使用 `expected_version` 和最近 `request_id` 防止覆盖及重复写入。
+
+先由维护流程在目标云端库执行 `migrations/0009_daily_work_reports.sql`，再重启服务。启动不会自动迁移。集成测试显式设置 `DSH_DAILY_TEST_DATABASE_URL` 为回环 PostgreSQL 的 `postgres` 管理库，测试自动新建并清理一次性 `dsh_daily_test_*` 数据库，不写入业务库或备份库。运行：`go test -v ./internal/dailyreport/... ./internal/transport/httpapi -run 'TestDaily|TestInputValidation'`。

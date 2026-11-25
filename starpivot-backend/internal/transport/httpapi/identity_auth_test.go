@@ -14,18 +14,23 @@ import (
 	"starpivot.local/deepseek-harness-backend/internal/weekly/domain"
 )
 
-type workspaceTestRepository struct {
+type weeklyAuthRepository struct {
 	tenant, user int64
 }
 
-func (f *workspaceTestRepository) GetWorkspace(_ context.Context, tenant, user int64, week domain.Week) (domain.Workspace, error) {
+func (f *weeklyAuthRepository) Get(_ context.Context, tenant, user int64, week domain.Week) (domain.View, error) {
 	f.tenant, f.user = tenant, user
-	return domain.Workspace{PeriodStart: week.Start.Format("2006-01-02"), PeriodEnd: week.End.Format("2006-01-02"), Items: []domain.Item{}}, nil
+	return domain.View{Labor: domain.LaborSummary{TotalHours: "0.00", Employees: []domain.EmployeeHours{}}}, nil
 }
 
-func (f *workspaceTestRepository) SaveWorkspace(_ context.Context, tenant, user int64, week domain.Week, items []domain.ItemDraft) (domain.Workspace, error) {
+func (f *weeklyAuthRepository) Save(_ context.Context, tenant, user int64, _ domain.Week, _ domain.Draft) (domain.View, error) {
 	f.tenant, f.user = tenant, user
-	return domain.Workspace{PeriodStart: week.Start.Format("2006-01-02"), PeriodEnd: week.End.Format("2006-01-02"), Items: []domain.Item{}}, nil
+	return domain.View{Labor: domain.LaborSummary{TotalHours: "0.00", Employees: []domain.EmployeeHours{}}}, nil
+}
+
+func (f *weeklyAuthRepository) Submit(_ context.Context, tenant, user int64, _ domain.Week) (domain.View, error) {
+	f.tenant, f.user = tenant, user
+	return domain.View{Labor: domain.LaborSummary{TotalHours: "0.00", Employees: []domain.EmployeeHours{}}}, nil
 }
 
 // identityStub 模拟元枢当前用户与当前租户接口，固定返回 12 号用户和 shaoshi 租户。
@@ -47,27 +52,32 @@ func identityStub(t *testing.T) *httptest.Server {
 	}))
 }
 
-func TestWeeklyWorkspaceBearerIdentity(t *testing.T) {
+func TestWeeklyReportsBearerIdentity(t *testing.T) {
 	const path = "/api/v1/apps/deepseek-harness/weekly-reports"
 	const key = "0123456789abcdef0123456789abcdef"
-	const body = `{"period_start":"2026-11-23","items":[]}`
+	const body = `{"period_start":"2026-11-23","progress_summary":"","completed_work":"[]","planned_work":"[]"}`
 	identity := identityStub(t)
 	defer identity.Close()
-	repo := &workspaceTestRepository{}
+	repo := &weeklyAuthRepository{}
 	mux := http.NewServeMux()
 	personal := WithBearerIdentity(NewLocalCustomerGateway([32]byte([]byte(key))), identity.URL, identity.Client())
-	RegisterWeeklyWorkspace(mux, application.NewWorkspace(repo), personal)
+	RegisterWeeklyReports(mux, application.New(repo), personal)
 
 	for _, test := range []struct {
 		name, method, url, body, tenant, authorization string
 		gateway                                        bool
 		status                                         int
 	}{{
-		name: "Bearer 读取本人登记", method: "GET", url: path + "?period_start=2026-11-23",
+		name: "Bearer 读取本人周报", method: "GET", url: path + "?period_start=2026-11-23",
 		tenant: "shaoshi", authorization: "Bearer good-token", status: 200,
 	}, {
-		name: "Bearer 保存本人登记", method: "PUT", url: path, body: body,
+		name: "Bearer 保存本人周报", method: "PUT", url: path, body: body,
 		tenant: "shaoshi", authorization: "Bearer good-token", status: 200,
+	}, {
+		name: "Bearer 请求头用租户 ID 同样匹配", method: "GET", url: path + "?period_start=2026-11-23",
+		tenant: "3", authorization: "Bearer good-token", status: 200,
+	}, {
+		name: "Bearer 请求头用他人租户 ID 不匹配", method: "GET", url: path, tenant: "4", authorization: "Bearer good-token", status: 401,
 	}, {
 		name: "缺少凭证", method: "GET", url: path, status: 401,
 	}, {
@@ -114,11 +124,12 @@ func TestWeeklyWorkspaceBearerIdentity(t *testing.T) {
 			}
 			var payload struct {
 				Data struct {
-					Items []domain.Item `json:"items"`
+					Report *domain.Report      `json:"report"`
+					Labor  domain.LaborSummary `json:"labor"`
 				} `json:"data"`
 			}
-			if err := json.Unmarshal(res.Body.Bytes(), &payload); err != nil || payload.Data.Items == nil {
-				t.Fatalf("响应缺少 items：%s", res.Body.String())
+			if err := json.Unmarshal(res.Body.Bytes(), &payload); err != nil {
+				t.Fatalf("响应缺少周报数据：%s", res.Body.String())
 			}
 		})
 	}
@@ -129,7 +140,7 @@ func TestBearerIdentityUnavailable(t *testing.T) {
 	identity.Close()
 	mux := http.NewServeMux()
 	personal := WithBearerIdentity(NewLocalCustomerGateway([32]byte([]byte("0123456789abcdef0123456789abcdef"))), identity.URL, identity.Client())
-	RegisterWeeklyWorkspace(mux, application.NewWorkspace(&workspaceTestRepository{}), personal)
+	RegisterWeeklyReports(mux, application.New(&weeklyAuthRepository{}), personal)
 	request := httptest.NewRequest("GET", "/api/v1/apps/deepseek-harness/weekly-reports", nil)
 	request.Header.Set("Authorization", "Bearer good-token")
 	res := httptest.NewRecorder()

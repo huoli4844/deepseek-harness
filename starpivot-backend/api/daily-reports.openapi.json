@@ -1,0 +1,515 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "个人工作日报 API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/apps/deepseek-harness/daily-reports/schema": {
+      "get": {
+        "tags": [
+          "apps/deepseek-harness"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "EquipmentGateway": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Active-Tenant",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "可选租户编码或 ID，由身份服务校验当前租户；不能指定他人身份"
+          }
+        ],
+        "operationId": "getApiV1AppsDeepseekHarnessDailyReportsSchema",
+        "summary": "读取本人日报的授权表单契约与可信身份",
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "schema_id",
+                        "user_id",
+                        "business_tenant_id",
+                        "timezone",
+                        "fields",
+                        "max_length",
+                        "statuses",
+                        "can_write"
+                      ],
+                      "properties": {
+                        "schema_id": {
+                          "const": "daily-report.v1"
+                        },
+                        "user_id": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "business_tenant_id": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "timezone": {
+                          "const": "Asia/Shanghai"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "completed_work",
+                              "in_progress_work",
+                              "planned_work",
+                              "issues_and_risks",
+                              "need_support"
+                            ]
+                          }
+                        },
+                        "max_length": {
+                          "const": 10000
+                        },
+                        "statuses": {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "draft",
+                              "submitted"
+                            ]
+                          }
+                        },
+                        "can_write": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "非法日期、正文、状态、幂等标识、未知字段或额外 JSON"
+          },
+          "401": {
+            "description": "未取得可信本人及租户身份"
+          },
+          "403": {
+            "description": "没有本人日报写权限"
+          },
+          "405": {
+            "description": "方法不允许"
+          },
+          "409": {
+            "description": "已提交、并发版本冲突或幂等标识复用"
+          },
+          "503": {
+            "description": "数据服务暂不可用；重试必须保留相同请求正文和标识"
+          }
+        }
+      }
+    },
+    "/api/v1/apps/deepseek-harness/daily-reports/{date}": {
+      "parameters": [
+        {
+          "name": "date",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "apps/deepseek-harness"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "EquipmentGateway": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Active-Tenant",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "可选租户编码或 ID，由身份服务校验当前租户；不能指定他人身份"
+          }
+        ],
+        "operationId": "getApiV1AppsDeepseekHarnessDailyReportsDate",
+        "summary": "读取本人指定日期的日报",
+        "description": "同时按可信租户、用户、工作日期限定；无记录时 report=null；不提供查询他人日报的参数。",
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/DailyReport"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "非法日期、正文、状态、幂等标识、未知字段或额外 JSON"
+          },
+          "401": {
+            "description": "未取得可信本人及租户身份"
+          },
+          "403": {
+            "description": "没有本人日报写权限"
+          },
+          "405": {
+            "description": "方法不允许"
+          },
+          "409": {
+            "description": "已提交、并发版本冲突或幂等标识复用"
+          },
+          "503": {
+            "description": "数据服务暂不可用；重试必须保留相同请求正文和标识"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "apps/deepseek-harness"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "EquipmentGateway": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Active-Tenant",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "可选租户编码或 ID，由身份服务校验当前租户；不能指定他人身份"
+          }
+        ],
+        "operationId": "putApiV1AppsDeepseekHarnessDailyReportsDate",
+        "summary": "人工确认后原子保存草稿或提交本人日报",
+        "description": "身份来自鉴权；不接受用户、租户、审计字段。submitted 时至少一项实际工作非空并锁定正文，submitted_at 由数据库原子写入。版本检查和最近请求幂等处理在同一事务中完成。引用仅保存出处，不授予原始会话访问权。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "expected_version",
+                  "request_id",
+                  "status"
+                ],
+                "properties": {
+                  "completed_work": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "in_progress_work": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "planned_work": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "issues_and_risks": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "need_support": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "session_id",
+                        "seq"
+                      ],
+                      "properties": {
+                        "session_id": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                        },
+                        "seq": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  },
+                  "expected_version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "首次保存传 0，更新传最近读取的版本"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "submitted"
+                    ]
+                  },
+                  "request_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "同一人工操作重试保持不变；只保障最近一次写入幂等"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/DailyReport"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "非法日期、正文、状态、幂等标识、未知字段或额外 JSON"
+          },
+          "401": {
+            "description": "未取得可信本人及租户身份"
+          },
+          "403": {
+            "description": "没有本人日报写权限"
+          },
+          "405": {
+            "description": "方法不允许"
+          },
+          "409": {
+            "description": "已提交、并发版本冲突或幂等标识复用"
+          },
+          "503": {
+            "description": "数据服务暂不可用；重试必须保留相同请求正文和标识"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "EquipmentGateway": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Starpivot-Gateway-Key",
+        "description": "可信网关同时提供 X-Starpivot-User-Id、X-Starpivot-Tenant-Id 及 X-Starpivot-Customer-Access。"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "由接入的元枢网关验证。独立 Go 进程设置 temporary_read_tenant_id 后，本机客户、供应商和物料的 GET、HEAD 请求可以省略凭证，查询范围由服务端配置指定。"
+      }
+    },
+    "schemas": {
+      "DailyReport": {
+        "type": "object",
+        "required": [
+          "completed_work",
+          "in_progress_work",
+          "planned_work",
+          "issues_and_risks",
+          "need_support",
+          "id",
+          "work_date",
+          "evidence_refs",
+          "status",
+          "version",
+          "created_at",
+          "updated_at",
+          "submitted_at"
+        ],
+        "properties": {
+          "completed_work": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "in_progress_work": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "planned_work": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "issues_and_risks": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "need_support": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "work_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "session_id",
+                "seq"
+              ],
+              "properties": {
+                "session_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "seq": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "submitted"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

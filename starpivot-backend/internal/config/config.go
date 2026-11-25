@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 const defaultPath = "config/local.json"
@@ -19,6 +21,8 @@ type Config struct {
 	TemporaryReadTenantID int64  `json:"temporary_read_tenant_id"`
 	// IdentityAPI 是元枢身份接口根地址，用于本机宿主直连时校验 Bearer 凭证。
 	IdentityAPI string `json:"identity_api"`
+	// MeetingRoomAdminIDs 是允许维护会议室的管理员用户 ID 白名单，为空表示无人可维护。
+	MeetingRoomAdminIDs []int64 `json:"meeting_room_admin_ids"`
 }
 
 // Load 从配置文件加载配置，并允许环境变量覆盖部署相关字段。
@@ -53,8 +57,32 @@ func Load() (Config, error) {
 	if override := os.Getenv("DSH_BACKEND_IDENTITY_API"); override != "" {
 		value.IdentityAPI = override
 	}
+	admins, err := parseAdminIDs(os.Getenv("DSH_BACKEND_MEETING_ROOM_ADMINS"))
+	if err != nil {
+		return Config{}, err
+	}
+	if len(admins) > 0 {
+		value.MeetingRoomAdminIDs = admins
+	}
 	if value.DatabaseSSLMode == "" {
 		value.DatabaseSSLMode = "disable"
 	}
 	return value, nil
+}
+
+// parseAdminIDs 解析逗号分隔的管理员用户 ID，未配置时返回空列表。
+func parseAdminIDs(raw string) ([]int64, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	ids := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("环境变量 DSH_BACKEND_MEETING_ROOM_ADMINS 只接受正整数 ID 列表：%q", raw)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }

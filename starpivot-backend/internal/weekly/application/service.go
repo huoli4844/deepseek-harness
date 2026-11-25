@@ -1,4 +1,4 @@
-// Package application 编排项目周报用例，不依赖传输或 PostgreSQL。
+// Package application 编排周报用例，负责周键与草稿校验后委托持久化。
 package application
 
 import (
@@ -7,49 +7,54 @@ import (
 	"starpivot.local/deepseek-harness-backend/internal/weekly/domain"
 )
 
-// Repository 用可信租户限定项目查找、周报和工时查询。
+// Repository 抽象周报的持久化操作。
 type Repository interface {
-	Get(context.Context, int64, string, domain.Week) (domain.View, error)
-	Save(context.Context, int64, int64, string, domain.Week, domain.Draft) (domain.View, error)
-	Submit(context.Context, int64, int64, string, domain.Week) (domain.View, error)
+	Get(ctx context.Context, tenant, user int64, week domain.Week) (domain.View, error)
+	Save(ctx context.Context, tenant, actor int64, week domain.Week, draft domain.Draft) (domain.View, error)
+	Submit(ctx context.Context, tenant, actor int64, week domain.Week) (domain.View, error)
 }
 
-// Service 提供周报读取、保存和提交用例。
-type Service struct{ repository Repository }
+// Service 提供周报用例入口。
+type Service struct{ repo Repository }
 
-// New 组装项目周报用例和仓储。
-func New(repository Repository) *Service { return &Service{repository: repository} }
+// New 绑定周报用例的持久化实现。
+func New(repo Repository) *Service { return &Service{repo: repo} }
 
-func validate(tenant int64, code, start string) (domain.Week, error) {
-	if tenant <= 0 || !domain.ValidProjectCode(code) {
-		return domain.Week{}, domain.ErrInvalid
+// Get 返回当前用户指定自然周的周报与工时汇总。
+func (s *Service) Get(ctx context.Context, tenant, user int64, periodStart string) (domain.View, error) {
+	if tenant <= 0 || user <= 0 {
+		return domain.View{}, domain.ErrInvalid
 	}
-	return domain.ParseWeek(start)
+	week, err := domain.ParseWeek(periodStart)
+	if err != nil {
+		return domain.View{}, domain.ErrInvalid
+	}
+	return s.repo.Get(ctx, tenant, user, week)
 }
 
-// Get 返回指定项目周报和实时已批准工时。
-func (s *Service) Get(ctx context.Context, tenant int64, code, start string) (domain.View, error) {
-	week, err := validate(tenant, code, start)
+// Save 新增或更新当前用户的周报草稿，并校验正文行内项目归属。
+func (s *Service) Save(ctx context.Context, tenant, user int64, periodStart string, draft domain.Draft) (domain.View, error) {
+	if tenant <= 0 || user <= 0 {
+		return domain.View{}, domain.ErrInvalid
+	}
+	week, err := domain.ParseWeek(periodStart)
 	if err != nil {
+		return domain.View{}, domain.ErrInvalid
+	}
+	if err := draft.Validate(); err != nil {
 		return domain.View{}, err
 	}
-	return s.repository.Get(ctx, tenant, code, week)
+	return s.repo.Save(ctx, tenant, user, week, draft)
 }
 
-// Save 保存可编辑正文及由可信身份确定的创建人。
-func (s *Service) Save(ctx context.Context, tenant, actor int64, code, start string, draft domain.Draft) (domain.View, error) {
-	week, err := validate(tenant, code, start)
-	if err != nil || actor <= 0 || draft.Validate() != nil {
+// Submit 提交当前用户指定自然周的周报。
+func (s *Service) Submit(ctx context.Context, tenant, user int64, periodStart string) (domain.View, error) {
+	if tenant <= 0 || user <= 0 {
 		return domain.View{}, domain.ErrInvalid
 	}
-	return s.repository.Save(ctx, tenant, actor, code, week, draft)
-}
-
-// Submit 原子提交现有草稿，并在重试时返回原有的提交结果。
-func (s *Service) Submit(ctx context.Context, tenant, actor int64, code, start string) (domain.View, error) {
-	week, err := validate(tenant, code, start)
-	if err != nil || actor <= 0 {
+	week, err := domain.ParseWeek(periodStart)
+	if err != nil {
 		return domain.View{}, domain.ErrInvalid
 	}
-	return s.repository.Submit(ctx, tenant, actor, code, week)
+	return s.repo.Submit(ctx, tenant, user, week)
 }

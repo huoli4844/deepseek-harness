@@ -82,4 +82,3 @@ func DecodeFields(raw json.RawMessage, kind Kind) (map[string]json.RawMessage, e
 	}
 	return fields, nil
 }
-

@@ -46,10 +46,10 @@ func checkWorkspace(t *testing.T, ctx context.Context, pool *pgxpool.Pool, repor
 		t.Fatalf("无效请求回滚后应保留原记录：%+v / %v", view, err)
 	}
 	draft := domain.Draft{ProgressSummary: "进展", CompletedWork: "完成工作", PlannedWork: "下周计划"}
-	if _, err := reports.Save(ctx, 7, 19, a.ProjectCode, start, draft); err != nil {
+	if _, err := reports.Save(ctx, 7, 19, start, draft); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := reports.Submit(ctx, 7, 19, a.ProjectCode, start); err != nil {
+	if _, err := reports.Submit(ctx, 7, 19, start); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Save(ctx, 7, 9, start, []domain.ItemDraft{a}); !errors.Is(err, domain.ErrLocked) {
