@@ -31,9 +31,12 @@ import { contractEn, contractZh } from '../../modules/business-modules/contract-
 import { registrationEn, registrationZh } from '../../modules/business-modules/project-registration-locales.ts'
 import { weeklyItemsEn, weeklyItemsZh } from '../../modules/business-modules/weekly-items-locales.ts'
 import { organizationEn, organizationZh } from '../../modules/business-modules/organization-locales.ts'
+import { meetingEn, meetingZh } from '../../modules/business-modules/meeting-locales.ts'
+import { businessFormsEn, businessFormsZh } from '../../modules/business-forms/business-forms-locales.ts'
 
 /** English workbench labels and shared chart vocabulary. */
 export const en = {
+  ...businessFormsEn,
   ...liveEn,
   ...shellEn,
   ...chartEn,
@@ -57,6 +60,7 @@ export const en = {
   ...registrationEn,
   ...weeklyItemsEn,
   ...organizationEn,
+  ...meetingEn,
   ...dashboardEn,
   ...methodologyEn,
   ...positionOperationsEn,
@@ -69,6 +73,7 @@ export const en = {
 
 /** Chinese copy; the key set mirrors `en` exactly. */
 export const zh: Record<keyof typeof en, string> = {
+  ...businessFormsZh,
   ...liveZh,
   ...shellZh,
   ...chartZh,
@@ -92,6 +97,7 @@ export const zh: Record<keyof typeof en, string> = {
   ...registrationZh,
   ...weeklyItemsZh,
   ...organizationZh,
+  ...meetingZh,
   ...dashboardZh,
   ...methodologyZh,
   ...positionOperationsZh,

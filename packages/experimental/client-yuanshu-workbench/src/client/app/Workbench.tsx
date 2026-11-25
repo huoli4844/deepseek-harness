@@ -63,6 +63,7 @@ import {
   SupplierManagementScreen,
   WeeklyDailyReportsScreen,
   WorkHoursScreen,
+  MeetingRoomsScreen,
 } from '../modules/business-modules/index.ts'
 import { positionSignals } from '../core/data/position-operations.ts'
 import css from './Workbench.module.css'
@@ -120,6 +121,7 @@ const navIcons: Record<string, typeof IconLayersOutlineRegular> = {
   'budget-cost': IconLayersOutlineRegular,
   'work-hours': IconClockOutlineRegular,
   'weekly-daily-reports': IconArchiveOutlineRegular,
+  'meeting-rooms': IconClockOutlineRegular,
   organization: IconLayersOutlineRegular,
 }
 
@@ -600,10 +602,9 @@ export function Workbench(props: WorkbenchProps) {
               ) : view === 'work-hours' ? (
                 <WorkHoursScreen t={t} initial={laborLink} userId={identity.user.userId} />
               ) : view === 'weekly-daily-reports' ? (
-                <WeeklyDailyReportsScreen t={t} role={accessRole} onLabor={(range, project) => {
-                  selectView('work-hours')
-                  setLaborLink({ range, project })
-                }} />
+                <WeeklyDailyReportsScreen t={t} role={accessRole} />
+              ) : view === 'meeting-rooms' ? (
+                <MeetingRoomsScreen t={t} />
               ) : view === 'organization' ? (
                 <OrganizationScreen t={t} />
               ) : liveHome ? (

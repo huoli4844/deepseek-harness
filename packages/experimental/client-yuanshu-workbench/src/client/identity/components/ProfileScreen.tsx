@@ -92,6 +92,36 @@ export function ProfileScreen({ model, t }: {
       })}
     </div>
 
+    {/* 任职记录：来自后台 user-positions 接口，按开始时间倒序展示。 */}
+    <Section title={t('profile.section.assignments')}>
+      {model.assignments.length === 0
+        ? <p className={css.fieldValueEmpty}>{t('profile.assignments.empty')}</p>
+        : <ul className={css.assignmentList}>
+          {model.assignments.map(row => <li key={row.id} className={css.assignmentCard}>
+            <div className={css.assignmentHead}>
+              <span className={css.assignmentPosition}>{row.position.value ?? t('profile.value.unknown')}</span>
+              <span className={row.isPrimary ? css.assignmentPrimary : css.assignmentChip}>
+                {t(row.isPrimary ? 'profile.assignments.primary' : 'profile.assignments.secondary')}
+              </span>
+            </div>
+            <dl className={css.assignmentMeta}>
+              <div className={css.assignmentLine}>
+                <dt>{t('profile.label.department')}</dt>
+                <dd>{row.category.value ?? t('profile.value.unknown')}</dd>
+              </div>
+              <div className={css.assignmentLine}>
+                <dt>{t('profile.assignments.role')}</dt>
+                <dd>{row.role.value ?? t('profile.value.unknown')}</dd>
+              </div>
+              <div className={css.assignmentLine}>
+                <dt>{t('profile.assignments.period')}</dt>
+                <dd>{row.period.value ?? t('profile.value.unknown')}</dd>
+              </div>
+            </dl>
+          </li>)}
+        </ul>}
+    </Section>
+
     {/* 岗位职责：来自岗位说明书档案，按顿号 / 分号拆成条目列表。 */}
     <Section title={t('profile.section.duty')}>
       {model.duty.value === undefined

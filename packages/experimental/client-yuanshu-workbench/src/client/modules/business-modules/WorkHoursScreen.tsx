@@ -1,6 +1,6 @@
 /** 编排项目工时的选择、分页和写入。 */
 import { useEffect, useState } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconSearchOutlineRegular, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { ArchiveSort } from '../../shared/ArchiveTable.tsx'
 import { readFormText } from '../../shared/form-data.ts'
@@ -77,7 +77,7 @@ function LaborDetail({ t, initial }: {
           {(['draft', 'submitted', 'approved', 'rejected'] as const).map(status => <option key={status} value={status}>{t(`registration.${status}`)}</option>)}
         </select>
       </label>
-      <Button type="submit" variant="outline" disabled={!projectCode}>{t('registration.search')}</Button>
+      <Button type="submit" variant="outline" disabled={!projectCode} aria-label={t('registration.search')} icon={<IconSearchOutlineRegular />} />
       <Button type="button" variant="primary" disabled={!projectCode} onClick={() => { setEditor({ kind: 'edit' }) }}>{t('labor.add')}</Button>
     </form>
     {rangeError && <p role="alert">{t('labor.rangeError')}</p>}

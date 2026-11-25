@@ -1,5 +1,5 @@
 /** 展示合同筛选表单和台账列表，不直接请求后台。 */
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconSearchOutlineRegular, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { ArchiveTable } from '../../shared/ArchiveTable.tsx'
 import { readFormText } from '../../shared/form-data.ts'
@@ -34,7 +34,7 @@ export function ContractRecords({
       <label>{t('contract.keywordLabel')}
         <Input name="keyword" maxLength={100} placeholder={t('contract.keyword')} />
       </label>
-      <Button type="submit" variant="outline">{t('contract.search')}</Button>
+      <Button type="submit" variant="outline" aria-label={t('contract.search')} icon={<IconSearchOutlineRegular />} />
     </form>
     {loading && <p role="status" className={css.recordStatus}>{t('contract.loading')}</p>}
     {error !== undefined && <div role="alert" className={css.recordStatus}>

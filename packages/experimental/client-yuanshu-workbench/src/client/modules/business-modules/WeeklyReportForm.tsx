@@ -1,12 +1,10 @@
 /** 显示周报正文、审计和已批准工时，不访问服务。 */
 import { useEffect, useState } from 'react'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { ArchiveTable, type ArchiveSort } from '../../shared/ArchiveTable.tsx'
 import { formatBeijingDateTime } from '../../shared/beijing-time.ts'
 import type { RegistrationProject, RegistrationTask, WeeklyDraft, WeeklyReport, WeeklySnapshot } from './project-registration-model.ts'
 import { listProjectTasks, listRegistrationProjects } from './project-registration-api.ts'
-import { RegistrationProjectPicker } from './RegistrationProjectPicker.tsx'
 import {
   newCompletedRow, newPlanRow, parseCompletedRows, parsePlanRows, parseRiskRows,
   type CompletedRow, type PlanRow, type RiskRow,
@@ -195,18 +193,16 @@ function RiskCard({ rows, disabled, t, onChange, onAdd, onRemove }: {
 }
 
 /** 显示周报正文与审计信息；保存和提交动作由外层右栏统一渲染。 */
-export function WeeklyReportForm({ project, report, draft, busy, t, onField, onFields, onProject }: {
-  readonly project: RegistrationProject | undefined
+export function WeeklyReportForm({ report, draft, busy, t, onField, onFields }: {
   readonly report: WeeklyReport | undefined
   readonly draft: WeeklyDraft
   readonly busy: boolean
   readonly t: WorkbenchT
   readonly onField: (field: keyof WeeklyDraft, value: string) => void
   readonly onFields: (fields: Partial<WeeklyDraft>) => void
-  readonly onProject: (project: RegistrationProject | undefined) => void
 }) {
   const submitted = report?.status === 'submitted'
-  const disabled = busy || submitted || project === undefined
+  const disabled = busy || submitted
   const [projects, setProjects] = useState<readonly RegistrationProject[]>([])
   const [completed, setCompleted] = useState<readonly CompletedRow[]>(() => parseCompletedRows(draft.completed_work))
   const [plans, setPlans] = useState<readonly PlanRow[]>(() => parsePlanRows(draft.planned_work))
@@ -232,9 +228,6 @@ export function WeeklyReportForm({ project, report, draft, busy, t, onField, onF
   const updatePlans = (next: readonly PlanRow[]) => { setPlans(next); onField('planned_work', JSON.stringify(next)) }
   const updateRisks = (next: readonly RiskRow[]) => { setRisks(next); onField('issues_and_risks', JSON.stringify(next)) }
   return <div className={css.form}>
-    <div className={css.weeklyProjectBar}>
-      <RegistrationProjectPicker compact selected={project} disabled={busy} t={t} onSelect={onProject} />
-    </div>
     <CompletedCard rows={completed} projects={projects} disabled={disabled} t={t}
       onAdd={() => { updateCompleted([...completed, newCompletedRow()]) }}
       onRemove={(index) => { updateCompleted(completed.filter((_, rowIndex) => rowIndex !== index)) }}
@@ -251,7 +244,7 @@ export function WeeklyReportForm({ project, report, draft, busy, t, onField, onF
       <header><h2>{t('weekly.otherNotes')}</h2><p>{t('weekly.noteHint')}</p></header>
       <label className={css.field}>{t('weekly.need_support')}
         <textarea rows={3} value={draft.need_support} placeholder={t('weekly.noteHint')} readOnly={submitted}
-          disabled={busy || project === undefined}
+          disabled={busy}
           onChange={(event) => { onField('need_support', event.target.value) }} />
       </label>
     </section>
@@ -272,11 +265,9 @@ export function WeeklyReportForm({ project, report, draft, busy, t, onField, onF
   </div>
 }
 
-/** 显示项目工时总数、员工汇总与明细入口；员工明细仅在管理层视角展示。 */
-export function WeeklyWorkSummary({ snapshot, onLabor, disabled, showEmployees, t }: {
+/** 显示本人自然周内已批准工时总数与员工汇总。 */
+export function WeeklyWorkSummary({ snapshot, showEmployees, t }: {
   readonly snapshot: WeeklySnapshot
-  readonly onLabor: () => void
-  readonly disabled: boolean
   readonly showEmployees: boolean
   readonly t: WorkbenchT
 }) {
@@ -288,7 +279,6 @@ export function WeeklyWorkSummary({ snapshot, onLabor, disabled, showEmployees, 
   return <section className={css.summary} aria-label={t('weekly.labor')}>
     <div className={css.inline}>
       <p>{t('weekly.labor')} <strong>{snapshot.totalHours}</strong></p>
-      <Button size="sm" variant="outline" disabled={disabled} onClick={onLabor}>{t('weekly.details')}</Button>
     </div>
     {showEmployees
       ? employees.length === 0 ? <p>{t('weekly.emptyLabor')}</p>

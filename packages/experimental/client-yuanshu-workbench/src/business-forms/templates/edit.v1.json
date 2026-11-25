@@ -1,0 +1,22 @@
+{
+  "templateId": "edit",
+  "version": 1,
+  "layout": {
+    "maxWidthCssPx": 640,
+    "width": "min(templateWidth, viewportWidth - 2 * dialogGutter)",
+    "header": [
+      "title"
+    ],
+    "body": [
+      "fields",
+      "validationErrors"
+    ],
+    "footer": [
+      "cancel",
+      "save",
+      "submit?"
+    ],
+    "scrollRegion": "body"
+  },
+  "initialFocus": "firstEditableField"
+}

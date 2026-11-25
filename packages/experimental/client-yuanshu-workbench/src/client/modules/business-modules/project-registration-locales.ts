@@ -121,7 +121,6 @@ export const registrationEn = {
   'weekly.new': 'New draft',
   'weekly.labor': 'Approved work hours',
   'weekly.emptyLabor': 'No approved hours for this week',
-  'weekly.details': 'View work-hour details',
 } as const
 
 /** 项目周报和工时界面的中文文案。 */
@@ -247,5 +246,4 @@ export const registrationZh: Record<keyof typeof registrationEn, string> = {
   'weekly.new': '新草稿',
   'weekly.labor': '已批准工时',
   'weekly.emptyLabor': '本周暂无已批准工时',
-  'weekly.details': '查看工时明细',
 }

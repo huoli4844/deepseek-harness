@@ -99,6 +99,10 @@ pnpm run package:desktop:win:x64
 
 macOS arm64 命令要求 Apple Silicon。macOS x64 命令可以在 Intel macOS 或带 Rosetta 的 Apple Silicon 上运行。Windows x64 命令要求 Windows x64。Linux 不是受支持的 Desktop 发布目标。
 
+从仓库根目录运行 `./package-desktop.sh`，可选择一个平台或依次构建全部平台的本地测试安装包。安装包版本默认取桌面应用清单，可在菜单中输入版本。使用 `./package-desktop.sh --check` 仅检查打包配置和工具。
+
+在 Apple Silicon Mac 上选择全部平台时，Intel 版需要 Rosetta，Windows 版通过 SSH 构建。将 `DSH_PACKAGE_WINDOWS_HOST` 设为 Windows 构建机的 SSH 别名或 `user@host`，将 `DSH_PACKAGE_WINDOWS_ROOT` 设为 Windows Git Bash 能识别的项目绝对路径，例如 `/c/build/deepseek-harness-dev`。远端 SSH 会话需要能启动 Bash 和 pnpm，远端项目须已同步所需源码、安装依赖并配好 Windows 未签名打包环境。Windows 产物保存在远端，脚本会打印目录。在 Windows x64 的 Git Bash 中可直接选择 Windows。
+
 macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../scripts/electron-builder-config.mjs)中的 `dmg.format: 'ULMO'` 使用 LZMA 压缩。[构建时补丁](../../../patches/app-builder-lib@26.17.0.patch)为固定版本 builder 的校验规则和 TypeScript 声明添加此格式。
 
 每个目标都在 `apps/desktop/.desktop-build/targets/<target>/` 下持有自己的打包输入、已准备运行时、包集合、dsh 依赖树、pnpm 准备状态、未打包应用、更新元数据和最终产物。Electron 归档缓存继续由 `.desktop-build/downloads` 共享，因为每个归档文件名都包含版本、平台和架构，并且在解包前经过验证。目标构建绝不读取其他目标的可变准备状态。

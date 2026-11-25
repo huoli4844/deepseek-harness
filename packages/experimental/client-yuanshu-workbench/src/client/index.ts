@@ -10,10 +10,12 @@ import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/c
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { createElement, Fragment } from 'react'
+import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { Workbench, WorkbenchIcon } from './app/Workbench.tsx'
 import { loadOemBrand, OemBrandMark, OemBrandName, PRODUCT_TITLE_EVENT } from './app/OemBrand.tsx'
 import { createWorkbenchStore } from './core/model.ts'
 import { en, zh } from './core/locales/locales.ts'
+import { assistantAccountKey, bindAssistantSession, BusinessFormError, ConversationBusinessForms, createCredentialGuard } from './modules/business-forms/index.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -83,19 +85,38 @@ export function apply(ctx: Context): void {
   const references = new Map<string, SessionReference>()
   const sessionsByRole = readAssistantSessions()
   const getAssistantSession = async (role: string, prompt?: string): Promise<SessionReference> => {
-    let reference = references.get(role)
+    const signal = AbortSignal.timeout(15_000)
+    // 日报后台不可用时仍允许开始新对话，但不能复用尚未核实归属的旧会话。
+    const account = await assistantAccountKey(signal).catch(() => undefined)
+    const cacheKey = `${account ?? randomUUID()}:${role}`
+    let reference = references.get(cacheKey)
     if (reference === undefined) {
-      const existing = sessionsByRole[role]
+      const existing = account === undefined ? undefined : sessionsByRole[cacheKey]
       const id = existing === undefined ? await ctx.sessions.create() : existing
-      reference = references.get(role)
+      reference = references.get(cacheKey)
       if (reference === undefined) {
         reference = ctx.sessions.retain(id as never, { source: ASSISTANT_SOURCE, facets: { conversation: true } })
-        references.set(role, reference)
-        sessionsByRole[role] = reference.sessionId
+        references.set(cacheKey, reference)
+        sessionsByRole[cacheKey] = reference.sessionId
         localStorage.setItem(ASSISTANT_SESSION_KEY, JSON.stringify(sessionsByRole))
       }
     }
     await reference.ready
+    if (account !== undefined) {
+      try { await bindAssistantSession(reference.sessionId, signal) }
+      catch (error) {
+        if (error instanceof BusinessFormError && error.newSessionRequired) {
+          reference.release()
+          const id = await ctx.sessions.create()
+          reference = ctx.sessions.retain(id, { source: ASSISTANT_SOURCE, facets: { conversation: true } })
+          references.set(cacheKey, reference)
+          await reference.ready
+          await bindAssistantSession(reference.sessionId, signal)
+          sessionsByRole[cacheKey] = reference.sessionId
+          localStorage.setItem(ASSISTANT_SESSION_KEY, JSON.stringify(sessionsByRole))
+        } else throw error
+      }
+    }
     if (prompt !== undefined && prompt !== '') {
       const scoped = ctx.sessions.scope(reference.sessionId)
       const conversation = scoped?.get('conversation')
@@ -105,6 +126,22 @@ export function apply(ctx: Context): void {
     return reference
   }
   ctx.effect(function* () {
+    yield ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
+      name: 'conversation.input.overlay', id: 'yuanshu-daily-report', locale: 'yuanshu.workbench',
+    }, props => createElement(ConversationBusinessForms, {
+      ...props, blocks: ctx.get('conversation')?.blocks,
+      onNewChat: async (signal: AbortSignal) => {
+        const sameAccount = createCredentialGuard()
+        const workspace = ctx.get('workspaces')?.list.getSnapshot().items.find(item => item.sessionIds.includes(props.sessionId))
+        const id = await ctx.sessions.create(workspace === undefined ? undefined : { workspaceId: workspace.workspaceId })
+        signal.throwIfAborted()
+        if (!sameAccount()) throw new BusinessFormError(401)
+        await bindAssistantSession(id, signal)
+        signal.throwIfAborted()
+        if (!sameAccount()) throw new BusinessFormError(401)
+        ctx.uiWorkspace.openSession(id)
+      },
+    })))
     yield ctx.slots.inject('yuanshu.assistant.conversation', () => ctx.slots.register({
       name: 'yuanshu.assistant.conversation',
     }, AssistantConversation))

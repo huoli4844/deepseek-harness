@@ -2,12 +2,14 @@
 /** 验证合同管理页从同源代理加载并渲染真实字段。 */
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
+import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { ContractManagementScreen } from '../src/client/modules/business-modules/ContractManagementScreen.tsx'
 import { zh } from '../src/client/core/locales/locales.ts'
 
-const t = (key: keyof typeof zh, values?: Readonly<Record<string, unknown>>) => Object.entries(values ?? {}).reduce(
+// 键域与 TranslateNS<'yuanshu.workbench'> 对齐：命名空间键加上框架 common 词汇。
+const t = (key: LocaleKeysOf<'yuanshu.workbench'>, values?: Readonly<Record<string, unknown>>) => Object.entries(values ?? {}).reduce(
   (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-  zh[key],
+  zh[key as keyof typeof zh],
 )
 
 const contract = {

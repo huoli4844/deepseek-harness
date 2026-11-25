@@ -152,6 +152,7 @@ export const navigation: readonly NavigationItem[] = [
       { id: 'weekly-daily-reports', label: 'position.module.reports' },
     ],
   },
+  { id: 'meeting-rooms', label: 'nav.meetingRooms' },
   { id: 'organization', label: 'nav.organization' },
   { id: 'groups', label: 'nav.groups' },
   { id: 'calendar', label: 'nav.calendar' },

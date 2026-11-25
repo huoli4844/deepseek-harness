@@ -10,8 +10,8 @@
 #
 # 说明：
 # - 只作用于本目录（deepseek-harness-dev），不触碰 dev-clean-20261123。
-# - 编译工作台客户端时直接调用本地 tsdown，不经过 pnpm run，
-#   因此不会触发 verify-deps-before-run 的隐式依赖安装。
+# - 使用本地 tsdown 打包工作台，并用本地 tsx 启动桌面开发入口，
+#   避免 pnpm run 在启动时触发依赖解析。
 # - 脚本不含任何安装指令；依赖（tsx / tsdown / electron）缺失时直接报错，
 #   并提示手动安装。
 # - 端口固定 3080：元枢远端 CORS 白名单只放行 http://127.0.0.1:3080。
@@ -31,6 +31,7 @@ PATTERN="desktop-build/development/Harness Dev.app"
 CLIENT_PKG="$ROOT/packages/experimental/client-yuanshu-workbench"
 CLIENT_ARTIFACT="$CLIENT_PKG/lib/client.js"
 TSDOWN_BIN="$ROOT/node_modules/.bin/tsdown"
+TSX_BIN="$ROOT/node_modules/.bin/tsx"
 
 # 定位工作区要求的 Node（v24.22.3）：优先本目录，其次仓库根。
 NODE_BIN=""
@@ -91,14 +92,17 @@ kill_port_3080() {
   fi
 }
 
-# 等待 3080 进入监听状态；超时秒数由参数指定（默认 40）。
+# 等待 3080 监听；启动器退出时立即返回，不继续等到超时。
 wait_port_3080() {
-  local seconds="${1:-40}"
+  local seconds="$1" launcher_pid="$2"
   for _ in $(seq 1 "$seconds"); do
-    sleep 1
+    if ! kill -0 "$launcher_pid" 2>/dev/null; then
+      return 2
+    fi
     if lsof -nP -iTCP:3080 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN; then
       return 0
     fi
+    sleep 1
   done
   return 1
 }
@@ -145,7 +149,7 @@ start_app() {
   dev_env
   build_client
 
-  if [ ! -x "$ROOT/node_modules/.bin/tsx" ]; then
+  if [ ! -x "$TSX_BIN" ]; then
     echo "错误：缺少 tsx（依赖未安装），本脚本不会自动安装。" >&2
     echo "请手动执行：cd $ROOT && corepack pnpm install" >&2
     exit 1
@@ -184,18 +188,26 @@ start_app() {
     DSH_DESKTOP_WEB_LOGIN=1 \
     DSH_DESKTOP_OPEN_DEVTOOLS=0 \
     DSH_CLIENT_COMMIT_HASH=0000000 \
-    npm_config_verify-deps-before-run=false \
-    corepack pnpm run start:desktop > "$LOG_FILE" 2>&1 &
-  echo $! > "$PID_FILE"
+    "$TSX_BIN" "$ROOT/apps/desktop/scripts/dev.ts" --skip-build > "$LOG_FILE" 2>&1 &
+  local launcher_pid=$! started=$SECONDS
+  echo "$launcher_pid" > "$PID_FILE"
 
-  # 等待宿主就绪（最多 40 秒）
-  if wait_port_3080 40; then
-    echo "✓ 桌面端已就绪"
-    print_runtime_summary
-    exit 0
-  fi
-  echo "⚠ 40 秒内 3080 端口未就绪，请查看日志：tail -50 $LOG_FILE"
-  exit 1
+  wait_port_3080 40 "$launcher_pid"
+  case $? in
+    0)
+      echo "✓ 桌面宿主已监听（启动阶段 $((SECONDS - started)) 秒）"
+      print_runtime_summary
+      ;;
+    2)
+      echo "错误：桌面启动器已退出，最后 20 行日志：" >&2
+      tail -20 "$LOG_FILE" >&2
+      exit 1
+      ;;
+    *)
+      echo "⚠ 40 秒内 3080 端口未就绪，启动器仍在运行。日志：$LOG_FILE" >&2
+      exit 1
+      ;;
+  esac
 }
 
 case "${1:-start}" in

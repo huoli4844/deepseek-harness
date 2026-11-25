@@ -84,7 +84,7 @@ function report(value: unknown): WeeklyReport {
     if (date) dates[key] = date
   }
   return {
-    id: id(value, 'id'), project_id: id(value, 'project_id'), status, created_by: id(value, 'created_by'),
+    id: id(value, 'id'), status, created_by: id(value, 'created_by'),
     period_start: string(value, 'period_start'), period_end: string(value, 'period_end'),
     progress_summary: string(value, 'progress_summary'), completed_work: string(value, 'completed_work'),
     planned_work: string(value, 'planned_work'), issues_and_risks: string(value, 'issues_and_risks'),
@@ -224,21 +224,36 @@ export async function submitLabor(projectCode: string, recordId: number, signal:
   return labor(await request(`/${encodeURIComponent(projectCode)}/labor-hours/${recordId}/submit`, signal, 'POST'))
 }
 
-/** 读取当前项目周报和已批准工时汇总。 */
-export async function loadWeekly(projectCode: string, start: string, signal: AbortSignal) {
-  return weekly(await request(`/${encodeURIComponent(projectCode)}/weekly-reports?period_start=${encodeURIComponent(start)}`, signal))
+/** 访问本人的周报接口；路径与项目接口不同，不带 projects 前缀。 */
+async function weeklyRequest(path: string, signal: AbortSignal, method: 'GET' | 'PUT' | 'POST', body?: object): Promise<unknown> {
+  const token = localStorage.getItem('workbench-client-token')
+  if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401 })
+  const headers = new Headers({
+    authorization: `Bearer ${token}`, 'X-Active-Tenant': localStorage.getItem('yuanshu-active-tenant') ?? '',
+  })
+  if (body !== undefined) headers.set('content-type', 'application/json')
+  const response = await fetch(`/yuanshu-workbench/weekly-reports${path}`, {
+    method, headers, signal, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  })
+  if (!response.ok) throw Object.assign(new Error('YuanShu weekly request failed'), { status: response.status })
+  return field(await response.json(), 'data')
 }
 
-/** 保存当前项目的周报草稿。 */
-export async function saveWeekly(projectCode: string, start: string, draft: WeeklyDraft, signal: AbortSignal) {
-  return weekly(await request(`/${encodeURIComponent(projectCode)}/weekly-reports`, signal, 'PUT', {
+/** 读取本人本周周报和已批准工时汇总。 */
+export async function loadWeekly(start: string, signal: AbortSignal) {
+  return weekly(await weeklyRequest(`?period_start=${encodeURIComponent(start)}`, signal, 'GET'))
+}
+
+/** 保存本人本周的周报草稿。 */
+export async function saveWeekly(start: string, draft: WeeklyDraft, signal: AbortSignal) {
+  return weekly(await weeklyRequest('', signal, 'PUT', {
     period_start: start, progress_summary: draft.progress_summary, completed_work: draft.completed_work,
     planned_work: draft.planned_work, issues_and_risks: draft.issues_and_risks.trim() || null,
     need_support: draft.need_support.trim() || null,
   }))
 }
 
-/** 提交当前项目的周报草稿。 */
-export async function submitWeekly(projectCode: string, start: string, signal: AbortSignal) {
-  return weekly(await request(`/${encodeURIComponent(projectCode)}/weekly-reports/submit`, signal, 'POST', { period_start: start }))
+/** 提交本人本周的周报草稿。 */
+export async function submitWeekly(start: string, signal: AbortSignal) {
+  return weekly(await weeklyRequest('/submit', signal, 'POST', { period_start: start }))
 }

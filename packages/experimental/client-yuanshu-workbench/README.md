@@ -44,6 +44,22 @@ pnpm dsh web
 
 Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **Today’s work**, with only its own navigation and content visible. The page surfaces the next action and its reason for the selected role; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
+### Employee daily report workflow
+
+Target users are employees preparing their own daily report, including technical and management positions that require reporting. The assistant reads only the current employee's verified active workbench conversations for the Beijing business day. It cannot use this workflow to query another employee's reports or company financial summaries. The employee skill contains business procedure only; runtime tool bindings, field contracts and backend access belong to the Host plugin. Implementation and permission boundaries are documented in [Work records](docs/work-records.md).
+
+The report editor explicitly binds the versioned local `edit.v1` template. It preserves an existing employee-edited draft, focuses the first editable field, keeps the title and footer fixed, and scrolls the body. The model supplies allowlisted content; only the employee's Save draft or Confirm submission action can write through this workflow.
+
+| Method and backend path | Employee scope and action |
+| --- | --- |
+| `GET /api/v1/apps/deepseek-harness/daily-reports/schema` | Validated current employee and tenant; authorized report fields |
+| `GET /api/v1/apps/deepseek-harness/daily-reports/{date}` | Read the current employee's report for a business date |
+| `PUT /api/v1/apps/deepseek-harness/daily-reports/{date}` | Human-confirmed final content; versioned draft save or atomic submission |
+
+Browser requests use the same-origin `/yuanshu-workbench/daily-report-runtime` Host routes. The Host uses the employee's current credentials against the configured local business service. No plugin or skill script connects to the business database.
+
+Acceptance examples: preparing a report opens an editable draft without writing; confirming after editing persists the final employee text. A different employee or tenant cannot claim the conversation or read its draft. A submitted report refuses edits. A lost save response retains the same request for retry and never displays unconfirmed success. Migration `0009_daily_work_reports.sql` must be run by the backend maintenance process before live use; it is not applied at startup.
+
 ### What you can try
 
 In Time entry, select a project to view and submit work hours. In Weekly report registration, select a project and a Beijing calendar week, save a draft, and submit it to lock the report. The approved-hours summary links to the selected project's time entries for that week. Saving and submitting require a trusted YuanShu gateway identity. The weekly report service also requires the database migration.

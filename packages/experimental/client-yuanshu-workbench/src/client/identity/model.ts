@@ -44,6 +44,18 @@ export interface RawLaborRow {
   readonly status: string
 }
 
+/** 任职记录原始行（来自 `/user-positions`，岗位名称由后台联查回填）。 */
+export interface RawPositionAssignment {
+  readonly id: number
+  readonly positionName: string
+  readonly positionLevel: string
+  readonly positionCategory: string
+  readonly roleInProject: string
+  readonly startDate: string
+  readonly endDate: string
+  readonly isPrimary: boolean
+}
+
 /** 各段是否来自演示数据（接口缺失或不可用时由数据层补齐）。 */
 export interface IdentityFallback {
   readonly user: boolean
@@ -51,6 +63,8 @@ export interface IdentityFallback {
   readonly laborHours: boolean
   /** 工作台岗位接口是否缺失。 */
   readonly position: boolean
+  /** 任职记录接口是否缺失。 */
+  readonly assignments: boolean
 }
 
 /** 数据层产出、尚未解释的身份快照。 */
@@ -60,6 +74,8 @@ export interface RawIdentity {
   /** 工作台岗位名称（如「采购」），来自 `/apps/shaoshi/workbench/position`。 */
   readonly position: string | undefined
   readonly laborHours: readonly RawLaborRow[] | undefined
+  /** 当前用户的任职记录；接口缺失时为 undefined。 */
+  readonly assignments: readonly RawPositionAssignment[] | undefined
   readonly fallback: IdentityFallback
   readonly fetchedAt: number | undefined
 }
@@ -70,7 +86,8 @@ export const EMPTY_IDENTITY: RawIdentity = {
   profile: undefined,
   position: undefined,
   laborHours: undefined,
-  fallback: { user: false, profile: false, laborHours: false, position: false },
+  assignments: undefined,
+  fallback: { user: false, profile: false, laborHours: false, position: false, assignments: false },
   fetchedAt: undefined,
 }
 
@@ -115,6 +132,17 @@ export interface LaborRowModel {
   readonly status: IdentityField<string>
 }
 
+/** 任职记录卡片中的一行。 */
+export interface AssignmentRowModel {
+  readonly id: string
+  readonly position: IdentityField<string>
+  readonly category: IdentityField<string>
+  readonly role: IdentityField<string>
+  readonly period: IdentityField<string>
+  /** 是否主岗；决定标签文案。 */
+  readonly isPrimary: boolean
+}
+
 /** 身份模块完整视图模型。 */
 export interface IdentityViewModel {
   readonly user: IdentityUserModel
@@ -126,5 +154,7 @@ export interface IdentityViewModel {
     readonly total: IdentityField<string>
     readonly source: string
   }
+  /** 任职记录列表（来自 /user-positions；接口未返回时为演示值）。 */
+  readonly assignments: readonly AssignmentRowModel[]
   readonly fetchedAt: string | undefined
 }

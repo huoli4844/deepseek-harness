@@ -15,6 +15,8 @@ interface ModalBaseProps {
   children?: ReactNode
   footer?: ReactNode
   className?: string
+  /** 由可信本地模板声明的弹窗宽度上限，仍受视口边距约束。 */
+  maxWidth?: number
   contentClassName?: string
   shortcutModal?: string
   onKeyDownCapture?: KeyboardEventHandler<HTMLDivElement>
@@ -41,6 +43,7 @@ type ModalProps = ModalBaseProps & (
  * data-modal-autofocus instead of React autoFocus to preserve return focus.
  * @param props.footer - action row (Cancel / Create).
  * @param props.contentClassName - optional class for a scrollable content region.
+ * @param props.maxWidth - 可信模板的弹窗宽度上限；未设置时保留原有宽度。
  * @param props.backdropBlur - disable when the caller already blurs the page; defaults to true.
  * @param props.draggable - header-drag moving; defaults to true (ignored for headless cards, which own their chrome).
  * @param props.shortcutModal - command scope allowed by shortcut owners; unnamed
@@ -51,7 +54,7 @@ type ModalProps = ModalBaseProps & (
  * @returns null when closed; otherwise the overlay tree.
  */
 export function Modal({
-  open, onClose, title, closeLabel, description, children, footer, className, contentClassName,
+  open, onClose, title, closeLabel, description, children, footer, className, contentClassName, maxWidth,
   onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone, draggable = true,
 }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
@@ -115,7 +118,10 @@ export function Modal({
         tabIndex={-1}
         data-shortcut-modal={shortcutModal}
         className={clsx(css.dialog, !headless && tone === 'warning' && css.warning, className)}
-        style={offset.x !== 0 || offset.y !== 0 ? { transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` } : undefined}
+        style={offset.x !== 0 || offset.y !== 0 || maxWidth !== undefined ? {
+          ...(offset.x !== 0 || offset.y !== 0 ? { transform: `translate3d(${offset.x}px, ${offset.y}px, 0)` } : {}),
+          ...(maxWidth === undefined ? {} : { width: maxWidth, maxWidth: '100%' }),
+        } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={title}

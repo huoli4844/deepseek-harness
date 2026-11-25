@@ -109,7 +109,11 @@ export async function downloadNodeRuntime(target: PrimaryRuntimeTarget, destinat
 async function pythonArchive(target: keyof typeof lock.targets, cache: string): Promise<string> {
   const artifact = lock.targets[target]
   const filename = `cpython-${lock.pythonVersion}+${lock.pythonRelease}-${artifact.pythonTarget}-install_only_stripped.tar.gz`
-  return downloadPrimaryRuntimeAsset(`https://github.com/astral-sh/python-build-standalone/releases/download/${lock.pythonRelease}/${encodeURIComponent(filename)}`, artifact.pythonSha256, cache)
+  // GitHub 在部分网络环境不可达；设置 DSH_PYTHON_STANDALONE_MIRROR 为含发布目录的镜像基址
+  // （npmmirror 布局与发布目录一致，如 https://registry.npmmirror.com/-/binary/python-build-standalone）。
+  const base = process.env.DSH_PYTHON_STANDALONE_MIRROR
+    ?? 'https://github.com/astral-sh/python-build-standalone/releases/download'
+  return downloadPrimaryRuntimeAsset(`${base}/${lock.pythonRelease}/${encodeURIComponent(filename)}`, artifact.pythonSha256, cache)
 }
 
 /**

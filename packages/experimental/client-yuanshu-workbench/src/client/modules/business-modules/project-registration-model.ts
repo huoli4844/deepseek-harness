@@ -60,10 +60,9 @@ export interface WeeklyDraft {
   readonly need_support: string
 }
 
-/** 后台生成的周报及审计字段。 */
+/** 后台生成的周报及审计字段；项目关联保存在正文事项行内。 */
 export interface WeeklyReport extends WeeklyDraft {
   readonly id: number
-  readonly project_id: number
   readonly period_start: string
   readonly period_end: string
   readonly status: 'draft' | 'submitted'

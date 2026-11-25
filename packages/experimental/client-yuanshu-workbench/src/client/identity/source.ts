@@ -6,7 +6,7 @@
  * 并在 `fallback` 中标记，保证界面不会把演示值误标为真实数据。
  */
 
-import type { IdentitySource, RawIdentity, RawLaborRow, RawRole, RawUser } from './model.ts'
+import type { IdentitySource, RawIdentity, RawLaborRow, RawPositionAssignment, RawRole, RawUser } from './model.ts'
 import { EMPTY_IDENTITY } from './model.ts'
 
 /** 同源只读代理路径。 */
@@ -15,6 +15,7 @@ const ROUTES = {
   profile: '/yuanshu-workbench/identity/profile',
   position: '/yuanshu-workbench/identity/position',
   laborHours: '/yuanshu-workbench/identity/labor-hours',
+  assignments: '/yuanshu-workbench/user-positions?mine=1',
 } as const
 
 /** 身份接口不可用时使用的演示用户（截图中的少仕用户）。 */
@@ -44,6 +45,14 @@ const DEMO_LABOR: readonly RawLaborRow[] = [
   { person: '张和林', project: 'EP220501 电磁阀', hours: 26, status: '正常' },
   { person: '林令贤', project: 'EP220302 阀体', hours: 18, status: '待确认' },
   { person: '高静', project: 'EP220302 阀体', hours: 40, status: '正常' },
+]
+
+/** 任职接口无数据时的演示行，与演示档案的项目经理身份一致。 */
+const DEMO_ASSIGNMENTS: readonly RawPositionAssignment[] = [
+  {
+    id: 1, positionName: '项目经理', positionLevel: 'S04 10-12', positionCategory: '项目管理部',
+    roleInProject: '项目负责人', startDate: '2026-01-01', endDate: '', isPrimary: true,
+  },
 ]
 
 /** 判断值是否为非空对象。 */
@@ -159,6 +168,34 @@ export function parseLaborHours(body: unknown): readonly RawLaborRow[] | undefin
   return result.length === 0 ? undefined : result
 }
 
+/** 宽松解析任职列表；忽略缺 ID、缺岗位名称或字段类型非法的记录。 */
+export function parseAssignments(body: unknown): readonly RawPositionAssignment[] | undefined {
+  const root = record(body)
+  if (root === undefined) return undefined
+  const data = record(root.data) ?? root
+  const rows = Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : undefined
+  if (rows === undefined) return undefined
+  const result: RawPositionAssignment[] = []
+  for (const entry of rows) {
+    const row = record(entry)
+    if (row === undefined) continue
+    const id = row.id
+    const name = text(row.position_name)
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0 || name === undefined) continue
+    result.push({
+      id,
+      positionName: name,
+      positionLevel: text(row.level) ?? text(row.position_level) ?? '',
+      positionCategory: text(row.position_category) ?? text(row.category) ?? '',
+      roleInProject: text(row.role_in_project) ?? '',
+      startDate: text(row.start_date) ?? '',
+      endDate: text(row.end_date) ?? '',
+      isPrimary: row.is_primary === true,
+    })
+  }
+  return result
+}
+
 /** 浏览器同源请求所需的鉴权头。 */
 function headers(): Record<string, string> {
   const token = localStorage.getItem('workbench-client-token') ?? ''
@@ -180,18 +217,21 @@ async function get(path: string, signal: AbortSignal): Promise<unknown> {
 export function createLiveIdentitySource(): IdentitySource {
   return {
     async load(signal: AbortSignal): Promise<RawIdentity> {
-      const [meBody, profileBody, positionBody, laborBody] = await Promise.all([
+      const [meBody, profileBody, positionBody, laborBody, assignmentsBody] = await Promise.all([
         get(ROUTES.me, signal).catch(() => undefined),
         get(ROUTES.profile, signal).catch(() => undefined),
         get(ROUTES.position, signal).catch(() => undefined),
         get(ROUTES.laborHours, signal).catch(() => undefined),
+        get(ROUTES.assignments, signal).catch(() => undefined),
       ])
       const user = parseMe(meBody)
       const profileRaw = parseProfile(profileBody)
       const profile = profileRaw === undefined ? undefined : normalizeProfile(profileRaw)
       const position = parsePosition(positionBody)
       const laborHours = parseLaborHours(laborBody)
-      const fetchedAt = user !== undefined || profile !== undefined || position !== undefined || laborHours !== undefined
+      const assignments = parseAssignments(assignmentsBody)
+      const fetchedAt = user !== undefined || profile !== undefined || position !== undefined ||
+          laborHours !== undefined || assignments !== undefined
         ? Date.now()
         : undefined
       return {
@@ -199,11 +239,13 @@ export function createLiveIdentitySource(): IdentitySource {
         profile: profile ?? DEMO_PROFILE,
         position: position ?? DEMO_PROFILE.position,
         laborHours: laborHours ?? DEMO_LABOR,
+        assignments: assignments ?? DEMO_ASSIGNMENTS,
         fallback: {
           user: user === undefined,
           profile: profile === undefined,
           position: position === undefined,
           laborHours: laborHours === undefined,
+          assignments: assignments === undefined,
         },
         fetchedAt,
       }

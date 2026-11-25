@@ -211,6 +211,12 @@
   cursor: pointer;
 }
 .searchButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
   border-color: var(--work-accent);
   background: var(--work-accent);
   color: #fff;
@@ -265,6 +271,23 @@
 .table tbody tr:hover {
   background: color-mix(in srgb, var(--work-accent) 6%, transparent);
 }
+.actionsHead {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--dsw-alias-bg-layer-1);
+  text-align: center;
+}
+.actionsCell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--dsw-alias-bg-layer-1);
+  text-align: center;
+}
+.table tbody tr:hover .actionsCell {
+  background: color-mix(in srgb, var(--work-accent) 6%, var(--dsw-alias-bg-layer-1));
+}
 .nameCell {
   font-weight: 600;
 }
@@ -304,4 +327,57 @@
   font-size: 12px;
   text-decoration: underline;
   cursor: pointer;
+}
+.writeNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--work-accent);
+  font-size: 12px;
+}
+.memberForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  font-size: 13px;
+}
+.memberForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.memberFormHint {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.memberFormTip {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.memberToggleRow {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.memberRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 4px;
+}
+.memberRoleItem {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-size: 13px;
+}
+.memberFormWide {
+  grid-column: 1 / -1;
+  margin: 0;
 }

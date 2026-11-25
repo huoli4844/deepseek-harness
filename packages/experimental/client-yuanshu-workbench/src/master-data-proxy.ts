@@ -11,5 +11,10 @@ export function shaoshiMasterMethodAllowed(resource: string, method: string, has
   if (resource === 'materials') return hasId ? method === 'PUT' || method === 'DELETE' : method === 'GET'
   if (resource === 'equipments') return hasId ? method === 'GET' || method === 'PUT' || method === 'DELETE' : method === 'GET' || method === 'POST'
   if (resource === 'contracts') return !hasId && method === 'GET'
+  if (resource === 'meeting-rooms') return hasId ? method === 'PUT' || method === 'DELETE' : method === 'GET' || method === 'POST'
+  // 带资源 ID 的 POST 仅用于预约取消（/meeting-room-bookings/{id}/cancel）。
+  if (resource === 'meeting-room-bookings') return hasId ? method === 'POST' : method === 'GET' || method === 'POST'
+  // 用户任职与线上 user-positions 模块对齐：集合支持查询与创建，单项支持更新与删除。
+  if (resource === 'user-positions') return hasId ? method === 'PUT' || method === 'DELETE' : method === 'GET' || method === 'POST'
   return !hasId && (method === 'GET' || (resource === 'material-categories' && method === 'POST'))
 }

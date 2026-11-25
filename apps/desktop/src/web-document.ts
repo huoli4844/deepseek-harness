@@ -88,7 +88,10 @@ export async function forwardWebRequest(request: Request, host: string, cookie: 
   target.pathname = source.pathname
   target.search = source.search
   const headers = new Headers(request.headers)
-  for (const name of ['host', 'origin', 'cookie', 'sec-fetch-site']) headers.delete(name)
+  for (const name of ['host', 'origin', 'cookie']) headers.delete(name)
+  // 到达此处的请求都来自应用窗口自身来源（上方已校验），而 dsh-app 自定义协议
+  // 不携带 Fetch Metadata；补写 same-origin 让宿主对写入请求的同源校验保持有效。
+  headers.set('sec-fetch-site', 'same-origin')
   headers.set('cookie', cookie)
   const init = { method: request.method, headers, body: request.body, signal: request.signal, duplex: 'half', redirect: 'manual' as const }
   const response = await fetch(target, init)

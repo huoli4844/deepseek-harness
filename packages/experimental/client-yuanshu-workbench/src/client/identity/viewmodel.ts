@@ -6,6 +6,7 @@
  */
 
 import type {
+  AssignmentRowModel,
   IdentityField,
   IdentityFieldTier,
   IdentityLocaleKey,
@@ -14,6 +15,7 @@ import type {
   ProfileEntryModel,
   RawIdentity,
   RawLaborRow,
+  RawPositionAssignment,
 } from './model.ts'
 
 /** 数据来源标识。 */
@@ -21,6 +23,7 @@ const SOURCE = {
   me: '/api/v1/user/me',
   profile: '/api/v1/apps/shaoshi/workbench/profile',
   labor: '/api/v1/apps/shaoshi/projects/{code}/labor-hours',
+  assignments: '/api/v1/user-positions',
   demo: 'demo://identity',
 } as const
 
@@ -170,6 +173,25 @@ function buildLaborHours(raw: RawIdentity): IdentityViewModel['laborHours'] {
   }
 }
 
+/** 组装任职记录卡片行：岗位、部门、角色与起止期间。 */
+function buildAssignments(raw: RawIdentity): readonly AssignmentRowModel[] {
+  const fallback = raw.fallback.assignments
+  const tier: IdentityFieldTier = fallback ? 'demo' : 'live'
+  const source = fallback ? SOURCE.demo : SOURCE.assignments
+  return (raw.assignments ?? []).map((row: RawPositionAssignment, index: number) => {
+    const period = [row.startDate, row.endDate].filter(part => part !== '')
+      .join(' ~ ') || undefined
+    return {
+      id: `assignment-${row.id}-${index}`,
+      position: field([row.positionName, row.positionLevel].filter(part => part !== '').join(' · ') || undefined, tier, source),
+      category: field(row.positionCategory === '' ? undefined : row.positionCategory, tier, source),
+      role: field(row.roleInProject === '' ? undefined : row.roleInProject, tier, source),
+      period: field(period, tier, source),
+      isPrimary: row.isPrimary,
+    }
+  })
+}
+
 /**
  * 从原始身份快照构造完整视图模型。
  * @param raw - 数据层产出的不可变快照。
@@ -181,6 +203,7 @@ export function buildIdentityViewModel(raw: RawIdentity): IdentityViewModel {
     profile: buildProfile(raw),
     duty: buildDuty(raw),
     laborHours: buildLaborHours(raw),
+    assignments: buildAssignments(raw),
     fetchedAt: raw.fetchedAt === undefined ? undefined : new Date(raw.fetchedAt).toLocaleString(),
   }
 }

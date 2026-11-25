@@ -1,13 +1,15 @@
 /** 验证合同列表的金额、类型、状态、项目回退与排序整理。 */
 import { expect, it } from 'vitest'
+import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   contractAmount, contractCells, contractStatusLabel, contractTypeLabel, nextContractSort,
 } from '../src/client/modules/business-modules/contract-viewmodel.ts'
 import { zh } from '../src/client/core/locales/locales.ts'
 
-const t = (key: keyof typeof zh, values?: Readonly<Record<string, unknown>>) => Object.entries(values ?? {}).reduce(
+// 键域与 TranslateNS<'yuanshu.workbench'> 对齐：命名空间键加上框架 common 词汇。
+const t = (key: LocaleKeysOf<'yuanshu.workbench'>, values?: Readonly<Record<string, unknown>>) => Object.entries(values ?? {}).reduce(
   (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-  zh[key],
+  zh[key as keyof typeof zh],
 )
 
 it('合同金额按人民币保留两位小数并添加千分位', () => {

@@ -1,10 +1,9 @@
 // The composer remains in ConversationRoot so switching out of the blank-draft
 // phase does not remount its textarea.
 
-import { useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import {
-  FISH_LOGO_PATH, FISH_LOGO_VIEWBOX, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
 import type { ConversationContentProps } from '../contract/slots.ts'
@@ -73,55 +72,29 @@ export interface HeroShellProps {
   children?: ReactNode
 }
 
-/* Hover swim morph targets: the resting FISH_LOGO_PATH with weighted
-   regional deformation baked in (generated programmatically — parse the
-   path's absolute M/C/L/Z commands, displace points with smoothstep falloff
-   weights, emit the same command structure so SMIL can interpolate `d`
-   between them). Tail: rotation about (15.6, 5.2) with weight growing toward
-   the tail tip (x>15, y<8.5) — UP -7°, DOWN +6°. Mouth/fin swoosh: a bend,
-   not a rotation — vertical lift with weight-squared falloff from the body
-   anchor (14.1, 15.0), so the near end stays seated and the mouth corner
-   sweeps most, a smile lift (UP -0.7 units at the tip, DOWN +0.5). The eye
-   subpaths carry zero weight and stay fixed. */
-const HERO_SWIM_UP_PATH =
-  'M22.403 0.567C22.145 0.477 22.068 0.718 21.939 0.85C21.895 0.893 21.86 0.947 21.824 0.997C21.515 1.421 21.13 1.721 20.591 1.77C19.829 1.867 19.221 2.244 18.712 2.958C18.535 2.227 18.116 1.839 17.516 1.626C17.203 1.506 16.887 1.379 16.663 1.064C16.508 0.839 16.462 0.581 16.383 0.329C16.332 0.176 16.283 0.02 16.121 -0.002C15.944 -0.029 15.875 0.133 15.805 0.269C15.52 0.822 15.408 1.43 15.42 2.046C15.449 3.432 16.031 4.532 17.202 5.274C17.337 5.356 17.374 5.445 17.335 5.582C17.261 5.862 17.169 6.134 17.086 6.413C17.032 6.59 16.952 6.63 16.764 6.558C16.118 6.301 15.562 5.909 15.074 5.433C14.248 4.633 13.5 3.751 12.568 3.06C12.349 2.898 12.13 2.748 11.903 2.605C10.952 1.682 12.028 0.923 12.277 0.833C12.537 0.739 12.367 0.416 11.526 0.42C10.684 0.424 9.914 0.706 8.933 1.081C8.789 1.138 8.638 1.179 8.484 1.213C7.593 1.044 6.668 1.006 5.702 1.115C3.883 1.318 2.43 2.178 1.362 3.646C0.079 5.41 -0.223 7.415 0.147 9.506C0.535 11.71 1.66 13.535 3.389 14.962C5.181 16.441 7.246 17.166 9.601 17.027C11.032 16.944 12.624 16.753 14.421 15.232C14.874 15.458 15.35 15.548 16.138 15.615C16.746 15.672 17.331 15.585 17.784 15.491C18.493 15.341 18.444 14.684 18.188 14.564C16.108 13.595 16.565 13.989 16.15 13.67C17.206 12.42 18.82 10.198 19.363 7.086C19.421 6.709 19.484 6.171 19.469 5.866C19.458 5.681 19.493 5.604 19.681 5.556C20.199 5.412 20.691 5.172 21.125 4.806C22.366 3.824 22.758 2.554 22.708 1.1C22.7 0.878 22.649 0.654 22.403 0.567ZM11.175 14.451C9.159 12.726 8.182 12.088 7.778 12.067C7.401 12.047 7.469 12.505 7.552 12.807C7.639 13.103 7.752 13.313 7.91 13.581C8.02 13.758 8.095 14.01 7.801 14.16C7.152 14.487 6.023 13.806 5.97 13.772C4.657 12.85 3.559 11.766 2.785 10.369C2.037 9.025 1.603 7.583 1.532 6.044C1.513 5.672 1.622 5.541 1.992 5.473C2.479 5.383 2.981 5.364 3.468 5.436C5.525 5.736 7.276 6.675 8.744 8.323C9.582 9.299 10.216 10.425 10.869 11.496C11.563 12.592 12.31 13.603 13.262 14.414C13.598 14.696 13.866 14.91 14.123 15.068C13.349 15.154 12.058 15.167 11.175 14.452L11.175 14.451ZM12.141 8.26C12.141 8.095 12.273 7.963 12.439 7.963C12.476 7.963 12.511 7.971 12.541 7.982C12.582 7.997 12.62 8.019 12.65 8.053C12.704 8.106 12.733 8.181 12.733 8.26C12.733 8.425 12.601 8.556 12.435 8.556C12.27 8.556 12.141 8.425 12.141 8.26ZM15.142 9.799C14.949 9.878 14.757 9.945 14.572 9.953C14.284 9.968 13.972 9.851 13.802 9.709C13.537 9.487 13.348 9.363 13.27 8.977C13.236 8.812 13.255 8.556 13.284 8.41C13.352 8.094 13.277 7.892 13.055 7.708C12.873 7.558 12.643 7.516 12.39 7.516C12.296 7.516 12.209 7.475 12.145 7.441C12.039 7.389 11.952 7.257 12.035 7.096C12.062 7.043 12.19 6.916 12.22 6.893C12.563 6.698 12.96 6.762 13.326 6.908C13.665 7.047 13.922 7.302 14.292 7.663C14.669 8.098 14.738 8.218 14.953 8.545C15.123 8.801 15.277 9.063 15.383 9.364C15.447 9.551 15.364 9.705 15.142 9.799Z'
-const HERO_SWIM_DOWN_PATH =
-  'M23.271 2.216C23.039 2.071 22.91 2.287 22.755 2.388C22.703 2.42 22.656 2.464 22.61 2.505C22.214 2.848 21.771 3.054 21.225 2.956C20.412 2.784 19.68 2.919 19.005 3.435C18.92 2.663 18.493 2.157 17.808 1.798C17.446 1.621 17.08 1.449 16.83 1.111C16.656 0.872 16.611 0.612 16.524 0.354C16.469 0.198 16.414 0.039 16.223 0.009C16.017 -0.024 15.936 0.137 15.856 0.271C15.539 0.822 15.418 1.43 15.429 2.046C15.454 3.432 16.041 4.538 17.196 5.36C17.325 5.456 17.356 5.547 17.312 5.674C17.229 5.936 17.134 6.191 17.051 6.454C16.999 6.623 16.921 6.659 16.738 6.58C16.107 6.306 15.56 5.909 15.074 5.433C14.248 4.633 13.5 3.751 12.568 3.06C12.349 2.898 12.13 2.748 11.903 2.605C10.952 1.682 12.028 0.923 12.277 0.833C12.537 0.739 12.367 0.416 11.526 0.42C10.684 0.424 9.914 0.706 8.933 1.081C8.789 1.138 8.638 1.179 8.484 1.213C7.593 1.044 6.668 1.006 5.702 1.115C3.883 1.318 2.43 2.178 1.362 3.646C0.079 5.41 -0.223 7.415 0.147 9.506C0.535 11.71 1.66 13.535 3.389 14.962C5.181 16.441 7.246 17.166 9.601 17.027C11.032 16.944 12.624 16.753 14.421 15.232C14.874 15.458 15.35 15.548 16.138 15.615C16.746 15.672 17.331 15.585 17.784 15.491C18.493 15.341 18.444 14.684 18.188 14.564C16.108 13.595 16.565 13.989 16.15 13.67C17.206 12.42 18.82 10.198 19.278 7.246C19.318 6.948 19.375 6.534 19.371 6.293C19.371 6.145 19.411 6.092 19.597 6.098C20.113 6.109 20.619 6.051 21.096 5.891C22.503 5.375 23.169 4.232 23.448 2.804C23.49 2.586 23.491 2.356 23.271 2.216ZM11.175 14.49C9.159 13.005 8.182 12.567 7.778 12.621C7.401 12.673 7.469 13.087 7.552 13.354C7.639 13.619 7.752 13.797 7.91 14.024C8.02 14.175 8.095 14.406 7.801 14.609C7.152 15.063 6.023 14.63 5.97 14.609C4.657 13.941 3.559 12.965 2.785 11.569C2.037 10.225 1.603 8.783 1.532 7.244C1.513 6.872 1.622 6.741 1.992 6.673C2.479 6.583 2.981 6.564 3.468 6.636C5.525 6.936 7.276 7.843 8.744 9.163C9.582 9.888 10.216 10.783 10.869 11.679C11.563 12.659 12.31 13.617 13.262 14.415C13.598 14.696 13.866 14.91 14.123 15.068C13.349 15.155 12.058 15.177 11.175 14.491L11.175 14.49ZM12.141 8.26C12.141 8.095 12.273 7.963 12.439 7.963C12.476 7.963 12.511 7.971 12.541 7.982C12.582 7.997 12.62 8.019 12.65 8.053C12.704 8.106 12.733 8.181 12.733 8.26C12.733 8.425 12.601 8.556 12.435 8.556C12.27 8.556 12.141 8.425 12.141 8.26ZM15.142 9.799C14.949 9.878 14.757 9.945 14.572 9.953C14.284 9.968 13.972 9.851 13.802 9.709C13.537 9.487 13.348 9.363 13.27 8.977C13.236 8.812 13.255 8.556 13.284 8.41C13.352 8.094 13.277 7.892 13.055 7.708C12.873 7.558 12.643 7.516 12.39 7.516C12.296 7.516 12.209 7.475 12.145 7.441C12.039 7.389 11.952 7.257 12.035 7.096C12.062 7.043 12.19 6.916 12.22 6.893C12.563 6.698 12.96 6.762 13.326 6.908C13.665 7.047 13.922 7.302 14.292 7.663C14.669 8.098 14.738 8.218 14.953 8.545C15.123 8.801 15.277 9.063 15.383 9.364C15.447 9.551 15.364 9.705 15.142 9.799Z'
+/* YuanShu brand mark: the platform's public OEM icon (ring emblem), served by
+   `/api/v1/oem-configs/public/icon`. Coordinates stay in the source viewBox
+   space (origin 211.63/124.97) so the path is copied verbatim. */
+const YUANSHU_MARK_PATH =
+  'M 218.0982 227.9279 C 222.6640 249.0421 235.3113 267.3034 253.4669 279.0032 C 262.2597 284.6690 272.0832 288.6058 282.3622 290.5526 C 293.0338 292.5737 303.9780 292.4042 314.5921 290.1090 C 335.7062 285.5432 353.9673 272.8959 365.6673 254.7403 C 371.3332 245.9475 375.2700 236.1240 377.2165 225.8450 C 379.2379 215.1735 379.0684 204.2292 376.7732 193.6154 C 372.2074 172.5010 359.5601 154.2399 341.4044 142.5402 C 332.6117 136.8740 322.7882 132.9373 312.5092 130.9907 C 301.8376 128.9693 290.8933 129.1388 280.2793 131.4341 C 259.1651 135.9998 240.9041 148.6472 229.2041 166.8028 C 223.5382 175.5956 219.6014 185.4193 217.6549 195.6980 C 215.6335 206.3699 215.8030 217.3139 218.0982 227.9279 L 218.0982 227.9279 Z M 312.2549 279.3014 C 294.0718 283.2336 275.0924 279.7844 259.4565 269.7084 C 243.7750 259.6031 232.8494 243.8280 228.9059 225.5911 C 224.9736 207.4079 228.4228 188.4286 238.4989 172.7924 C 248.6041 157.1108 264.3792 146.1853 282.6164 142.2417 C 300.7996 138.3098 319.7789 141.7587 335.4148 151.8347 C 351.0964 161.9399 362.0220 177.7153 365.9655 195.9523 C 369.8977 214.1354 366.4485 233.1148 356.3725 248.7507 C 346.2673 264.4322 330.4922 275.3578 312.2549 279.3014 Z M 272.5716 182.3483 C 256.6193 186.3794 245.6527 200.0600 244.3294 215.5831 L 242.8359 215.9606 C 239.9621 189.3756 257.0264 164.0515 283.6947 157.3129 C 296.3004 154.1277 308.9900 155.6156 319.9346 160.6848 C 333.4714 166.9547 344.3383 178.7040 349.0747 193.8671 L 349.0750 193.8671 C 349.4585 195.0441 349.8052 196.2423 350.1128 197.4603 C 350.4209 198.6787 350.6854 199.8975 350.9067 201.1153 L 279.3668 219.1927 L 279.3010 219.2094 C 286.9152 234.8981 304.7267 243.6350 322.2992 239.1945 C 338.2517 235.1634 349.2187 221.4825 350.5419 205.9600 L 352.0352 205.5827 C 354.9093 232.1672 337.8444 257.4910 311.1763 264.2301 C 298.5710 267.4151 285.8814 265.9275 274.9363 260.8580 C 261.3997 254.5878 250.5328 242.8390 245.7961 227.6757 L 245.7984 227.6754 C 245.4146 226.4984 245.0682 225.2999 244.7603 224.0816 C 244.4525 222.8636 244.1883 221.6452 243.9666 220.4269 L 315.5063 202.3495 L 315.5698 202.3334 C 307.9556 186.6447 290.1444 177.9078 272.5716 182.3483 Z'
 
 /**
- * The hero fish (34px wide), static at rest. Hovering swims the whale in
- * place: a gentle head-up sway (CSS, on the hitbox hover) while the body
- * itself morphs — SMIL interpolates `d` through the tail-up and tail-down
- * targets on the same 1.6s period, so the tail wags and the fin flutters in
- * real curve deformation. Decorative — hidden from the accessibility tree;
- * reduced motion keeps the static filled logo on hover (sampled at
- * mouseenter; a mid-hover preference change takes effect on the next enter).
- * @param props.hovering - driven by the hitbox parent's pointer state.
- * @returns the fish svg element.
+ * The hero brand mark (34px square), the YuanShu emblem, colored by the
+ * surrounding text so it follows both themes. Decorative — hidden from the
+ * accessibility tree.
+ * @returns the mark svg element.
  */
-function HeroFish({ hovering }: { hovering: boolean }) {
+function HeroMark() {
   return (
     <svg
       className={css.fish}
       width={34}
-      height={(34 * FISH_LOGO_VIEWBOX.height) / FISH_LOGO_VIEWBOX.width}
-      viewBox={`0 0 ${FISH_LOGO_VIEWBOX.width} ${FISH_LOGO_VIEWBOX.height}`}
+      height={34}
+      viewBox="211.63 124.97 171.60 171.60"
       fill="none"
       aria-hidden="true"
     >
-      <path d={FISH_LOGO_PATH} fill="currentColor">
-        {hovering && (
-          <animate
-            attributeName="d"
-            values={`${FISH_LOGO_PATH};${HERO_SWIM_UP_PATH};${FISH_LOGO_PATH};${HERO_SWIM_DOWN_PATH};${FISH_LOGO_PATH}`}
-            keyTimes="0;0.35;0.55;0.75;1"
-            calcMode="spline"
-            keySplines="0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1"
-            dur="1.6s"
-            repeatCount="indefinite"
-          />
-        )}
-      </path>
+      <path d={YUANSHU_MARK_PATH} fill="currentColor" fillRule="nonzero" />
     </svg>
   )
 }
@@ -132,24 +105,14 @@ function HeroFish({ hovering }: { hovering: boolean }) {
  * @returns the centered hero element tree.
  */
 export function HeroShell({ t, renderSlot, headline, children }: HeroShellProps) {
-  const [hovering, setHovering] = useState(false)
   return (
     <div className={css.root}>
       <div className={css.stack}>
         <div className={css.headline}>
-          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
-          <span
-            className={css.fishHitbox}
-            onPointerEnter={(event) => {
-              if (event.pointerType !== 'touch'
-                && window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) {
-                setHovering(true)
-              }
-            }}
-            onPointerLeave={() => { setHovering(false) }}
-          >
+          {/* The brand mark leads the headline, gap 10. */}
+          <span className={css.fishHitbox}>
             {renderSlot('conversation.hero.brand.mark', { size: 34, className: css.fish }, {
-              fallback: <HeroFish hovering={hovering} />,
+              fallback: <HeroMark />,
             })}
           </span>
           <span className={css.titleGroup}>

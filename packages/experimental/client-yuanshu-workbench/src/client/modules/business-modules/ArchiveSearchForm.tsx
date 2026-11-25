@@ -1,5 +1,5 @@
 /** 渲染客户和供应商的组合筛选表单，不请求档案或分类。 */
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconSearchOutlineRegular, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { RecordListFilters } from './record-list-query.ts'
 import css from './business-modules.module.css'
@@ -46,7 +46,7 @@ export function ArchiveSearchForm({ resource, t, categories, categoryFailed, ret
       </label>
     </div>
     <div className={css.businessModuleActions}>
-      <Button type="submit" variant="primary">{t('record.search')}</Button>
+      <Button type="submit" variant="primary" aria-label={t('record.search')} icon={<IconSearchOutlineRegular />} />
       <Button type="button" variant="outline" disabled={!ready} onClick={onCreate}>{t(`${resource}.add`)}</Button>
     </div>
     {categoryFailed && <p className={css.archiveFilterError} role="alert">

@@ -1,5 +1,7 @@
 /** 展示设备筛选表单和台账列表，不直接请求后台。 */
-import { Button, IconEditOutlineRegular, IconTrashOutlineRegular, Input, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  Button, IconEditOutlineRegular, IconSearchOutlineRegular, IconTrashOutlineRegular, Input, Tooltip,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { ArchiveTable } from '../../shared/ArchiveTable.tsx'
 import { readFormText } from '../../shared/form-data.ts'
@@ -42,7 +44,7 @@ export function EquipmentRecords({
       <label>{t('equipment.keywordLabel')}
         <Input name="keyword" maxLength={100} placeholder={t('equipment.keyword')} />
       </label>
-      <Button type="submit" variant="outline">{t('equipment.search')}</Button>
+      <Button type="submit" variant="outline" aria-label={t('equipment.search')} icon={<IconSearchOutlineRegular />} />
       <div className={css.filterActions}>
         <Button type="button" variant="primary" disabled={disabled} onClick={onCreate}>{t('equipment.create')}</Button>
       </div>

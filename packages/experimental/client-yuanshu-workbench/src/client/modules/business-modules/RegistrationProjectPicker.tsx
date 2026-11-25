@@ -1,6 +1,6 @@
 /** 编排项目搜索和选择，复用同源项目目录。 */
 import { useEffect, useState } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconSearchOutlineRegular, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { readFormText } from '../../shared/form-data.ts'
 import { listRegistrationProjects } from './project-registration-api.ts'
@@ -35,7 +35,7 @@ export function RegistrationProjectPicker({ selected, onSelect, disabled, t, com
     setQuery({ keyword: readFormText(new FormData(event.currentTarget), 'keyword').trim(), page: 1 })
   }}>
     <Input name="keyword" maxLength={100} aria-label={t('registration.findProject')} placeholder={t('registration.findProject')} />
-    <Button type="submit" size={compact ? 'sm' : 'md'} variant="outline">{t('registration.search')}</Button>
+    <Button type="submit" size={compact ? 'sm' : 'md'} variant="outline" aria-label={t('registration.search')} icon={<IconSearchOutlineRegular />} />
   </form>
   const select = <select aria-label={compact ? t('weekly.projectScope') : t('registration.project')} disabled={disabled} value={selected?.code ?? ''} onChange={(event) => {
     onSelect(choices.find(item => item.code === event.target.value))

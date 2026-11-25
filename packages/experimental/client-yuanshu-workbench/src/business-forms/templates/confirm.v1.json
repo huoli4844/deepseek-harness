@@ -1,0 +1,21 @@
+{
+  "templateId": "confirm",
+  "version": 1,
+  "layout": {
+    "maxWidthCssPx": 440,
+    "width": "min(templateWidth, viewportWidth - 2 * dialogGutter)",
+    "header": [
+      "title"
+    ],
+    "body": [
+      "message",
+      "targetSummary?"
+    ],
+    "footer": [
+      "cancel",
+      "confirm"
+    ],
+    "scrollRegion": "body"
+  },
+  "initialFocus": "cancel"
+}

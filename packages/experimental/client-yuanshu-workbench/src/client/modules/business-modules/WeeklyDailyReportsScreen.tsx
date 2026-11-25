@@ -1,10 +1,10 @@
-/** 编排周报日期选择、登记和工时明细跳转。 */
+/** 编排周报日期选择与登记。 */
 import { useCallback, useMemo, useState } from 'react'
 import { Button, IconChevronLeftOutlineRegular, IconChevronRightOutlineRegular, Input } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { AccessRole } from './access-role.ts'
 import { WeeklyReportEditor } from './WeeklyReportEditor.tsx'
-import type { RegistrationProject, RegistrationRange, WeeklyDraft, WeeklySnapshot } from './project-registration-model.ts'
+import type { WeeklyDraft, WeeklySnapshot } from './project-registration-model.ts'
 import { beijingDate, moveDate, weekStart } from './project-registration-viewmodel.ts'
 import { WeeklyOverview, type WeeklyReportActions } from './WeeklyOverview.tsx'
 import type { WeeklyItemsSummary } from './weekly-items-model.ts'
@@ -26,12 +26,10 @@ function isoWeek(start: string): number {
 }
 
 /** 按案例版式展示周报内容与提交前概览。 */
-export function WeeklyDailyReportsScreen({ t, role, onLabor }: {
+export function WeeklyDailyReportsScreen({ t, role }: {
   readonly t: WorkbenchT
   readonly role?: AccessRole | undefined
-  readonly onLabor: (range: RegistrationRange, project: RegistrationProject) => void
 }) {
-  const [project, setProject] = useState<RegistrationProject>()
   const [selected, setSelected] = useState(() => ({ month: beijingDate().slice(0, 7), start: weekStart(beijingDate()) }))
   const [busy, setBusy] = useState(false)
   const [snapshot, setSnapshot] = useState<WeeklySnapshot>()
@@ -56,7 +54,6 @@ export function WeeklyDailyReportsScreen({ t, role, onLabor }: {
   }, [draft.completed_work, draft.issues_and_risks])
   const weeks = weeksInMonth(selected.month)
   const start = selected.start
-  const end = moveDate(start, 6)
   const status = snapshot?.report?.status === 'submitted' ? 'submitted' : 'draft'
   return <div className={`${css.screen} ${css.weeklyScreen}`}>
     <header className={css.weeklyTopbar}>
@@ -100,13 +97,9 @@ export function WeeklyDailyReportsScreen({ t, role, onLabor }: {
     </header>
     <div className={css.weeklyLayout}>
       <main className={css.weeklyMain}>
-        <WeeklyReportEditor project={project} start={start} role={role}
-          t={t} onBusy={setBusy} onSnapshot={setSnapshot} onDraft={setDraft} onActions={onActions}
-          onProject={(value) => { setProject(value); setSnapshot(undefined); setActions(undefined) }}
-          onLabor={() => {
-            if (project !== undefined) onLabor({ projectCode: project.code, dateFrom: start, dateTo: end, status: 'approved' }, project)
-          }} />
+        <WeeklyReportEditor start={start} role={role}
+          t={t} onBusy={setBusy} onSnapshot={setSnapshot} onDraft={setDraft} onActions={onActions} />
       </main>
-      <WeeklyOverview project={project} snapshot={snapshot} summary={summary} draft={draft} actions={actions} t={t} />    </div>
+      <WeeklyOverview snapshot={snapshot} summary={summary} draft={draft} actions={actions} t={t} />    </div>
   </div>
 }

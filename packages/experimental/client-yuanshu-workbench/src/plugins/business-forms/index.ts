@@ -1,0 +1,144 @@
+/** 人工表单运行时：保存会话账号租约、待确认表单与回执；不向模型暴露凭证或写入工具。 */
+import { randomUUID } from 'node:crypto'
+import type { Session } from '@deepseek-ai/dsh-session'
+import { beijingDay, type DailyContent, type DailyDecision, type DailyForm, type DailyIdentity, type DailyReport, type EvidenceRef, type WorkEvidence } from '../../business-forms/model.ts'
+import { sameOwner } from '../work-evidence/index.ts'
+import { EDIT_TEMPLATE } from '../../business-forms/templates/index.ts'
+import { ReportRequestError, type Credential, type WorkRecords } from '../work-records/index.ts'
+
+/** 活跃界面与经过后台校验的账号绑定；到期后必须重新鉴权。 */
+export interface FormLease {
+  readonly session: Session
+  readonly identity: DailyIdentity
+  readonly credential: Credential
+  readonly verifiedAt: number
+  readonly evidence?: readonly WorkEvidence[]
+}
+interface FormState {
+  readonly form: DailyForm
+  readonly session: string
+  readonly owner: DailyIdentity
+  readonly status: 'pending' | 'saved' | 'submitted' | 'cancelled'
+  readonly report?: DailyReport
+  readonly decision?: string
+}
+
+/** 每次插件激活独享实例；重启后草稿弹窗失效，已保存日报仍在后台。 */
+export class BusinessForms {
+  private readonly leases = new Map<string, FormLease>()
+  private readonly forms = new Map<string, FormState>()
+  private readonly writes = new Map<string, Promise<DailyReport | null>>()
+  private closing = false
+  constructor(private readonly records: WorkRecords) {}
+  /** 插件卸载清除凭证和临时草稿。 */
+  dispose(): void { this.closing = true; this.leases.clear(); this.forms.clear() }
+  /** 注册已经校验归属的会话，客户端续租不能更换企业账号。 */
+  bind(lease: FormLease): void {
+    if (this.closing) throw new ReportRequestError(503)
+    const old = this.leases.get(lease.session.id)
+    if (old !== undefined && !sameOwner(old.identity, lease.identity)) throw new ReportRequestError(403)
+    this.leases.set(lease.session.id, { ...lease, ...(old?.evidence === undefined ? {} : { evidence: old.evidence }) })
+    this.prune()
+  }
+  /** 模型执行和界面读取均要求当前账号租约仍然有效。 */
+  require(session: string): FormLease {
+    if (this.closing) throw new ReportRequestError(503)
+    const lease = this.leases.get(session)
+    if (lease === undefined || Date.now() - lease.verifiedAt > 120_000) throw new ReportRequestError(401)
+    return lease
+  }
+  /** 校验浏览器凭证与绑定一致；真正写入时后台仍重新鉴权。 */
+  browser(session: string, credential: Credential): FormLease {
+    const lease = this.require(session)
+    if (lease.credential.authorization !== credential.authorization || lease.credential.tenant !== credential.tenant) {
+      throw new ReportRequestError(403)
+    }
+    return lease
+  }
+  /** 仅枚举该账号已绑定且活跃的会话，不扫描其他本地用户的历史。 */
+  sessions(lease: FormLease): readonly Session[] {
+    return [...this.leases.values()].filter(item => sameOwner(item.identity, lease.identity)
+      && Date.now() - item.verifiedAt <= 120_000).map(item => item.session)
+  }
+  /** 缓存实际返回的依据，用于核验模型引用，不能由模型添加新出处。 */
+  evidence(session: string, evidence: readonly WorkEvidence[]): void {
+    this.leases.set(session, { ...this.require(session), evidence })
+  }
+  /** 创建受控弹窗，保持同一会话已有未确认草稿。 */
+  async open(session: string, content: DailyContent, refs: readonly EvidenceRef[], signal: AbortSignal): Promise<DailyForm> {
+    const lease = this.require(session)
+    if (!lease.identity.canWrite) throw new ReportRequestError(403)
+    if (this.pending(session) !== null || lease.evidence === undefined) throw new ReportRequestError(409)
+    const date = beijingDay()
+    const known = lease.evidence.filter(item => Date.parse(item.time) >= Date.now() - 86_400_000)
+    if (refs.length > 100 || refs.some(ref => !known.some(item => item.session_id === ref.session_id && item.seq === ref.seq))) {
+      throw new ReportRequestError(400)
+    }
+    const saved = await this.records.get(date, lease.credential, signal)
+    if (saved?.status === 'submitted') throw new ReportRequestError(409)
+    // 等待接口时可能取消租约或已有另一表单，写入前再次验证。
+    this.require(session)
+    if (this.pending(session) !== null) throw new ReportRequestError(409)
+    const body: DailyContent = saved ?? content
+    const evidence = saved?.evidence_refs ?? refs
+    const form: DailyForm = { id: randomUUID(), schema_id: 'daily-report.v1', work_date: date,
+      template_id: EDIT_TEMPLATE.id, template_version: EDIT_TEMPLATE.version,
+      expected_version: saved?.version ?? 0, content: {
+        completed_work: body.completed_work, in_progress_work: body.in_progress_work, planned_work: body.planned_work,
+        issues_and_risks: body.issues_and_risks, need_support: body.need_support,
+      }, evidence_refs: evidence.map(ref => ({ session_id: ref.session_id, seq: ref.seq })),
+      coverage: 'verified-active-workbench-sessions', expires_at: Date.now() + 30 * 60_000 }
+    this.forms.set(form.id, { form, session, owner: lease.identity, status: 'pending' })
+    return form
+  }
+  /** 返回本会话尚未处理且未过期的表单。 */
+  pending(session: string): DailyForm | null {
+    this.prune()
+    return [...this.forms.values()].find(item => item.session === session && item.status === 'pending')?.form ?? null
+  }
+  /** 模型只读真实回执，不能伪造保存结果。 */
+  status(session: string, id: string): object {
+    const lease = this.require(session), state = this.forms.get(id)
+    if (!state || state.session !== session || !sameOwner(state.owner, lease.identity)) throw new ReportRequestError(404)
+    return { status: state.status, work_date: state.form.work_date, report: state.report ?? null }
+  }
+  /** 人工事件入口；相同内容的并发重试合并，不同内容拒绝抢占。 */
+  async decide(session: string, decision: DailyDecision, signal: AbortSignal): Promise<DailyReport | null> {
+    const lease = this.require(session), state = this.forms.get(decision.form_id)
+    if (!state || state.session !== session || !sameOwner(state.owner, lease.identity) || state.form.expires_at < Date.now()) {
+      throw new ReportRequestError(404)
+    }
+    const fingerprint = JSON.stringify(decision)
+    if (state.decision !== undefined && state.decision !== fingerprint) throw new ReportRequestError(409)
+    if (state.status !== 'pending') return state.report ?? null
+    const active = this.writes.get(state.form.id)
+    if (active) return active
+    const operation = this.persist(lease, state, decision, fingerprint, signal)
+    this.writes.set(state.form.id, operation)
+    try { return await operation } finally { this.writes.delete(state.form.id) }
+  }
+  private async persist(lease: FormLease, state: FormState, decision: DailyDecision,
+    fingerprint: string, signal: AbortSignal): Promise<DailyReport | null> {
+    this.forms.set(state.form.id, { ...state, decision: fingerprint })
+    if (decision.action === 'cancel') {
+      this.forms.set(state.form.id, { ...state, decision: fingerprint, status: 'cancelled' })
+      return null
+    }
+    try {
+      const report = await this.records.save(state.form.work_date, lease.credential, { content: decision.content,
+        evidence: state.form.evidence_refs, version: state.form.expected_version, request: decision.request_id,
+        status: decision.action === 'submit' ? 'submitted' : 'draft' }, signal)
+      if (!this.closing) this.forms.set(state.form.id, { ...state, decision: fingerprint, status: report.status === 'submitted' ? 'submitted' : 'saved', report })
+      return report
+    } catch (error) {
+      // 服务端可能已提交而响应丢失，只能重试相同幂等请求，不能改正文后覆盖。
+      if (!this.closing && error instanceof ReportRequestError && error.status < 500) this.forms.set(state.form.id, state)
+      throw error
+    }
+  }
+  private prune(): void {
+    const now = Date.now()
+    for (const [id, state] of this.forms) if (state.form.expires_at < now && !this.writes.has(id)) this.forms.delete(id)
+    for (const [id, lease] of this.leases) if (now - lease.verifiedAt > 120_000) this.leases.delete(id)
+  }
+}

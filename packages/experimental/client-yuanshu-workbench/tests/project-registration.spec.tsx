@@ -17,11 +17,6 @@ const project = { id: 4, code: 'PRJ-01', name: '测试项目' }
 const start = '2026-11-23'
 const end = '2026-11-29'
 const list = { items: [project], total: 1, page: 1, page_size: 20 }
-// 后台快照必须带完整 report，表单才会解除加载态。
-const blankReport = () => ({
-  id: 1, project_id: project.id, period_start: start, period_end: end, created_by: 10, status: 'draft',
-  progress_summary: '', completed_work: '', planned_work: '', issues_and_risks: null, need_support: null,
-})
 
 afterEach(() => {
   cleanup()
@@ -62,43 +57,50 @@ it('解析下周计划与风险 JSON，旧纯文本回退为单行', () => {
   expect(parseRiskRows('')).toEqual([])
 })
 
-it('编辑已有周报只提交正文，失败保留输入，提交后锁定并跳转到已批准工时', async () => {
+it('编辑已有周报只提交正文，失败保留输入，提交后锁定表单', async () => {
   localStorage.setItem('workbench-client-token', 'token')
-  const onLabor = vi.fn()
-  const edits: unknown[] = []
+  const tasks = { items: [{ id: 10, code: 'T-1', name: '任务甲', status: 'in_progress' }], total: 1, page: 1, page_size: 20 }
+  const edits: Record<string, unknown>[] = []
   let rejectNext = true
-  let weekly = {
-    id: 8, project_id: 4, period_start: start, period_end: end, created_by: 10, status: 'draft',
-    progress_summary: '原进展', completed_work: '工作', planned_work: '计划', issues_and_risks: null, need_support: null,
+  // 项目关联保存在正文行内，表头不再绑定项目。
+  const weekly = {
+    id: 8, period_start: start, period_end: end, created_by: 10, status: 'draft',
+    progress_summary: '原进展',
+    completed_work: JSON.stringify([{
+      project_code: project.code, project_name: project.name, task_id: 10, task_name: '任务甲',
+      completion_status: 'in_progress', description: '工作',
+    }]),
+    planned_work: '计划', issues_and_risks: null, need_support: null,
   }
-  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input, init) => {
+  const calls = vi.fn<typeof fetch>(async (input, init) => {
     if (typeof input !== 'string') throw new Error('应使用同源请求路径')
     const url = new URL(input, 'http://localhost')
     if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
-    if (url.pathname === '/yuanshu-workbench/weekly-reports') return Response.json({ data: { items: [{
-      id: 5, project_code: project.code, project_name: project.name, task_id: 10, task_name: '任务甲',
-      work_type: 'direct', completion_status: 'completed', has_risk: false, risk_details: '', report_status: 'submitted',
-    }] } })
-    if (init?.method === 'PUT') {
-      if (rejectNext) { rejectNext = false; return Response.json({}, { status: 403 }) }
-      if (typeof init.body !== 'string') throw new Error('缺少周报正文')
-      const body: unknown = JSON.parse(init.body)
-      edits.push(body)
-      weekly = { ...weekly, progress_summary: '新进展' }
-    } else if (init?.method === 'POST') {
-      weekly = { ...weekly, status: 'submitted' }
-    } else {
+    if (url.pathname === '/yuanshu-workbench/projects/PRJ-01/tasks') return Response.json({ data: tasks })
+    if (url.pathname === '/yuanshu-workbench/weekly-reports') {
+      const labor = { total_hours: '1.50', employees: [{ user_id: 10, hours: '1.50' }] }
+      if (init?.method === 'PUT') {
+        if (rejectNext) { rejectNext = false; return Response.json({}, { status: 403 }) }
+        if (typeof init.body !== 'string') throw new Error('缺少周报正文')
+        edits.push(JSON.parse(init.body) as Record<string, unknown>)
+        return Response.json({ data: { report: { ...weekly, progress_summary: '新进展' }, labor } })
+      }
       expect(url.searchParams.get('period_start')).toBe(start)
+      return Response.json({ data: { report: weekly, labor } })
     }
-    return Response.json({ data: { report: weekly, labor: { total_hours: '1.50', employees: [{ user_id: 10, hours: '1.50' }] } } })
-  }))
-  render(<WeeklyDailyReportsScreen t={t} role="management" onLabor={onLabor} />)
-  await screen.findByRole('option', { name: /测试项目/u })
-  fireEvent.change(screen.getByLabelText('月份'), { target: { value: '2026-11' } })
-  fireEvent.change(screen.getByRole('combobox', { name: '周次' }), { target: { value: start } })
-  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
-  // 旧版纯文本完成内容会回退为一条事项，可直接改写描述。
-  const progress = await screen.findByRole('textbox', { name: '事项描述' })
+    if (init?.method === 'POST') {
+      return Response.json({ data: { report: { ...weekly, status: 'submitted', progress_summary: '新进展' }, labor: { total_hours: '1.50', employees: [{ user_id: 10, hours: '1.50' }] } } })
+    }
+    throw new Error(`意外的请求路径：${url.pathname}`)
+  })
+  vi.stubGlobal('fetch', calls)
+  render(<WeeklyDailyReportsScreen t={t} role="management" />)
+  // 周报按用户每周一份，顶部不再有项目选择条。
+  expect(screen.queryByRole('combobox', { name: '所属项目' })).toBeNull()
+  await screen.findAllByRole('option', { name: /测试项目/u })
+  // 旧版结构化事项行可直接改写描述。
+  const progress = screen.getByRole('textbox', { name: '事项描述' })
+  expect(progress).toHaveProperty('value', '工作')
   const report = within(screen.getByRole('region', { name: '提交前检查' }))
   fireEvent.change(progress, { target: { value: '新进展' } })
   fireEvent.click(report.getByRole('button', { name: '保存草稿' }))
@@ -109,29 +111,34 @@ it('编辑已有周报只提交正文，失败保留输入，提交后锁定并�
   expect(edits).toEqual([{
     period_start: start, progress_summary: '新进展', planned_work: '计划', issues_and_risks: null, need_support: null,
     completed_work: JSON.stringify([{
-      project_code: '', project_name: '', task_name: '', completion_status: '', description: '新进展',
+      project_code: 'PRJ-01', project_name: '测试项目', task_id: 10, task_name: '任务甲',
+      completion_status: 'in_progress', description: '新进展',
     }]),
   }])
   fireEvent.click(report.getByRole('button', { name: '提交周报' }))
   await waitFor(() => { expect(progress).toHaveProperty('disabled', true) })
-  fireEvent.click(screen.getByRole('button', { name: '查看工时明细' }))
-  expect(onLabor).toHaveBeenCalledWith({ projectCode: project.code, dateFrom: start, dateTo: end, status: 'approved' }, project)
+  const submitted = calls.mock.calls.find(([, request]) => request?.method === 'POST')
+  expect(submitted?.[0]).toBe('/yuanshu-workbench/weekly-reports/submit')
+  expect(submitted?.[1]?.body).toBe(JSON.stringify({ period_start: start }))
+  expect(screen.queryByRole('button', { name: '查看工时明细' })).toBeNull()
 })
 
-it('未选项目时新增事项禁用，选择项目后可连续新增多条事项', async () => {
+it('新增事项不再依赖先选项目，可连续新增多行', async () => {
   localStorage.setItem('workbench-client-token', 'token')
-  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input) => {
+  vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input, init) => {
     if (typeof input !== 'string') throw new Error('应使用同源请求路径')
     const url = new URL(input, 'http://localhost')
     if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
-    return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+    if (url.pathname === '/yuanshu-workbench/weekly-reports' && init?.method !== 'PUT') {
+      return Response.json({ data: { report: null, labor: { total_hours: '0', employees: [] } } })
+    }
+    throw new Error(`意外的请求路径：${url.pathname}`)
   }))
-  render(<WeeklyDailyReportsScreen t={t} onLabor={() => undefined} />)
+  render(<WeeklyDailyReportsScreen t={t} />)
   const add = screen.getByRole('button', { name: '新增事项' })
-  expect(add).toHaveProperty('disabled', true)
-  await screen.findByRole('option', { name: /测试项目/u })
-  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
+  // 快照加载完成前整表禁用，加载后无需先选项目即可新增。
   await waitFor(() => { expect(add).toHaveProperty('disabled', false) })
+  expect(screen.queryByRole('combobox', { name: '所属项目' })).toBeNull()
   fireEvent.click(add)
   fireEvent.click(add)
   expect(screen.getByText('事项 1')).toBeDefined()
@@ -151,19 +158,18 @@ it('周报事项按项目、阶段、状态和描述保存，并自动汇总进�
     const url = new URL(input, 'http://localhost')
     if (url.pathname === '/yuanshu-workbench/projects') return Response.json({ data: list })
     if (url.pathname === '/yuanshu-workbench/projects/PRJ-01/tasks') return Response.json({ data: tasks })
-    if (url.pathname === '/yuanshu-workbench/projects/PRJ-01/weekly-reports') {
-      if (init?.method === 'PUT') put = JSON.parse(String(init.body)) as Record<string, unknown>
-      return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+    if (url.pathname === '/yuanshu-workbench/weekly-reports' && init?.method === 'PUT') {
+      put = JSON.parse(String(init.body)) as Record<string, unknown>
+      return Response.json({ data: { report: { ...put, id: 1, period_end: end, created_by: 10, status: 'draft' }, labor: { total_hours: '0', employees: [] } } })
     }
-    return Response.json({ data: { report: blankReport(), labor: { total_hours: '0', employees: [] } } })
+    return Response.json({ data: { report: null, labor: { total_hours: '0', employees: [] } } })
   }))
-  render(<WeeklyDailyReportsScreen t={t} onLabor={() => undefined} />)
-  await screen.findByRole('option', { name: /测试项目/u })
-  fireEvent.change(screen.getByRole('combobox', { name: '所属项目' }), { target: { value: project.code } })
+  render(<WeeklyDailyReportsScreen t={t} />)
   const add = screen.getByRole('button', { name: '新增事项' })
   await waitFor(() => { expect(add).toHaveProperty('disabled', false) })
   fireEvent.click(add)
   fireEvent.click(add)
+  await screen.findAllByRole('option', { name: /测试项目/u })
   for (const select of screen.getAllByRole('combobox', { name: '项目' })) {
     fireEvent.change(select, { target: { value: project.code } })
   }
@@ -224,7 +230,13 @@ it('按每天的项目分割比例拆分并保存工时', async () => {
     if (url.pathname.endsWith('/labor-hours') && init?.method === 'POST') {
       const body = String(init.body)
       writes.push({ path: url.pathname, body })
-      const submitted: { readonly hours: string; readonly work_date: string; readonly work_type: string; readonly description: string; readonly completion_status: string } = JSON.parse(body)
+      const submitted: {
+        readonly hours: string
+        readonly work_date: string
+        readonly work_type: string
+        readonly description: string
+        readonly completion_status: string
+      } = JSON.parse(body)
       const code = url.pathname.includes('PRJ-02') ? 'PRJ-02' : 'PRJ-01'
       const id = code === 'PRJ-02' ? 5 : 4
       return Response.json({ data: { ...submitted, id: writes.length, user_id: 10, project_id: id, status: 'draft', can_edit: true, can_submit: true } })

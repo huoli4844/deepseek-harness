@@ -39,7 +39,9 @@ it('forwards upload bytes and cancellation with Host credentials while keeping t
   const [target, init] = fetch.mock.calls[0] as [URL, RequestInit]
   expect(target.href).toBe('http://127.0.0.1:1234/api/upload?name=file')
   expect(new Headers(init.headers).get('cookie')).toBe('dsh-desktop-session=owned')
-  for (const name of ['origin', 'host', 'sec-fetch-site']) expect(new Headers(init.headers).get(name)).toBeNull()
+  for (const name of ['origin', 'host']) expect(new Headers(init.headers).get(name)).toBeNull()
+  // 应用来源已校验，转发时补写 same-origin 供宿主写入同源校验使用。
+  expect(new Headers(init.headers).get('sec-fetch-site')).toBe('same-origin')
   expect(new Headers(init.headers).get('accept')).toBe('text/plain')
   expect(request.headers.get('cookie')).toBe('untrusted')
   expect(init.signal).toBe(request.signal)

@@ -1,5 +1,7 @@
 /** 展示物料筛选表单和列表，不直接请求后台。 */
-import { Button, IconEditOutlineRegular, IconTrashOutlineRegular, Input, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  Button, IconEditOutlineRegular, IconSearchOutlineRegular, IconTrashOutlineRegular, Input, Tooltip,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { ArchiveTable } from '../../shared/ArchiveTable.tsx'
 import { readFormText } from '../../shared/form-data.ts'
@@ -10,7 +12,22 @@ import businessCss from './business-modules.module.css'
 import css from './material-management.module.css'
 
 /** 渲染物料查询条件、当前页记录及分页。 */
-export function MaterialRecords({ result, loading, error, page, pageCount, sort, disabled, onSearch, onSort, onPage, onRetry, onEdit, onDelete, t }: {
+export function MaterialRecords({
+  result,
+  loading,
+  error,
+  page,
+  pageCount,
+  sort,
+  disabled,
+  onSearch,
+  onSort,
+  onPage,
+  onRetry,
+  onEdit,
+  onDelete,
+  t,
+}: {
   readonly result: MaterialPage | undefined
   readonly loading: boolean
   readonly error: 'login' | 'denied' | 'failure' | undefined
@@ -37,7 +54,7 @@ export function MaterialRecords({ result, loading, error, page, pageCount, sort,
     </div>}
     {result !== undefined && <div className={css.recordsTable} aria-busy={loading}>
       <ArchiveTable stickyHeader columns={columns} rows={result.items.map(item => ({ key: item.id, cells: materialCells(item) }))}
-        sort={sort} onSort={onSort} actionsLabel={t('material.actions')} renderActions={key => {
+        sort={sort} onSort={onSort} actionsLabel={t('material.actions')} renderActions={(key) => {
           const record = records.get(key)
           if (record === undefined) return null
           return <div className={businessCss.businessModuleActions}>
@@ -89,7 +106,7 @@ function MaterialSearchForm({ result, onSearch, t }: {
       </label>
     </div>
     <div className={css.filterActions}>
-      <Button type="submit" variant="primary">{t('material.search')}</Button>
+      <Button type="submit" variant="primary" aria-label={t('material.search')} icon={<IconSearchOutlineRegular />} />
     </div>
   </form>
 }

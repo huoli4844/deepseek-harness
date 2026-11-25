@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "lib/types",
-    "tsBuildInfoFile": "lib/host.tsbuildinfo"
+    "tsBuildInfoFile": "lib/host.tsbuildinfo",
+    "resolveJsonModule": true
   },
   "include": [
     "src/employee.ts",
@@ -11,10 +12,19 @@
     "src/identity-proxy.ts",
     "src/index.ts",
     "src/master-data-proxy.ts",
+    "src/organization-proxy.ts",
     "src/project-proxy.ts",
-    "src/platform-home.ts"
+    "src/platform-home.ts",
+    "src/daily-report-*.ts",
+    "src/business-forms/**/*.ts",
+    "src/business-forms/**/*.json",
+    "src/plugins/**/*.ts"
   ],
   "references": [
+    { "path": "../../core/session" },
+    { "path": "../../core/tools" },
+    { "path": "../../skill/skill" },
+    { "path": "../../session-query/session-query" },
     {
       "path": "../../../vendor/cordis"
     },

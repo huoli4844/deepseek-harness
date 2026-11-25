@@ -192,3 +192,11 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Vendoring policy
 
 `vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
+
+## 元枢员工工作台扩展开发入口
+
+| 开发内容 | 目录级规则 |
+|---|---|
+| 元枢业务插件，按插件分目录 | [插件开发规则](packages/experimental/AGENTS.md) |
+| 元枢员工技能，每个技能一个目录 | [技能包开发规则](packages/experimental/client-yuanshu-workbench/skills/AGENTS.md) |
+| A2UI 通用确认、内容编辑弹窗 | [固定模板与接入约定](packages/experimental/client-yuanshu-workbench/src/business-forms/templates/README.md) |

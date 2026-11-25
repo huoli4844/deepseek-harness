@@ -38,7 +38,8 @@
 .weeklyHeaderRight { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
 .weeklyMonth { display: grid; width: 150px; gap: 4px; color: var(--dsw-alias-label-secondary); font-size: 12px; }
 .weeklyWeekBar { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--work-line); border-radius: 999px; background: var(--dsw-alias-bg-layer-1); }
-.weeklyWeekSelect { min-width: 214px; max-width: 280px; border: 0; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
+/* 周次文案较长，去掉宽度上限并禁止换行，保证胶囊条内始终一行显示。 */
+.weeklyWeekSelect { flex: none; width: auto; min-width: 214px; max-width: none; border: 0; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
 .weeklyStatusTag { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--dsw-alias-state-warn-primary); background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); }
 .weeklyStatusTag[data-status='submitted'] { color: var(--dsw-alias-state-success-primary); background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 12%, transparent); }
 .weeklyLayout { display: grid; grid-template-columns: minmax(0, 1fr) 286px; grid-template-rows: minmax(0, 1fr); flex: 1 1 auto; align-items: stretch; gap: 14px; min-height: 0; }
@@ -62,7 +63,6 @@
 .weeklyItemDelete:disabled { opacity: .5; cursor: not-allowed; }
 .weeklyRepeatGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(110px, .6fr); gap: 10px; }
 .weeklyItemIndex { font-size: 12px; font-weight: 600; }
-.weeklyProjectBar { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 1px dashed var(--work-line); border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-module-platform); }
 .weeklyProjectScope { flex: 0 0 auto; color: var(--dsw-alias-label-secondary); font-size: 12px; }
 .weeklyEmptyHint { margin: 0; padding: 12px 0 4px; color: var(--dsw-alias-label-tertiary); font-size: 12px; }
 .weeklyRiskCard .weeklyRepeatRow { border-inline-start: 3px solid var(--dsw-alias-state-error-primary); }
@@ -355,7 +355,7 @@
 .weeklySubmitActions { display: flex; justify-content: flex-end; gap: 8px; padding-block-start: 4px; }
 .weeklySubmitHint { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 11px; line-height: 1.5; }
 @container (max-width: 680px) {
-  .weeklyTopbar, .weeklyCardHeader, .weeklyHeaderRight, .weeklyProjectBar, .weeklyHeaderLeft { align-items: stretch; flex-direction: column; }
+  .weeklyTopbar, .weeklyCardHeader, .weeklyHeaderRight, .weeklyHeaderLeft { align-items: stretch; flex-direction: column; }
   .weeklyHeaderRight { width: 100%; }
   .weeklyWeekBar { justify-content: space-between; }
   .weeklyWeekSelect { width: 100%; min-width: 0; }

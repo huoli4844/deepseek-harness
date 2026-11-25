@@ -2,13 +2,17 @@
   "extends": "../../../tsconfig.base.client.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib/types"
+    "outDir": "lib/types",
+    "resolveJsonModule": true
   },
   "include": [
     "src/client",
+    "src/business-forms/**/*.ts",
+    "src/business-forms/**/*.json",
     "src/css-modules.d.ts"
   ],
   "references": [
+    { "path": "../../util/crypto" },
     {
       "path": "../../../vendor/cordis"
     },

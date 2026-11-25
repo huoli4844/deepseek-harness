@@ -46,7 +46,8 @@ export type ViewId =
   'assistant' | 'dashboard' | 'project-operations' | 'position-operations' | 'priorities' | 'agent'
   | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'files' | 'methods' | 'work'
   | 'profile' | 'customer-resources' | 'material-management' | 'supplier-management' | 'equipment-ledger'
-  | 'contract-management' | 'budget-cost' | 'work-hours' | 'weekly-daily-reports' | 'organization'
+  | 'contract-management' | 'budget-cost' | 'work-hours' | 'weekly-daily-reports'
+  | 'meeting-rooms' | 'organization'
   | OperatorViewId
 
 /** 判断一个 ViewId 是否属于运营者视角五屏。 */

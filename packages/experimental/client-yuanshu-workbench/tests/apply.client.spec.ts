@@ -45,7 +45,10 @@ it('opens the registered workbench on load and removes only its entries on unloa
     },
     FixtureFrame,
   )
-  slots.register({ name: 'main', key: 'conversation' }, () => null)
+  slots.register({
+    name: 'main', key: 'conversation',
+    children: { 'conversation.input.overlay': { kind: 'list', scope: 'session' } },
+  } as never, (() => null) as never)
   const selectPanel = vi.fn((id: MainPanelId | null) => {
     if (id !== null) expect(slots.entries('main').some(entry => entry.options.key === id)).toBe(true)
   })
@@ -57,6 +60,7 @@ it('opens the registered workbench on load and removes only its entries on unloa
   expect(selectPanel).toHaveBeenCalledExactlyOnceWith('yuanshu-workbench')
   expect(slots.entries('main')).toHaveLength(2)
   expect(slots.entries('sidebar.panellist')).toHaveLength(1)
+  expect(slots.entries('conversation.input.overlay').map(entry => entry.options.id)).toContain('yuanshu-daily-report')
   const label = slots.entries('sidebar.panellist')[0]?.options.label
   locale.setLocale('zh')
   expect(resolveSlotLabel(label)).toBe('元枢工作台')
@@ -65,4 +69,5 @@ it('opens the registered workbench on load and removes only its entries on unloa
   await plugin.dispose()
   expect(slots.entries('main').map(entry => entry.options.key)).toEqual(['conversation'])
   expect(slots.entries('sidebar.panellist')).toHaveLength(0)
+  expect(slots.entries('conversation.input.overlay')).toHaveLength(0)
 })

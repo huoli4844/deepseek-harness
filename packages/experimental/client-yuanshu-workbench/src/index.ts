@@ -4,9 +4,12 @@ import type { McpAccountCopy } from '@deepseek-ai/dsh-mcp-account'
 import type {} from '@deepseek-ai/dsh-mcp-manager'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { fileURLToPath } from 'node:url'
+import { applyDailyReport } from './daily-report-runtime.ts'
 import { loadEmployee, YuanShuIdentityUnavailable, YuanShuSessionExpired } from './employee.ts'
 import { loadHolidayYear } from './holiday-calendar.ts'
 import { proxyIdentityRequest } from './identity-proxy.ts'
+import { organizationProxyRoute, ORGANIZATION_ROUTES as ORGANIZATION_PROXY_ROUTES } from './organization-proxy.ts'
 import { shaoshiMasterMethodAllowed } from './master-data-proxy.ts'
 import { projectProxyRoute } from './project-proxy.ts'
 import { PlatformHomeLoader, YuanShuGrantMismatch } from './platform-home.ts'
@@ -86,20 +89,23 @@ function field(value: unknown, key: string): unknown {
 
 const PERSONAL_ROUTE = /^\/yuanshu-workbench\/personal\/(calendars|calendar-events|tasks)(?:\/([1-9]\d*))?$/u
 /** 主数据代理放行的资源集合，设备台账、合同与少仕主数据共用同一路由。 */
-const MASTER_RESOURCES = 'customers|suppliers|supplier-categories|materials|material-categories|equipments|contracts'
-const SHAOSHI_MASTER_ROUTE = new RegExp(`^/yuanshu-workbench/(${MASTER_RESOURCES})(?:/([1-9]\\d*))?$`, 'u')
+const MASTER_RESOURCES =
+  'customers|suppliers|supplier-categories|materials|material-categories|equipments|contracts|meeting-rooms|meeting-room-bookings|user-positions'
+const SHAOSHI_MASTER_ROUTE = new RegExp(`^/yuanshu-workbench/(${MASTER_RESOURCES})(?:/([1-9]\\d*))?(?:/(cancel))?$`, 'u')
 
-/** 设备台账与合同注册在独立应用命名空间下，其余主数据沿用少仕应用。 */
-function masterUpstreamPath(resource: string, id: string | undefined): string {
-  const app = resource === 'equipments' || resource === 'contracts' ? 'deepseek-harness' : 'shaoshi'
-  return `/api/v1/apps/${app}/${resource}${id === undefined ? '' : `/${id}`}`
+/** 设备台账、合同与会议域注册在独立应用命名空间下，用户任职沿用线上顶层路径，其余主数据沿用少仕应用。 */
+function masterUpstreamPath(resource: string, id: string | undefined, cancel: boolean): string {
+  if (resource === 'user-positions') return `/api/v1/user-positions${id === undefined ? '' : `/${id}`}`
+  const app = resource === 'equipments' || resource === 'contracts' || resource.startsWith('meeting-')
+    ? 'deepseek-harness' : 'shaoshi'
+  return `/api/v1/apps/${app}/${resource}${id === undefined ? '' : `/${id}`}${cancel ? '/cancel' : ''}`
 }
 
 async function requestBody(req: IncomingMessage): Promise<Buffer<ArrayBuffer> | undefined> {
   const chunks: Buffer[] = []
   let size = 0
-  for await (const chunk of req.iterator({ destroyOnReturn: false })) {
-    const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+  for await (const chunk of req.iterator({ destroyOnReturn: false }) as AsyncIterableIterator<string | Uint8Array>) {
+    const bytes = Buffer.from(chunk)
     size += bytes.byteLength
     if (size > 1_048_576) return undefined
     chunks.push(bytes)
@@ -170,9 +176,12 @@ async function proxyShaoshiMasterRequest(
   const route = SHAOSHI_MASTER_ROUTE.exec(incoming.pathname)
   const method = req.method ?? ''
   const project = projectProxyRoute(incoming.pathname)
-  const upstreamPath = project?.path ?? (route === null ? undefined : masterUpstreamPath(route[1] ?? '', route[2]))
+  const cancel = route?.[3] === 'cancel'
+  const cancelAllowed = !cancel || (route[1] === 'meeting-room-bookings' && route[2] !== undefined)
+  const upstreamPath = project?.path ?? (route === null ? undefined : masterUpstreamPath(route[1] ?? '', route[2], cancel))
   const allowed = project?.methods.includes(method)
-    ?? (route !== null && shaoshiMasterMethodAllowed(route[1] ?? '', method, route[2] !== undefined))
+    ?? (route !== null && cancelAllowed
+      && shaoshiMasterMethodAllowed(route[1] ?? '', method, route[2] !== undefined))
   if (upstreamPath === undefined || !allowed) {
     res.writeHead(upstreamPath === undefined ? 404 : 405, { 'cache-control': 'no-store' })
     res.end()
@@ -203,12 +212,13 @@ async function proxyShaoshiMasterRequest(
   res.end(result)
 }
 
-/** 组织架构接口只读，转发到本地后台后由后台携带同一凭证访问元枢。 */
-const ORGANIZATION_ROUTES: Readonly<Record<string, string>> = {
-  '/yuanshu-workbench/organization/departments/tree': '/api/v1/departments/tree',
-  '/yuanshu-workbench/organization/users': '/api/v1/users',
-}
+/** 成员写请求体上限，与后台一致：防止异常超大负载。 */
+const ORGANIZATION_WRITE_BODY_LIMIT = 64 * 1024
 
+/**
+ * 转发组织架构树、成员列表查询与成员编辑、删除请求到本地后台。
+ * 路由决策由 organizationProxyRoute 给出；写请求要求同源 sec-fetch-site。
+ */
 async function proxyOrganizationRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -218,29 +228,52 @@ async function proxyOrganizationRequest(
   signal: AbortSignal,
 ): Promise<void> {
   const incoming = new URL(req.url ?? '/', 'http://localhost')
-  const target = ORGANIZATION_ROUTES[incoming.pathname]
-  if (target === undefined) {
+  const forwardHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { authorization, accept: 'application/json' }
+    if (activeTenant !== undefined && activeTenant !== '') headers['X-Active-Tenant'] = activeTenant
+    return headers
+  }
+  const respond = async (response: Response): Promise<void> => {
+    const result = new Uint8Array(await response.arrayBuffer())
+    res.writeHead(response.status, {
+      'cache-control': 'no-store',
+      'content-type': 'application/json; charset=utf-8',
+      'x-content-type-options': 'nosniff',
+    })
+    res.end(result)
+  }
+  const decision = organizationProxyRoute(incoming.pathname, req.method ?? 'GET')
+  if (decision === undefined) {
     res.writeHead(404, { 'cache-control': 'no-store' })
     res.end()
     return
   }
-  if (req.method !== 'GET') {
-    res.writeHead(405, { 'cache-control': 'no-store' })
+  if (decision.type === 'method') {
+    res.writeHead(405, { allow: decision.allow, 'cache-control': 'no-store' })
     res.end()
     return
   }
-  const remote = new URL(`${api}${target}`)
+  if (decision.type === 'write' && req.headers['sec-fetch-site'] !== 'same-origin') {
+    res.writeHead(403, { 'cache-control': 'no-store' })
+    res.end()
+    return
+  }
+  const remote = new URL(`${api}${decision.remote}`)
   remote.search = incoming.search
-  const headers: Record<string, string> = { authorization, accept: 'application/json' }
-  if (activeTenant !== undefined && activeTenant !== '') headers['X-Active-Tenant'] = activeTenant
-  const response = await fetch(remote, { method: 'GET', headers, signal, redirect: 'error' })
-  const result = new Uint8Array(await response.arrayBuffer())
-  res.writeHead(response.status, {
-    'cache-control': 'no-store',
-    'content-type': 'application/json; charset=utf-8',
-    'x-content-type-options': 'nosniff',
-  })
-  res.end(result)
+  const headers = forwardHeaders()
+  const method = req.method ?? 'GET'
+  if (method === 'PUT' || method === 'POST') {
+    const body = await requestBody(req)
+    if (body === undefined || body.byteLength > ORGANIZATION_WRITE_BODY_LIMIT) {
+      res.writeHead(400, { 'cache-control': 'no-store' })
+      res.end()
+      return
+    }
+    headers['content-type'] = 'application/json'
+    await respond(await fetch(remote, { method, headers, body, signal, redirect: 'error' }))
+    return
+  }
+  await respond(await fetch(remote, { method, headers, signal, redirect: 'error' }))
 }
 
 /**
@@ -249,6 +282,7 @@ async function proxyOrganizationRequest(
  * @param config - Employee MCP endpoint and registered OAuth client ID.
  */
 export function apply(ctx: Context, config: Config): void {
+  if (config.mcp !== false) applyDailyReport(ctx, config.data.apiUrl, fileURLToPath(new URL('../skills/daily-report/SKILL.md', import.meta.url)))
   const mcp = config.mcp
   if (mcp === false) return
   const dataApi = config.data.apiUrl.replace(/\/+$/u, '')
@@ -440,7 +474,7 @@ export function apply(ctx: Context, config: Config): void {
               // can show something more actionable than a bare 503.
               const detail = status === undefined
                 ? 'server not registered'
-                : `${status.state}${'reason' in status && status.reason !== undefined ? ` (${status.reason})` : ''}${'lastError' in status && status.lastError !== undefined && status.lastError !== '' ? `: ${status.lastError}` : ''}`
+                : `${status.state}${'reason' in status ? ` (${status.reason})` : ''}${'lastError' in status && status.lastError !== '' ? `: ${status.lastError}` : ''}`
               send(503, { detail })
               return
             }
@@ -648,6 +682,9 @@ export function apply(ctx: Context, config: Config): void {
       ['material-categories', 'YuanShu material categories API unavailable'],
       ['equipments', 'YuanShu equipment API unavailable'],
       ['contracts', 'YuanShu contract API unavailable'],
+      ['meeting-rooms', 'YuanShu meeting room API unavailable'],
+      ['meeting-room-bookings', 'YuanShu meeting room booking API unavailable'],
+      ['user-positions', 'YuanShu user position API unavailable'],
       ['projects', 'YuanShu project API unavailable'],
       ['weekly-reports', 'YuanShu weekly report API unavailable'],
     ] as const) {
@@ -699,7 +736,7 @@ export function apply(ctx: Context, config: Config): void {
         },
       }), `yuanshu: ${resource} API`)
     }
-    for (const path of Object.keys(ORGANIZATION_ROUTES)) {
+    for (const path of Object.keys(ORGANIZATION_PROXY_ROUTES)) {
       const unavailable = 'YuanShu organization API unavailable'
       scope.effect(() => scope.webServer.register({
         kind: 'exact',
@@ -736,6 +773,42 @@ export function apply(ctx: Context, config: Config): void {
         },
       }), `yuanshu: organization ${path}`)
     }
+    // 成员编辑与删除：按 ID 前缀注册，PUT/DELETE 转发到本地后台 /api/v1/users/{id}。
+    // 注意路由表匹配规则是 startsWith(`${prefix}/`)，前缀不能带尾部斜杠。
+    scope.effect(() => scope.webServer.register({
+      kind: 'prefix',
+      path: '/yuanshu-workbench/organization/users',
+      auth: 'required',
+      async handler(req, res) {
+        const authorization = req.headers.authorization
+        if (authorization === undefined || !/^Bearer [^\s]+$/u.test(authorization)) {
+          res.writeHead(401, { 'cache-control': 'no-store' })
+          res.end()
+          return
+        }
+        const lifetime = new AbortController()
+        const close = () => { lifetime.abort() }
+        res.once('close', close)
+        try {
+          await proxyOrganizationRequest(
+            req,
+            res,
+            dataApi,
+            authorization,
+            typeof req.headers['x-active-tenant'] === 'string' ? req.headers['x-active-tenant'] : undefined,
+            AbortSignal.any([lifetime.signal, AbortSignal.timeout(mcp.requestTimeoutMs)]),
+          )
+        } catch (error) {
+          if (!lifetime.signal.aborted && !res.headersSent) {
+            scope.logger.warn('YuanShu organization write API unavailable', error instanceof Error ? error.name : 'unknown error')
+            res.writeHead(502, { 'cache-control': 'no-store', 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: 'YuanShu organization write API unavailable' }))
+          }
+        } finally {
+          res.off('close', close)
+        }
+      },
+    }), 'yuanshu: organization user writes')
   })
   ctx.inject(['mcpManager', 'mcpAccounts'], (scope) => {
     scope.mcpManager.register(name, {

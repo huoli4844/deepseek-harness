@@ -6,6 +6,7 @@
  * experimental name only through this map.
  */
 export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, string>> = {
+  'packages/experimental/client-yuanshu-doclib': '@deepseek-ai/dsh-client-yuanshu-doclib',
   'packages/experimental/client-yuanshu-workbench': '@deepseek-ai/dsh-client-yuanshu-workbench',
   'packages/experimental/cua': '@deepseek-ai/dsh-cua',
   'packages/experimental/cua-bundle': '@deepseek-ai/dsh-cua-bundle',
