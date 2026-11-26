@@ -26,3 +26,10 @@
   font-size: 12px;
 }
 .actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--dsw-business-form-space-2); flex: none; }
+.weeklyItemsHeader, .weeklyItemHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.weeklyItem { display: grid; gap: 8px; padding: 8px; border: 1px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-md); }
+.weeklyItemTab { flex: 1; overflow: hidden; border: 0; background: transparent; color: var(--dsw-alias-label-primary); text-align: left; text-overflow: ellipsis; white-space: nowrap; font: inherit; cursor: pointer; }
+.weeklyItemGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.weeklyItemGrid .field:last-child, .weeklyItemGrid .field:nth-last-child(2) { grid-column: span 2; }
+.weeklyItemGrid select { min-height: 30px; padding: 4px 8px; border: 1px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; }
+@media (max-width: 640px) { .weeklyItemGrid { grid-template-columns: 1fr; } .weeklyItemGrid .field:last-child, .weeklyItemGrid .field:nth-last-child(2) { grid-column: auto; } }

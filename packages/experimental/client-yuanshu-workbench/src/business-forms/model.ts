@@ -52,6 +52,76 @@ export interface DailyDecision {
   readonly action: 'save' | 'submit' | 'cancel'
   readonly content: DailyContent
 }
+
+/** 周报中可人工增删改的工作事项；项目编码为空表示需要用户补选。 */
+export interface WeeklyItem {
+  readonly id: string
+  readonly project_code: string
+  readonly project_name: string
+  readonly work_type: string
+  readonly work_item: string
+  readonly completion_status: string
+  readonly has_risk: boolean
+  readonly risk_details: string
+}
+export interface WeeklyProject { readonly id: number; readonly code: string; readonly name: string }
+/** 周报 A2UI 编辑内容；正文与事项均受本地白名单校验。 */
+export interface WeeklyContent {
+  readonly period_start: string
+  readonly progress_summary: string
+  readonly completed_work: string
+  readonly planned_work: string
+  readonly issues_and_risks: string
+  readonly need_support: string
+  readonly items: readonly WeeklyItem[]
+}
+export interface WeeklyForm {
+  readonly template_id: 'weekly-edit'
+  readonly template_version: 1
+  readonly id: string
+  readonly schema_id: 'weekly-report.v1'
+  readonly period_start: string
+  readonly period_end: string
+  readonly expected_version: number
+  readonly content: WeeklyContent
+  readonly projects: readonly WeeklyProject[]
+  readonly evidence_refs: readonly EvidenceRef[]
+  readonly coverage: string
+  readonly expires_at: number
+}
+export interface WeeklyDecision {
+  readonly form_id: string
+  readonly request_id: string
+  readonly action: 'save' | 'submit' | 'cancel'
+  readonly content: WeeklyContent
+}
+
+/** 校验周报事项和正文，拒绝模型注入未知字段、脚本或超长内容。 */
+export function parseWeeklyContent(value: unknown): WeeklyContent {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('Invalid weekly report content')
+  const text = (key: keyof Omit<WeeklyContent, 'period_start' | 'items'>): string => {
+    const result = field(value, key)
+    if (typeof result !== 'string' || Array.from(result).length > 10_000 || result.includes('\0')) throw new Error('Invalid weekly report field')
+    return result
+  }
+  const period = field(value, 'period_start')
+  const rawItems = field(value, 'items')
+  if (typeof period !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(period) || !Array.isArray(rawItems) || rawItems.length > 200) throw new Error('Invalid weekly report period or items')
+  const items = rawItems.map((item, index): WeeklyItem => {
+    const read = (key: keyof WeeklyItem): string => {
+      const result = field(item, key)
+      if (typeof result !== 'string' || Array.from(result).length > 2_000 || result.includes('\0')) throw new Error('Invalid weekly report item')
+      return result
+    }
+    const risk = field(item, 'has_risk')
+    if (typeof risk !== 'boolean') throw new Error('Invalid weekly report risk')
+    return { id: read('id') || `item-${index + 1}`, project_code: read('project_code'), project_name: read('project_name'),
+      work_type: read('work_type'), work_item: read('work_item'), completion_status: read('completion_status'),
+      has_risk: risk, risk_details: read('risk_details') }
+  })
+  return { period_start: period, progress_summary: text('progress_summary'), completed_work: text('completed_work'),
+    planned_work: text('planned_work'), issues_and_risks: text('issues_and_risks'), need_support: text('need_support'), items }
+}
 /** 只取自有字段，拒绝原型链成员。 */
 export function field(value: unknown, key: string): unknown {
   return typeof value === 'object' && value !== null && Object.hasOwn(value, key) ? Reflect.get(value, key) : undefined

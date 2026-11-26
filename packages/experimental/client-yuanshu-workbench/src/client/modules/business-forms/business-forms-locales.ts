@@ -21,6 +21,9 @@ export const businessFormsEn = {
   'daily.uncertain': 'The save result is unknown. Retry the same request to confirm the result before editing.',
   'daily.saved': 'Daily report draft saved', 'daily.submitted': 'Daily report submitted',
   'daily.dismiss': 'Dismiss notice', 'daily.required': 'Enter completed work or work in progress before submitting',
+  'weekly.form.title': 'Review weekly project report', 'weekly.form.period': 'Report week', 'weekly.form.coverage': 'Based on submitted daily reports, local workbench records and project master data. Review every item before confirming.',
+  'weekly.form.progress_summary': 'Progress summary', 'weekly.form.planned_work': 'Next week plan', 'weekly.form.issues_and_risks': 'Issues and risks', 'weekly.form.need_support': 'Support needed',
+  'weekly.form.items': 'Work items', 'weekly.form.add': 'Add item', 'weekly.form.delete': 'Delete', 'weekly.form.unassigned': 'Unassigned project', 'weekly.form.project': 'Project', 'weekly.form.projectName': 'Project name', 'weekly.form.projectPlaceholder': 'Select a project', 'weekly.form.workType': 'Work type', 'weekly.form.status': 'Completion status', 'weekly.form.workItem': 'Work item', 'weekly.form.risk': 'Risk details', 'weekly.form.required': 'Select a project and enter each work item before submitting', 'weekly.form.cancel': 'Cancel', 'weekly.form.save': 'Save draft', 'weekly.form.submit': 'Confirm submission', 'weekly.form.retry': 'Retry', 'weekly.form.uncertain': 'The weekly report result is unknown. Retry the same request.',
 } as const
 /** 中文文案与英文严格同键。 */
 export const businessFormsZh: Record<keyof typeof businessFormsEn, string> = {
@@ -45,4 +48,7 @@ export const businessFormsZh: Record<keyof typeof businessFormsEn, string> = {
   'daily.uncertain': '保存结果尚未确认，请先重试原请求，确认结果后再编辑',
   'daily.saved': '日报草稿已保存', 'daily.submitted': '日报已提交',
   'daily.dismiss': '关闭提示', 'daily.required': '提交前请填写今日已完成或进行中的工作',
+  'weekly.form.title': '核对项目周报', 'weekly.form.period': '报告周期', 'weekly.form.coverage': '依据本周已提交日报、本地工作台记录和项目主数据整理，请逐项核对后确认。',
+  'weekly.form.progress_summary': '本周项目进展摘要', 'weekly.form.planned_work': '下周工作计划', 'weekly.form.issues_and_risks': '本周问题与风险', 'weekly.form.need_support': '需要协调与支持',
+  'weekly.form.items': '工作事项', 'weekly.form.add': '新增事项', 'weekly.form.delete': '删除', 'weekly.form.unassigned': '未分配项目', 'weekly.form.project': '项目', 'weekly.form.projectName': '项目名称', 'weekly.form.projectPlaceholder': '请选择项目', 'weekly.form.workType': '工作类型', 'weekly.form.status': '完成状态', 'weekly.form.workItem': '工作事项', 'weekly.form.risk': '风险说明', 'weekly.form.required': '提交前请为每条事项选择项目并填写工作事项', 'weekly.form.cancel': '取消', 'weekly.form.save': '保存草稿', 'weekly.form.submit': '确认提交', 'weekly.form.retry': '重试', 'weekly.form.uncertain': '周报保存结果尚未确认，请重试相同请求。',
 }

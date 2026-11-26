@@ -1,8 +1,8 @@
 /** 日报同源人工通道；严格限定动作、来源、请求体和会话账号，不注册成模型工具。 */
 import type { Context } from '@deepseek-ai/cordis'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { dailySurface } from './business-forms/a2ui.ts'
-import { field, parseContent, type DailyDecision } from './business-forms/model.ts'
+import { dailySurface, weeklySurface } from './business-forms/a2ui.ts'
+import { field, parseContent, parseWeeklyContent, type DailyDecision, type WeeklyDecision } from './business-forms/model.ts'
 import { bindOwner, SessionOwnershipError } from './plugins/work-evidence/index.ts'
 import { ReportRequestError, type Credential, type WorkRecords } from './plugins/work-records/index.ts'
 import type { BusinessForms } from './plugins/business-forms/index.ts'
@@ -36,6 +36,12 @@ function decision(value: unknown): DailyDecision {
   if (action !== 'save' && action !== 'submit' && action !== 'cancel') throw new ReportRequestError(400)
   return { action, form_id: form, request_id: request, content: parseContent(field(value, 'content')) }
 }
+function weeklyDecision(value: unknown): WeeklyDecision {
+  const action = field(value, 'action'), form = field(value, 'form_id'), request = field(value, 'request_id')
+  if (!['save', 'submit', 'cancel'].includes(String(action)) || typeof form !== 'string' || typeof request !== 'string'
+    || !/^[0-9a-f-]{36}$/u.test(form) || !/^[0-9a-f-]{36}$/u.test(request)) throw new ReportRequestError(400)
+  return { action: action as WeeklyDecision['action'], form_id: form, request_id: request, content: parseWeeklyContent(field(value, 'content')) }
+}
 
 /** 注册原生宿主鉴权的同源路由，写请求额外校验 Origin 与浏览器 Fetch Metadata。 */
 export function registerDailyRoutes(ctx: Context, records: WorkRecords, forms: BusinessForms, journal: WorkJournal): void {
@@ -57,8 +63,8 @@ async function route(ctx: Context, records: WorkRecords, forms: BusinessForms, j
   req: IncomingMessage, res: ServerResponse, signal: AbortSignal): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const action = url.pathname.slice(base.length)
-  if (!['/context', '/bind', '/form', '/decision'].includes(action)) { send(res, 404); return }
-  const method = action === '/bind' || action === '/decision' ? 'POST' : 'GET'
+  if (!['/context', '/bind', '/form', '/decision', '/weekly-form', '/weekly-decision'].includes(action)) { send(res, 404); return }
+  const method = action === '/bind' || action === '/decision' || action === '/weekly-decision' ? 'POST' : 'GET'
   if (req.method !== method) { send(res, 405); return }
   if (method === 'POST' && (req.headers['sec-fetch-site'] !== 'same-origin'
     || (req.headers.origin !== undefined && new URL(req.headers.origin).host !== req.headers.host))) { send(res, 403); return }
@@ -84,9 +90,17 @@ async function route(ctx: Context, records: WorkRecords, forms: BusinessForms, j
     send(res, 200, { bound: true }); return
   }
   forms.browser(id, credential)
+  if (action === '/weekly-form') {
+    const form = forms.pendingWeekly(id)
+    send(res, 200, { form, surface: form === null ? null : weeklySurface(form.id, form.content) }); return
+  }
   if (action === '/form') {
     const form = forms.pending(id)
     send(res, 200, { form, surface: form === null ? null : dailySurface(form.id, form.content) }); return
+  }
+  if (action === '/weekly-decision') {
+    const report = await forms.decideWeekly(id, weeklyDecision(await body(req)), signal)
+    send(res, 200, { report }); return
   }
   const report = await forms.decide(id, decision(await body(req)), signal)
   send(res, 200, { report })

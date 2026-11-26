@@ -1,5 +1,5 @@
 /** 业务表单的 A2UI v0.8 消息子集：仅本地 Column、TextField、Button；不支持脚本、任意 URL 或远程组件。 */
-import { DAILY_FIELDS, type DailyContent, type DailyField } from './model.ts'
+import { DAILY_FIELDS, type DailyContent, type DailyField, type WeeklyContent } from './model.ts'
 import { EDIT_TEMPLATE } from './templates/index.ts'
 
 /** 白名单文本绑定。 */
@@ -36,6 +36,21 @@ export function dailySurface(id: string, content: DailyContent): BusinessSurface
         component: { Button: { child: `${action}-label`, action: { name: `daily-report.${action}` } } } })),
     ] },
     dataModelUpdate: { surfaceId: id, path: '/', contents: DAILY_FIELDS.map(key => ({ key, valueString: content[key] })) },
+    beginRendering: { surfaceId: id, root: 'root' },
+  }
+}
+
+/** 周报表面使用受控文本组件和事项 JSON 文本区；事项编辑器由本地渲染器负责增删改。 */
+export function weeklySurface(id: string, content: WeeklyContent): BusinessSurface {
+  const fields = ['progress_summary', 'completed_work', 'planned_work', 'issues_and_risks', 'need_support'] as const
+  return {
+    surfaceUpdate: { surfaceId: id, components: [
+      { id: 'root', component: { Column: { children: { explicitList: [...fields, 'items', 'save', 'submit', 'cancel'] } } } },
+      ...fields.map(key => ({ id: key, component: { TextField: { label: { literalString: `weekly.${key}` }, text: { path: `/${key}` }, textFieldType: 'longText' } } })),
+      { id: 'items', component: { Text: { text: { literalString: 'weekly.items' } } } },
+      ...(['save', 'submit', 'cancel'] as const).map(action => ({ id: action, component: { Button: { child: action, action: { name: `weekly-report.${action}` } } } })),
+    ] as unknown as BusinessComponent[] },
+    dataModelUpdate: { surfaceId: id, path: '/', contents: (['completed_work', 'planned_work', 'issues_and_risks', 'need_support'] as const).map(key => ({ key, valueString: content[key] })) },
     beginRendering: { surfaceId: id, root: 'root' },
   }
 }

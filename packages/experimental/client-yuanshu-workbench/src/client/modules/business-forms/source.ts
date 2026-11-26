@@ -1,6 +1,7 @@
 /** 表单数据层：同源请求、响应验证和账号隔离；不依赖 React 或展示文案。 */
-import { field, parseContent, type DailyDecision, type DailyForm, type EvidenceRef } from '../../../business-forms/model.ts'
-import { dailySurface, type BusinessSurface } from '../../../business-forms/a2ui.ts'
+/* oxlint-disable @stylistic/max-len, @stylistic/arrow-parens, typescript/no-base-to-string */
+import { field, parseContent, parseWeeklyContent, type DailyDecision, type DailyForm, type EvidenceRef, type WeeklyDecision, type WeeklyForm } from '../../../business-forms/model.ts'
+import { dailySurface, weeklySurface, type BusinessSurface } from '../../../business-forms/a2ui.ts'
 
 /** 保留 HTTP 业务码供容器决定重试和反馈，不显示原始响应。 */
 export class BusinessFormError extends Error {
@@ -83,4 +84,34 @@ export async function decideForm(session: string, decision: DailyDecision, signa
   const report = field(data, 'report'), status = field(report, 'status')
   if ((decision.action === 'submit' ? status !== 'submitted' : status !== 'draft')
     || typeof field(report, 'id') !== 'number' || typeof field(report, 'version') !== 'number') throw new BusinessFormError(502)
+}
+
+/** 查询当前会话待确认周报表单。 */
+export async function pendingWeeklyForm(session: string, signal: AbortSignal): Promise<{ readonly form: WeeklyForm; readonly surface: BusinessSurface } | null> {
+  const data = await request(`/weekly-form?session_id=${encodeURIComponent(session)}`, signal)
+  const value = field(data, 'form')
+  if (value === null) return null
+  const id = field(value, 'id'), start = field(value, 'period_start'), end = field(value, 'period_end'), expiry = field(value, 'expires_at')
+  if (field(value, 'schema_id') !== 'weekly-report.v1' || field(value, 'template_id') !== 'weekly-edit'
+    || typeof id !== 'string' || !/^[0-9a-f-]{36}$/u.test(id) || typeof start !== 'string' || typeof end !== 'string'
+    || typeof expiry !== 'number') throw new BusinessFormError(502)
+  const projects = field(value, 'projects')
+  if (!Array.isArray(projects)) throw new BusinessFormError(502)
+  const projectOptions = projects.flatMap(item => {
+    const projectId = field(item, 'id'), code = field(item, 'code'), name = field(item, 'name')
+    return typeof projectId === 'number' && typeof code === 'string' && typeof name === 'string' ? [{ id: projectId, code, name }] : []
+  })
+  const form: WeeklyForm = { id, schema_id: 'weekly-report.v1', template_id: 'weekly-edit', template_version: 1,
+    period_start: start, period_end: end, expected_version: typeof field(value, 'expected_version') === 'number' ? field(value, 'expected_version') as number : 0,
+    content: parseWeeklyContent(field(value, 'content')), projects: projectOptions, evidence_refs: [], coverage: String(field(value, 'coverage') ?? ''), expires_at: expiry }
+  const surface = weeklySurface(form.id, form.content)
+  if (JSON.stringify(field(data, 'surface')) !== JSON.stringify(surface)) throw new BusinessFormError(502)
+  return { form, surface }
+}
+/** 提交人工确认后的周报内容；保存结果仍由后台回执决定。 */
+export async function decideWeeklyForm(session: string, decision: WeeklyDecision, signal: AbortSignal): Promise<void> {
+  const data = await request(`/weekly-decision?session_id=${encodeURIComponent(session)}`, signal, 'POST', decision)
+  if (decision.action === 'cancel') return
+  const report = field(data, 'report')
+  if (report === null || report === undefined) throw new BusinessFormError(502)
 }

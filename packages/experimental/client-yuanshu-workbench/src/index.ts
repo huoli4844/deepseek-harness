@@ -282,7 +282,9 @@ async function proxyOrganizationRequest(
  * @param config - Employee MCP endpoint and registered OAuth client ID.
  */
 export function apply(ctx: Context, config: Config): void {
-  if (config.mcp !== false) applyDailyReport(ctx, config.data.apiUrl, fileURLToPath(new URL('../skills/daily-report/SKILL.md', import.meta.url)))
+  if (config.mcp !== false) applyDailyReport(ctx, config.data.apiUrl,
+    fileURLToPath(new URL('../skills/daily-report/SKILL.md', import.meta.url)),
+    fileURLToPath(new URL('../skills/weekly-report/SKILL.md', import.meta.url)))
   const mcp = config.mcp
   if (mcp === false) return
   const dataApi = config.data.apiUrl.replace(/\/+$/u, '')

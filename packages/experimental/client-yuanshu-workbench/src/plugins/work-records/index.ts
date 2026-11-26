@@ -1,5 +1,6 @@
 /** 日报业务插件的数据适配；只访问配置的后台白名单路径，不依赖 UI、模型或数据库。 */
-import { DAILY_FIELDS, field, parseContent, type DailyContent, type DailyIdentity, type DailyReport, type EvidenceRef } from '../../business-forms/model.ts'
+/* oxlint-disable @stylistic/max-len, @stylistic/arrow-parens */
+import { DAILY_FIELDS, field, parseContent, parseWeeklyContent, type DailyContent, type DailyIdentity, type DailyReport, type EvidenceRef, type WeeklyContent, type WeeklyProject } from '../../business-forms/model.ts'
 
 /** 经浏览器绑定的凭证；仅保存在宿主内存，不返回模型或写入会话。 */
 export interface Credential { readonly authorization: string; readonly tenant: string }
@@ -48,6 +49,69 @@ export class WorkRecords {
     const report = parseReport(field(data, 'report'))
     if (report === null) throw new ReportRequestError(502)
     return report
+  }
+
+  /** 读取本人周报草稿及审计字段；周报事项由工作台正文白名单承载。 */
+  async weekly(start: string, credential: Credential, signal: AbortSignal): Promise<{ readonly report?: WeeklyContent; readonly status?: string; readonly version: number }> {
+    const response = await this.request(`${this.api.replace(/\/$/u, '')}/api/v1/apps/deepseek-harness/weekly-reports?period_start=${encodeURIComponent(start)}`, {
+      method: 'GET', redirect: 'error', signal,
+      headers: { authorization: credential.authorization, 'X-Active-Tenant': credential.tenant, 'content-type': 'application/json' },
+    })
+    if (!response.ok) throw new ReportRequestError(response.status)
+    const data = field(await response.json(), 'data'), raw = field(data, 'report')
+    if (raw === null || raw === undefined) return { version: 0 }
+    const content = parseWeeklyContent({ period_start: field(raw, 'period_start'), progress_summary: field(raw, 'progress_summary'),
+      completed_work: field(raw, 'completed_work'), planned_work: field(raw, 'planned_work'), issues_and_risks: field(raw, 'issues_and_risks') ?? '',
+      need_support: field(raw, 'need_support') ?? '', items: [] })
+    const version = field(raw, 'version')
+    const status = field(raw, 'status')
+    return { report: content, ...(typeof status === 'string' ? { status } : {}),
+      version: typeof version === 'number' && Number.isSafeInteger(version) ? version : 0 }
+  }
+
+  /** 保存或提交周报；事项被转换为后台约定的正文 JSON 行。 */
+  async saveWeekly(start: string, credential: Credential, input: { readonly content: WeeklyContent; readonly version: number; readonly request: string; readonly status: 'draft' | 'submitted' }, signal: AbortSignal): Promise<unknown> {
+    const rows = input.content.items.map(item => ({ project_code: item.project_code, project_name: item.project_name,
+      work_type: item.work_type, work_item: item.work_item, completion_status: item.completion_status,
+      has_risk: item.has_risk, risk_details: item.risk_details }))
+    const response = await this.request(`${this.api.replace(/\/$/u, '')}/api/v1/apps/deepseek-harness/weekly-reports`, {
+      method: 'PUT', redirect: 'error', signal,
+      headers: { authorization: credential.authorization, 'X-Active-Tenant': credential.tenant, 'content-type': 'application/json' },
+      body: JSON.stringify({ period_start: start, progress_summary: input.content.progress_summary,
+        completed_work: JSON.stringify(rows), planned_work: input.content.planned_work,
+        issues_and_risks: input.content.issues_and_risks || null, need_support: input.content.need_support || null,
+        expected_version: input.version, request_id: input.request, status: input.status }),
+    })
+    if (!response.ok) throw new ReportRequestError(response.status)
+    return field(await response.json(), 'data')
+  }
+
+  /** 读取本周已提交日报，供周报自动归纳使用。 */
+  async weekDailyReports(start: string, credential: Credential, signal: AbortSignal): Promise<readonly DailyReport[]> {
+    const result: DailyReport[] = []
+    const day = new Date(`${start}T00:00:00Z`)
+    for (let index = 0; index < 7; index++) {
+      const date = new Date(day)
+      date.setUTCDate(day.getUTCDate() + index)
+      const report = await this.get(date.toISOString().slice(0, 10), credential, signal)
+      if (report?.status === 'submitted') result.push(report)
+    }
+    return result
+  }
+
+  /** 读取当前租户项目主数据，供周报匹配和表单下拉框使用。 */
+  async projects(credential: Credential, signal: AbortSignal): Promise<readonly WeeklyProject[]> {
+    const response = await this.request(`${this.api.replace(/\/$/u, '')}/api/v1/apps/shaoshi/projects?page=1&page_size=200`, {
+      method: 'GET', redirect: 'error', signal,
+      headers: { authorization: credential.authorization, 'X-Active-Tenant': credential.tenant, accept: 'application/json' },
+    })
+    if (!response.ok) throw new ReportRequestError(response.status)
+    const data = field(await response.json(), 'data'), rows = field(data, 'items')
+    if (!Array.isArray(rows)) throw new ReportRequestError(502)
+    return rows.flatMap(item => {
+      const id = field(item, 'id'), code = field(item, 'code'), name = field(item, 'name')
+      return typeof id === 'number' && Number.isSafeInteger(id) && typeof code === 'string' && typeof name === 'string' ? [{ id, code, name }] : []
+    })
   }
 }
 

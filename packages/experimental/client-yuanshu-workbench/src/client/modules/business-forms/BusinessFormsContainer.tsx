@@ -1,14 +1,16 @@
 /** 表单容器管理轮询、草稿与人工确认；业务校验下沉视图模型，I/O 全部交给数据层。 */
+/* oxlint-disable @stylistic/max-len */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ComposerBlocks } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { Button, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import type { WorkbenchT } from '../../app/page-api.ts'
-import type { DailyContent, DailyDecision, DailyField } from '../../../business-forms/model.ts'
-import { bindAssistantSession, BusinessFormError, createCredentialGuard, decideForm, pendingForm } from './source.ts'
+import type { DailyContent, DailyDecision, DailyField, WeeklyContent, WeeklyDecision } from '../../../business-forms/model.ts'
+import { bindAssistantSession, BusinessFormError, createCredentialGuard, decideForm, decideWeeklyForm, pendingForm, pendingWeeklyForm } from './source.ts'
 import { canSubmit, formView } from './viewmodel.ts'
 import type { DailyFormView } from './model.ts'
 import { BusinessForm } from './BusinessForm.tsx'
+import { WeeklyBusinessForm } from './WeeklyBusinessForm.tsx'
 import { clearPending, pendingAccountKey, readPending, savePending, type PendingRecord } from './pending.ts'
 import css from './business-forms.module.css'
 
@@ -41,7 +43,13 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
   const opening = useRef<AbortController>()
   const [newChatState, setNewChatState] = useState<'opening' | 'failed'>()
   const [pending, setPending] = useState<PendingRecord>()
-  useEffect(() => () => { write.current?.abort(); opening.current?.abort() }, [])
+  const [weekly, setWeekly] = useState<{ form: import('../../../business-forms/model.ts').WeeklyForm; surface: import('../../../business-forms/a2ui.ts').BusinessSurface }>()
+  const [weeklyContent, setWeeklyContent] = useState<WeeklyContent>()
+  const [weeklyBusy, setWeeklyBusy] = useState(false)
+  const [weeklyFrozen, setWeeklyFrozen] = useState(false)
+  const [weeklyError, setWeeklyError] = useState<string>()
+  const weeklyWrite = useRef<AbortController>()
+  useEffect(() => () => { write.current?.abort(); weeklyWrite.current?.abort(); opening.current?.abort() }, [])
   const bindingReason = t('daily.binding')
   useLayoutEffect(() => {
     if (!active) return
@@ -71,6 +79,8 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
           displayed.current = next.form.id
           setView(next); setContent(next.content); setError(undefined); setNotice(undefined)
         }
+        const weeklyValue = await pendingWeeklyForm(session, controller.signal).catch(() => null)
+        if (weeklyValue && weekly?.form.id !== weeklyValue.form.id) { setWeekly(weeklyValue); setWeeklyContent(weeklyValue.form.content); setWeeklyError(undefined); setWeeklyFrozen(false) }
         timer = setTimeout(() => { void poll() }, 2000)
       } catch (failure) {
         if (!controller.signal.aborted) {
@@ -135,6 +145,12 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
       if (!controller.signal.aborted) setBusy(false)
     })
   }
+  const decideWeekly = (action: 'save' | 'submit' | 'cancel' | 'retry') => {
+    if (!sameAccount() || weeklyWrite.current || !weekly || !weeklyContent) return
+    const controller = new AbortController(); weeklyWrite.current = controller; setWeeklyBusy(true); setWeeklyError(undefined)
+    const decision: WeeklyDecision = { form_id: weekly.form.id, request_id: randomUUID(), action: action === 'retry' ? 'save' : action, content: weeklyContent }
+    void decideWeeklyForm(session, decision, controller.signal).then(() => { if (!controller.signal.aborted) { setWeekly(undefined); setWeeklyContent(undefined); setWeeklyFrozen(false) } }).catch(() => { if (!controller.signal.aborted) { setWeeklyFrozen(true); setWeeklyError(t('weekly.form.uncertain')) } }).finally(() => { weeklyWrite.current = undefined; if (!controller.signal.aborted) setWeeklyBusy(false) })
+  }
   return <>
     {active && pending && !view && <div className={css.composerNotice} role="status">
       {t('daily.pendingNotice')}{' '}
@@ -156,5 +172,7 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
     {notice && <Toast text={t(notice)} tone="success" onDone={() => { setNotice(undefined) }} />}
     {view && content && <BusinessForm view={view} content={content} busy={busy} frozen={uncertain.current !== undefined}
       error={error} ready={canSubmit(content)} t={t} onChange={change} onAction={decide} />}
+    {weekly && weeklyContent && <WeeklyBusinessForm form={weekly.form} surface={weekly.surface} content={weeklyContent} busy={weeklyBusy} frozen={weeklyFrozen}
+      error={weeklyError ?? ''} t={t} onChange={setWeeklyContent} onAction={decideWeekly} />}
   </>
 }

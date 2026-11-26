@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 import { field } from '../src/business-forms/model.ts'
 import { Context } from '@deepseek-ai/cordis'
 import Skills from '@deepseek-ai/dsh-skill'
-import { registerDailySkill } from '../src/daily-report-runtime.ts'
+import { registerDailySkill, registerWeeklySkill } from '../src/daily-report-runtime.ts'
 
 const packageRoot = resolve(import.meta.dirname, '..')
 
@@ -49,5 +49,23 @@ it('实际技能注册表能发现与加载随包业务技能，插件卸载后�
     expect(packaged).not.toContain('work_records_')
     await owner.dispose()
     expect((await ctx.skills.list()).map(item => item.name)).not.toContain('daily-report')
+  } finally { await ctx.fiber.dispose() }
+})
+
+it('实际技能注册表能发现周报技能，并要求唯一项目匹配或人工补选', async () => {
+  const ctx = new Context()
+  try {
+    await ctx.plugin(Skills)
+    const owner = ctx.plugin({ inject: ['skills'], apply(scope: Context) {
+      registerWeeklySkill(scope, resolve(packageRoot, 'skills/weekly-report/SKILL.md'))
+    },
+    })
+    await owner.await()
+    expect((await ctx.skills.list()).map(item => item.name)).toContain('weekly-report')
+    const loaded = await ctx.skills.get('weekly-report')
+    expect(loaded?.content).toContain('只有唯一命中才自动填入项目')
+    expect(loaded?.content).toContain('project_matches')
+    await owner.dispose()
+    expect((await ctx.skills.list()).map(item => item.name)).not.toContain('weekly-report')
   } finally { await ctx.fiber.dispose() }
 })
