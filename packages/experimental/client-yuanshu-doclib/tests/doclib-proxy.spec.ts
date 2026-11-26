@@ -17,10 +17,23 @@ it('集合与文档列表走固定路由，详情与预览按 ID 转发', () => 
   })
 })
 
-it('资料库只读：已知路径的非 GET 请求返回方法不匹配', () => {
+it('资料库写路径：文档删除、导入与文件上传限定方法', () => {
   expect(doclibProxyRoute('/yuanshu-doclib/collections', 'POST')).toEqual({ type: 'method', allow: 'GET' })
   expect(doclibProxyRoute('/yuanshu-doclib/documents', 'PUT')).toEqual({ type: 'method', allow: 'GET' })
-  expect(doclibProxyRoute('/yuanshu-doclib/documents/doc_01h9x', 'DELETE')).toEqual({ type: 'method', allow: 'GET' })
+  expect(doclibProxyRoute('/yuanshu-doclib/documents/doc_01h9x', 'DELETE')).toEqual({
+    type: 'write', remote: '/api/v1/knowledge-bases/documents/doc_01h9x',
+  })
+  expect(doclibProxyRoute('/yuanshu-doclib/documents/doc_01h9x', 'PUT')).toEqual({
+    type: 'method', allow: 'GET, DELETE',
+  })
+  expect(doclibProxyRoute('/yuanshu-doclib/documents/ingest', 'POST')).toEqual({
+    type: 'write', remote: '/api/v1/knowledge-bases/documents/ingest',
+  })
+  expect(doclibProxyRoute('/yuanshu-doclib/documents/ingest', 'GET')).toEqual({ type: 'method', allow: 'POST' })
+  expect(doclibProxyRoute('/yuanshu-doclib/files/upload', 'POST')).toEqual({
+    type: 'upload', remote: '/api/v1/files/upload',
+  })
+  expect(doclibProxyRoute('/yuanshu-doclib/files/upload', 'GET')).toEqual({ type: 'method', allow: 'POST' })
   expect(doclibProxyRoute('/yuanshu-doclib/files/file-42/preview', 'POST')).toEqual({ type: 'method', allow: 'GET' })
 })
 

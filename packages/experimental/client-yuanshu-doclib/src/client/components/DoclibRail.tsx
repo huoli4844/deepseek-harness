@@ -140,7 +140,7 @@ export function DoclibRail(props: {
       </section>}
     </div>
     <div className={css.railFooter}>
-      <span>{t('doclib.rail.readonly')}</span>
+      <span>{active === 'personal' ? t('doclib.files.accessPersonal') : t('doclib.rail.readonly')}</span>
       <button type="button" className={css.railAction} title={t('doclib.storage.title')}
         aria-label={t('doclib.storage.title')} onClick={props.onOpenStorage}>⚙</button>
     </div>

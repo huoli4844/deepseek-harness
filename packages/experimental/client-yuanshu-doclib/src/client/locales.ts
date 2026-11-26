@@ -1,4 +1,5 @@
 /** 资料库文案：左侧分类栏、内容区表格、详情弹窗与状态提示。 */
+import { filesEn, filesZh } from './locales-files.ts'
 
 /** 资料库英文键集。 */
 export const en = {
@@ -101,6 +102,21 @@ export const en = {
   'doclib.storage.saving': 'Saving…',
   'doclib.storage.saved': 'Storage settings saved',
   'doclib.storage.saveError': 'Could not save storage settings',
+  'doclib.menu.open': 'Open',
+  'doclib.menu.reveal': 'Show in folder',
+  'doclib.menu.copyName': 'Copy name',
+  'doclib.menu.copyPath': 'Copy path',
+  'doclib.menu.copyDirectory': 'Copy folder path',
+  'doclib.menu.download': 'Download',
+  'doclib.menu.preview': 'Preview file',
+  'doclib.menu.opened': 'Opened',
+  'doclib.menu.openFailed': 'Could not open the file',
+  'doclib.menu.copied': 'Copied',
+  'doclib.menu.copyFailed': 'Could not copy',
+  'doclib.menu.downloading': 'Downloading…',
+  'doclib.menu.downloaded': 'Saved',
+  'doclib.menu.downloadFailed': 'Download failed',
+  ...filesEn,
 }
 
 /** 资料库中文键集，与英文键一一对应。 */
@@ -204,4 +220,19 @@ export const zh: Record<keyof typeof en, string> = {
   'doclib.storage.saving': '正在保存…',
   'doclib.storage.saved': '存储设置已保存',
   'doclib.storage.saveError': '存储设置保存失败',
+  'doclib.menu.open': '打开',
+  'doclib.menu.reveal': '打开所在文件夹',
+  'doclib.menu.copyName': '复制名称',
+  'doclib.menu.copyPath': '复制路径',
+  'doclib.menu.copyDirectory': '复制目录',
+  'doclib.menu.download': '下载',
+  'doclib.menu.preview': '预览原文',
+  'doclib.menu.opened': '已打开',
+  'doclib.menu.openFailed': '打开失败',
+  'doclib.menu.copied': '已复制',
+  'doclib.menu.copyFailed': '复制失败',
+  'doclib.menu.downloading': '正在下载…',
+  'doclib.menu.downloaded': '已保存',
+  'doclib.menu.downloadFailed': '下载失败',
+  ...filesZh,
 }

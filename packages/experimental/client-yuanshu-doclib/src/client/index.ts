@@ -7,6 +7,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-workspace-files/client'
+import type {} from '@deepseek-ai/dsh-client-ui-file-actions/client'
+import type { FileActions } from '@deepseek-ai/dsh-client-ui-file-actions/types'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SidebarPanelIconOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { createElement } from 'react'
@@ -21,8 +23,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-/** 宿主会话服务与 workspaceFiles Remote 支撑个人资料页签，其余服务支撑面板注册。 */
-export const inject = ['slots', 'locale', 'layout', 'sessions', 'remote', 'remote.workspaceFiles']
+/** 宿主会话服务、workspaceFiles 与 session Remote 支撑浏览和文件动作；桌面文件动作服务可选。 */
+export const inject = ['slots', 'locale', 'layout', 'sessions', 'remote', 'remote.session', 'remote.workspaceFiles']
+
+/** 桌面端文件动作服务：未装配时保持 undefined，下载退回浏览器下载。 */
+function optionalFileActions(ctx: Context): FileActions | undefined {
+  return ctx.get('fileActions')
+}
 
 /** 左侧栏资料库图标。 */
 function DoclibIcon(props: SidebarPanelIconOwnerProps) {
@@ -46,6 +53,7 @@ export function apply(ctx: Context): void {
         t,
         sessions: ctx.sessions,
         remote: ctx.remote,
+        fileActions: optionalFileActions(ctx),
       }),
     }, DoclibWorkbench))
     yield ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

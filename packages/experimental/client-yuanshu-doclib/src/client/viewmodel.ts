@@ -1,5 +1,8 @@
-/** 资料库纯视图函数：分页窗口、字段映射、类型筛选与展示格式化，不依赖请求或组件。 */
-import type { DoclibDirectoryNode, DoclibDocument, DoclibLocaleKey, DoclibT } from './model.ts'
+/** 资料库纯视图函数：分页窗口、字段映射、类型筛选、排序与展示格式化，不依赖请求或组件。 */
+import type {
+  DoclibDirectoryNode, DoclibDocument, DoclibLocaleKey, DoclibT, DocumentSortField, SortState,
+  WorkspaceSortField,
+} from './model.ts'
 
 /** 文档列表每次请求的记录数。 */
 export const DOCLIB_PAGE_SIZE = 20
@@ -140,16 +143,95 @@ export function formatTime(iso: string): string {
   return formatter.format(date).replaceAll('/', '-')
 }
 
-/** 工作区目录条目排序：文件夹在前，其余按名称排序。 */
-export function sortWorkspaceEntries<T extends { readonly name: string; readonly type: string }>(
+/** 工作区目录条目排序：文件夹固定在前，其余按所选字段与方向排序。 */
+export function sortWorkspaceEntries<T extends { readonly name: string; readonly type: string; readonly size?: number }>(
   entries: readonly T[],
+  sort?: SortState<WorkspaceSortField>,
 ): readonly T[] {
+  const field = sort?.field ?? 'name'
+  const factor = sort?.direction === 'desc' ? -1 : 1
   return [...entries].sort((left, right) => {
     const leftDirectory = left.type === 'directory' ? 0 : 1
     const rightDirectory = right.type === 'directory' ? 0 : 1
     if (leftDirectory !== rightDirectory) return leftDirectory - rightDirectory
-    return left.name.localeCompare(right.name, 'zh-Hans-CN')
+    if (field === 'size') return factor * ((left.size ?? 0) - (right.size ?? 0))
+    if (field === 'kind') {
+      const leftKind = kindByName(left.name)
+      const rightKind = kindByName(right.name)
+      if (leftKind !== rightKind) return factor * leftKind.localeCompare(rightKind)
+    }
+    return factor * left.name.localeCompare(right.name, 'zh-Hans-CN')
   })
+}
+
+/** 切换排序：同一字段反向，不同字段按升序。 */
+export function toggleSort<Field extends string>(
+  current: SortState<Field> | undefined,
+  field: Field,
+): SortState<Field> {
+  if (current?.field !== field) return { field, direction: 'asc' }
+  return { field, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+}
+
+/** 按关键字过滤本地条目（名称大小写不敏感）。 */
+export function filterWorkspaceEntries<T extends { readonly name: string }>(
+  entries: readonly T[],
+  keyword: string,
+): readonly T[] {
+  const needle = keyword.trim().toLowerCase()
+  if (needle === '') return entries
+  return entries.filter(entry => entry.name.toLowerCase().includes(needle))
+}
+
+/** 密级排序权重：未知取值排在已知取值之后。 */
+const SENSITIVITY_RANK: Readonly<Record<string, number>> = {
+  public: 0,
+  internal: 1,
+  confidential: 2,
+  secret: 3,
+}
+
+/** 文档排序：按所选字段排序，未知密级排最后。 */
+export function sortDocuments(
+  documents: readonly DoclibDocument[],
+  sort: SortState<DocumentSortField> | undefined,
+): readonly DoclibDocument[] {
+  if (sort === undefined) return documents
+  const factor = sort.direction === 'desc' ? -1 : 1
+  return [...documents].sort((left, right) => {
+    switch (sort.field) {
+      case 'title':
+        return factor * (left.title || left.originalName).localeCompare(right.title || right.originalName, 'zh-Hans-CN')
+      case 'directory':
+        return factor * left.directoryPath.localeCompare(right.directoryPath, 'zh-Hans-CN')
+      case 'sensitivity': {
+        const leftRank = SENSITIVITY_RANK[left.sensitivity.toLowerCase()] ?? 99
+        const rightRank = SENSITIVITY_RANK[right.sensitivity.toLowerCase()] ?? 99
+        return factor * (leftRank - rightRank)
+      }
+      case 'updatedAt':
+        return factor * left.updatedAt.localeCompare(right.updatedAt)
+      default:
+        return 0
+    }
+  })
+}
+
+/** 三态选择：未选、部分选中、全选。 */
+export type SelectionState = 'none' | 'some' | 'all'
+
+/** 依据已选集合与可见条目计算表头复选框状态。 */
+export function selectionState(
+  selected: ReadonlySet<string>,
+  visible: readonly string[],
+): SelectionState {
+  if (visible.length === 0) return 'none'
+  let hit = 0
+  for (const id of visible) {
+    if (selected.has(id)) hit += 1
+  }
+  if (hit === 0) return 'none'
+  return hit === visible.length ? 'all' : 'some'
 }
 
 /** 工作区条目类型展示文案键。 */

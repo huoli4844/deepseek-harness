@@ -8,7 +8,11 @@
   },
   "include": [
     "src/index.ts",
-    "src/doclib-proxy.ts"
+    "src/doclib-proxy.ts",
+    "src/workspace-handler.ts",
+    "src/workspace-ops.ts",
+    "src/workspace-paths.ts",
+    "src/workspace-route.ts"
   ],
   "references": [
     {
@@ -19,6 +23,9 @@
     },
     {
       "path": "../../host/webserver"
+    },
+    {
+      "path": "../../api/workspace-files/tsconfig.host.json"
     }
   ]
 }

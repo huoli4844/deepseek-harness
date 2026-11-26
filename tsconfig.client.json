@@ -57,6 +57,7 @@
   ],
   "references": [
     { "path": "./packages/experimental/client-yuanshu-workbench/tsconfig.client.json" },
+    { "path": "./packages/experimental/client-yuanshu-doclib/tsconfig.client.json" },
     { "path": "./packages/client/ui-action-cards" },
     { "path": "./packages/client/ui-creation-recommendations" },
     { "path": "./packages/client/ui-plugin-recommendations" },

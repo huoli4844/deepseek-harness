@@ -20,6 +20,9 @@
       "path": "../../client/ui-layout"
     },
     {
+      "path": "../../client/ui-file-actions"
+    },
+    {
       "path": "../../client/ui-primitives"
     },
     {

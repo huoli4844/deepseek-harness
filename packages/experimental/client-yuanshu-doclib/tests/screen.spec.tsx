@@ -2,6 +2,7 @@
 /** 验证资料库面板：左分类栏、工作区目录浏览与知识库文档表格、详情与预览。 */
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { FileActions } from '@deepseek-ai/dsh-client-ui-file-actions/types'
 import { zh } from '../src/client/locales.ts'
 import { DoclibWorkbench } from '../src/client/DoclibWorkbench.tsx'
 import type { SessionsService } from '../src/client/workspace-source.ts'
@@ -19,6 +20,15 @@ function urlText(input: RequestInfo | URL): string {
   return typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
 }
 
+/** 找到包含指定文本的表格行（同名文本可能同时出现在左侧栏）。 */
+function rowOf(text: string): HTMLElement {
+  const row = screen.getAllByText(text)
+    .map(element => element.closest('tr'))
+    .find(candidate => candidate !== null)
+  if (row === undefined || row === null) throw new Error(`row missing: ${text}`)
+  return row
+}
+
 /** 构造带一个主会话的宿主会话服务桩：快照缓存一次，保持引用稳定。 */
 function sessionsStub(): SessionsService {
   const snapshot = {
@@ -33,7 +43,7 @@ function sessionsStub(): SessionsService {
   }
 }
 
-/** workspaceFiles.list 桩：根目录含一个子目录与一个文件，子目录含一个文件。 */
+/** workspaceFiles.list 桩：根目录含一个子目录与一个文件，子目录含一个文件；并记录桌面打开调用。 */
 function remoteStub() {
   const list = vi.fn(async (_sessionId: string, path: string) => {
     if (path === WORKSPACE_ROOT) {
@@ -49,7 +59,8 @@ function remoteStub() {
     }
     return { ok: false as const, error: { code: 'workspace-file/not-found', message: 'missing' } }
   })
-  return { workspaceFiles: { list } }
+  const openWorkspacePath = vi.fn(async (_request: { path: string; action?: 'reveal' }) => ({ ok: true }))
+  return { workspaceFiles: { list }, session: { openWorkspacePath } }
 }
 
 afterEach(() => {
@@ -203,4 +214,106 @@ it('存储设置弹窗读取 NAS 配置与健康状态并保存', async () => {
   const body = JSON.parse(typeof payload === 'string' ? payload : '{}') as Record<string, unknown>
   expect(body).toMatchObject({ endpoint: '8.148.158.251:9001', bucket: 'southx', region: 'us-east-1', use_ssl: false })
   expect(body.access_key).toBeUndefined()
+})
+
+it('本地文件双击用默认应用打开，右键可定位与复制路径', async () => {
+  const remote = remoteStub()
+  const writeText = vi.fn(async () => undefined)
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  render(<DoclibWorkbench t={t} sessions={sessionsStub()} remote={remote} />)
+  await screen.findByText('README.md')
+
+  fireEvent.doubleClick(rowOf('README.md'))
+  await waitFor(() => {
+    expect(remote.session.openWorkspacePath).toHaveBeenCalledWith(
+      { path: `${WORKSPACE_ROOT}/README.md` }, expect.anything())
+  })
+
+  fireEvent.contextMenu(rowOf('README.md'), { clientX: 12, clientY: 24 })
+  expect(screen.getByRole('menu')).toBeDefined()
+  fireEvent.click(screen.getByRole('menuitem', { name: '打开所在文件夹' }))
+  await waitFor(() => {
+    expect(remote.session.openWorkspacePath).toHaveBeenCalledWith(
+      { path: `${WORKSPACE_ROOT}/README.md`, action: 'reveal' }, expect.anything())
+  })
+
+  fireEvent.contextMenu(rowOf('README.md'), { clientX: 12, clientY: 24 })
+  fireEvent.click(screen.getByRole('menuitem', { name: '复制路径' }))
+  await waitFor(() => { expect(writeText).toHaveBeenCalledWith(`${WORKSPACE_ROOT}/README.md`) })
+})
+
+it('本地资料支持新建文件夹与查看属性，写操作走工作区路由', async () => {
+  const fetchMock = vi.fn<typeof fetch>(async (input) => {
+    const url = urlText(input)
+    if (url.includes('/workspace/stat')) {
+      return Response.json({ name: 'README.md', type: 'file', size: 1024, modifiedAt: '2026-11-25T00:00:00.000Z' })
+    }
+    return Response.json({ ok: true, changed: 1 })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  render(<DoclibWorkbench t={t} sessions={sessionsStub()} remote={remoteStub()} />)
+  await screen.findByText('README.md')
+
+  fireEvent.click(screen.getByRole('button', { name: /新建文件夹/u }))
+  const dialog = await screen.findByRole('dialog', { name: '新建文件夹' })
+  fireEvent.change(screen.getByLabelText('名称'), { target: { value: '新目录' } })
+  fireEvent.click(screen.getByRole('button', { name: '创建' }))
+  await waitFor(() => {
+    const write = fetchMock.mock.calls.find(([input]) => urlText(input).includes('/workspace/mkdir'))
+    expect(write).toBeDefined()
+    const rawBody = write?.[1]?.body
+    const body = JSON.parse(typeof rawBody === 'string' ? rawBody : '{}') as Record<string, unknown>
+    expect(body).toMatchObject({ session: SESSION_ID, root: WORKSPACE_ROOT, directory: '', name: '新目录' })
+  })
+  await waitFor(() => { expect(screen.queryByRole('dialog', { name: '新建文件夹' })).toBeNull() })
+  expect(dialog).toBeDefined()
+
+  fireEvent.contextMenu(rowOf('README.md'), { clientX: 12, clientY: 24 })
+  fireEvent.click(screen.getByRole('menuitem', { name: '属性' }))
+  const detail = await screen.findByRole('dialog', { name: '属性' })
+  expect(detail.textContent).toContain('1.0 KB')
+  expect(fetchMock.mock.calls.some(([input]) => urlText(input).includes('/workspace/stat?session=sess-1')))
+    .toBe(true)
+})
+
+it('远端文档右键下载走桌面另存对话框', async () => {
+  localStorage.setItem('workbench-client-token', 'token')
+  const fetchMock = vi.fn<typeof fetch>(async (input) => {
+    const url = urlText(input)
+    if (url.includes('/collections')) return Response.json({ data: { list: [
+      { id: 'col-1', code: 'project', name: '项目资料' },
+    ], total: 1 } })
+    if (url.includes('/files/file-9/preview')) {
+      return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'application/pdf' } })
+    }
+    if (url.includes('/documents/doc-1')) return Response.json({ data: { document: {
+      id: 'doc-1', title: '质量手册', original_name: 'quality.pdf', directory_path: '体系文件第三套/质量手册',
+      mime_type: 'application/pdf', sensitivity: 'internal', parse_status: 'parsed', tags_json: '',
+      created_at: '2026-11-25T00:30:00+08:00', updated_at: '2026-11-25T01:00:00+08:00', file_id: 'file-9',
+    } } })
+    return Response.json({ data: { list: [
+      { id: 'doc-1', title: '质量手册', original_name: 'quality.pdf', directory_path: '体系文件第三套/质量手册',
+        mime_type: 'application/pdf', sensitivity: 'internal', parse_status: 'parsed', tags_json: '',
+        created_at: '2026-11-25T00:30:00+08:00', updated_at: '2026-11-25T01:00:00+08:00' },
+    ], page: 1, page_size: 20, total: 1 } })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  const save = vi.fn(async () => ({ status: 'saved' as const, path: '/Users/me/quality.pdf' }))
+  const fileActions = { save, copyImage: vi.fn(), canSaveAs: true } as unknown as FileActions
+  render(<DoclibWorkbench t={t} sessions={sessionsStub()} remote={remoteStub()} fileActions={fileActions} />)
+
+  fireEvent.click(screen.getByRole('button', { name: '项目文件夹' }))
+  await screen.findByRole('button', { name: '质量手册' })
+  fireEvent.contextMenu(rowOf('质量手册'), { clientX: 20, clientY: 30 })
+  fireEvent.click(screen.getByRole('menuitem', { name: '下载' }))
+
+  await waitFor(() => { expect(save).toHaveBeenCalled() })
+  const [source, mode] = save.mock.calls[0] as unknown as [
+    { name: string; mediaType: string; read: (signal: AbortSignal) => Promise<Blob> }, string,
+  ]
+  expect(mode).toBe('saveAs')
+  expect(source.name).toBe('quality.pdf')
+  expect(source.mediaType).toBe('application/pdf')
+  const blob = await source.read(new AbortController().signal)
+  expect(blob.size).toBe(3)
 })

@@ -43,6 +43,29 @@ export interface DoclibDocumentPage {
 /** 资料库页签：个人资料（本地工作区）/ 项目文件夹 / 公司制度文件。 */
 export type DoclibTab = 'personal' | 'projects' | 'policies'
 
+/** 排序方向。 */
+export type SortDirection = 'asc' | 'desc'
+
+/** 本地工作区列表可排序字段。 */
+export type WorkspaceSortField = 'name' | 'kind' | 'size'
+
+/** 知识库文档列表可排序字段。 */
+export type DocumentSortField = 'title' | 'directory' | 'sensitivity' | 'updatedAt'
+
+/** 排序状态：字段与方向。 */
+export interface SortState<Field extends string> {
+  readonly field: Field
+  readonly direction: SortDirection
+}
+
+/** 工作区条目属性（详情弹窗展示）。 */
+export interface WorkspaceEntryDetail {
+  readonly name: string
+  readonly type: string
+  readonly size: number
+  readonly modifiedAt: string
+}
+
 /** 文档列表查询条件；keyword 为空表示不过滤。 */
 export interface DoclibQuery {
   readonly collectionId: string

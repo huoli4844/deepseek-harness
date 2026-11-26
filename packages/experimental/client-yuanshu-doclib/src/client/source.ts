@@ -13,13 +13,19 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+/** 后端 id 既有字符串也有数字，统一转成字符串标识。 */
+function identifier(value: unknown): string {
+  if (typeof value === 'string') return value
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : ''
+}
+
 function integer(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
 }
 
 function parseCollection(value: unknown): DoclibCollection {
   return {
-    id: text(field(value, 'id')),
+    id: identifier(field(value, 'id')),
     code: text(field(value, 'code')),
     name: text(field(value, 'name')),
     description: text(field(value, 'description')),
@@ -29,19 +35,21 @@ function parseCollection(value: unknown): DoclibCollection {
 function parseDocument(value: unknown): DoclibDocument {
   const tags = field(value, 'tags_json')
   return {
-    id: text(field(value, 'id')),
+    id: identifier(field(value, 'id')),
     title: text(field(value, 'title')),
     originalName: text(field(value, 'original_name')),
     directoryPath: text(field(value, 'directory_path')),
     mimeType: text(field(value, 'mime_type')),
     sensitivity: text(field(value, 'sensitivity')),
     parseStatus: text(field(value, 'parse_status')),
-    tags: typeof tags === 'string' && tags !== ''
-      ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
-      : [],
+    tags: Array.isArray(tags)
+      ? tags.filter((tag): tag is string => typeof tag === 'string' && tag !== '')
+      : typeof tags === 'string' && tags !== ''
+        ? tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+        : [],
     createdAt: text(field(value, 'created_at')),
     updatedAt: text(field(value, 'updated_at')),
-    fileId: text(field(value, 'file_id')),
+    fileId: identifier(field(value, 'file_id')),
   }
 }
 
@@ -187,8 +195,7 @@ export async function saveStorageConfig(draft: StorageDraft, signal: AbortSignal
   }
 }
 
-/** 读取文档原文预览字节流，供详情弹窗构造本地预览地址。 */
-export async function fetchPreviewBlob(fileId: string, signal: AbortSignal): Promise<Blob> {
+/** 读取文档原文预览字节流，供详情弹窗构造本地预览地址。 */export async function fetchPreviewBlob(fileId: string, signal: AbortSignal): Promise<Blob> {
   const token = localStorage.getItem('workbench-client-token')
   if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401, kind: 'missingToken' })
   const headers = new Headers({
@@ -204,4 +211,85 @@ export async function fetchPreviewBlob(fileId: string, signal: AbortSignal): Pro
     })
   }
   return response.blob()
+}
+
+/** 统一写请求：JSON 或空请求体；401 映射为登录类别。 */
+async function write(
+  path: string,
+  method: 'POST' | 'DELETE',
+  body: unknown,
+  signal: AbortSignal,
+): Promise<unknown> {
+  const token = localStorage.getItem('workbench-client-token')
+  if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401, kind: 'missingToken' })
+  const headers = new Headers({
+    authorization: `Bearer ${token}`,
+    'X-Active-Tenant': localStorage.getItem('yuanshu-active-tenant') ?? '',
+    accept: 'application/json',
+  })
+  if (body !== undefined) headers.set('content-type', 'application/json')
+  const response = await fetch(`/yuanshu-doclib/${path}`, {
+    method,
+    headers,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal,
+  })
+  if (!response.ok) {
+    throw Object.assign(new Error('YuanShu doclib request failed'), {
+      status: response.status,
+      kind: response.status === 401 ? 'login' : 'failed',
+    })
+  }
+  const text = await response.text()
+  return text === '' ? undefined : field(JSON.parse(text), 'data')
+}
+
+/**
+ * 上传文件到元枢并导入指定知识库集合的目录。
+ * 先走文件上传接口取得文件 ID，再调用导入接口建立知识文档。
+ * @param collectionId - 目标集合 ID（后台按数字处理）。
+ * @param directoryPath - 目标目录路径，空串表示集合根。
+ * @param file - 浏览器选中的文件。
+ * @param signal - 取消信号。
+ */
+export async function uploadDocument(
+  collectionId: string,
+  directoryPath: string,
+  file: File,
+  signal: AbortSignal,
+): Promise<void> {
+  const token = localStorage.getItem('workbench-client-token')
+  if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401, kind: 'missingToken' })
+  const form = new FormData()
+  form.append('file', file)
+  const response = await fetch('/yuanshu-doclib/files/upload', {
+    method: 'POST',
+    headers: new Headers({
+      authorization: `Bearer ${token}`,
+      'X-Active-Tenant': localStorage.getItem('yuanshu-active-tenant') ?? '',
+      accept: 'application/json',
+    }),
+    body: form,
+    signal,
+  })
+  if (!response.ok) {
+    throw Object.assign(new Error('YuanShu upload failed'), {
+      status: response.status,
+      kind: response.status === 401 ? 'login' : 'failed',
+    })
+  }
+  const fileId = identifier(field(field(await response.json(), 'data'), 'id'))
+  if (fileId === '') throw Object.assign(new Error('YuanShu upload failed'), { kind: 'failed' })
+  const numericCollection = Number(collectionId)
+  await write('documents/ingest', 'POST', {
+    collection_id: Number.isSafeInteger(numericCollection) && numericCollection > 0 ? numericCollection : collectionId,
+    file_id: Number(fileId),
+    title: file.name,
+    directory_path: directoryPath,
+  }, signal)
+}
+
+/** 删除知识文档。 */
+export async function deleteDocument(id: string, signal: AbortSignal): Promise<void> {
+  await write(`documents/${encodeURIComponent(id)}`, 'DELETE', undefined, signal)
 }

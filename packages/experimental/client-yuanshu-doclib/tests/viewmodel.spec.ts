@@ -3,8 +3,9 @@ import { expect, it } from 'vitest'
 import { currentWorkspace, type SessionsService } from '../src/client/workspace-source.ts'
 import {
   directoryLabel, directoryNodes, doclibPageCount, doclibPageNumbers, documentsInDirectory, enumLabel,
-  fileKindKey, filterDocuments, formatSize, formatTime, kindByName, matchesKeyword, mimeBadge, mimeKind,
-  parentPath, parseStatusKey, pathSegments, sensitivityKey, sortWorkspaceEntries,
+  fileKindKey, filterDocuments, filterWorkspaceEntries, formatSize, formatTime, kindByName, matchesKeyword,
+  mimeBadge, mimeKind, parentPath, parseStatusKey, pathSegments, selectionState, sensitivityKey,
+  sortDocuments, sortWorkspaceEntries, toggleSort,
 } from '../src/client/viewmodel.ts'
 import type { DoclibDocument } from '../src/client/model.ts'
 
@@ -88,6 +89,37 @@ it('工作区条目排序：文件夹在前，文件按名称排序', () => {
     { name: 'a.txt', type: 'file' },
   ])
   expect(sorted.map(entry => entry.name)).toEqual(['文件夹', 'a.txt', 'z.txt'])
+})
+
+it('工作区排序支持大小、类型与方向切换，搜索按名称过滤', () => {
+  const entries = [
+    { name: 'b.pdf', type: 'file', size: 20 },
+    { name: 'a.txt', type: 'file', size: 10 },
+    { name: '目录', type: 'directory' },
+  ]
+  expect(sortWorkspaceEntries(entries, { field: 'size', direction: 'desc' }).map(entry => entry.name))
+    .toEqual(['目录', 'b.pdf', 'a.txt'])
+  expect(sortWorkspaceEntries(entries, { field: 'kind', direction: 'asc' }).map(entry => entry.name))
+    .toEqual(['目录', 'b.pdf', 'a.txt'])
+  expect(toggleSort({ field: 'name', direction: 'asc' }, 'name')).toEqual({ field: 'name', direction: 'desc' })
+  expect(toggleSort({ field: 'name', direction: 'desc' }, 'size')).toEqual({ field: 'size', direction: 'asc' })
+  expect(filterWorkspaceEntries(entries, 'PDF').map(entry => entry.name)).toEqual(['b.pdf'])
+  expect(filterWorkspaceEntries(entries, '')).toHaveLength(3)
+})
+
+it('文档排序按标题、目录、密级与更新时间，选择状态三态判定', () => {
+  const documents = [
+    { ...document('a', 'application/pdf'), title: '乙', directoryPath: 'B', sensitivity: 'secret', updatedAt: '2026-11-24' },
+    { ...document('b', 'application/pdf'), title: '甲', directoryPath: 'A', sensitivity: 'public', updatedAt: '2026-11-25' },
+  ]
+  expect(sortDocuments(documents, { field: 'title', direction: 'asc' }).map(item => item.id)).toEqual(['b', 'a'])
+  expect(sortDocuments(documents, { field: 'directory', direction: 'desc' }).map(item => item.id)).toEqual(['a', 'b'])
+  expect(sortDocuments(documents, { field: 'sensitivity', direction: 'asc' }).map(item => item.id)).toEqual(['b', 'a'])
+  expect(sortDocuments(documents, { field: 'updatedAt', direction: 'asc' }).map(item => item.id)).toEqual(['a', 'b'])
+  expect(selectionState(new Set(), ['a', 'b'])).toBe('none')
+  expect(selectionState(new Set(['a']), ['a', 'b'])).toBe('some')
+  expect(selectionState(new Set(['a', 'b']), ['a', 'b'])).toBe('all')
+  expect(selectionState(new Set(['a']), [])).toBe('none')
 })
 
 it('由目录字段聚合目录树，并按目录前缀取文档', () => {
