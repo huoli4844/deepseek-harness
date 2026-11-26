@@ -69,21 +69,43 @@ export class WorkRecords {
       version: typeof version === 'number' && Number.isSafeInteger(version) ? version : 0 }
   }
 
-  /** 保存或提交周报；事项被转换为后台约定的正文 JSON 行。 */
-  async saveWeekly(start: string, credential: Credential, input: { readonly content: WeeklyContent; readonly version: number; readonly request: string; readonly status: 'draft' | 'submitted' }, signal: AbortSignal): Promise<unknown> {
+  /** 保存或提交周报，按后台契约先保存草稿，再由提交端点确认。 */
+  async saveWeekly(start: string, credential: Credential, input: {
+    readonly content: WeeklyContent
+    readonly status: 'draft' | 'submitted'
+  }, signal: AbortSignal): Promise<unknown> {
     const rows = input.content.items.map(item => ({ project_code: item.project_code, project_name: item.project_name,
-      work_type: item.work_type, work_item: item.work_item, completion_status: item.completion_status,
-      has_risk: item.has_risk, risk_details: item.risk_details }))
-    const response = await this.request(`${this.api.replace(/\/$/u, '')}/api/v1/apps/deepseek-harness/weekly-reports`, {
-      method: 'PUT', redirect: 'error', signal,
-      headers: { authorization: credential.authorization, 'X-Active-Tenant': credential.tenant, 'content-type': 'application/json' },
-      body: JSON.stringify({ period_start: start, progress_summary: input.content.progress_summary,
-        completed_work: JSON.stringify(rows), planned_work: input.content.planned_work,
-        issues_and_risks: input.content.issues_and_risks || null, need_support: input.content.need_support || null,
-        expected_version: input.version, request_id: input.request, status: input.status }),
-    })
-    if (!response.ok) throw new ReportRequestError(response.status)
-    return field(await response.json(), 'data')
+      work_type: item.work_type, work_item: item.work_item, task_name: '', description: item.work_item,
+      completion_status: item.completion_status, has_risk: item.has_risk, risk_details: item.risk_details }))
+    const body = { period_start: start, progress_summary: input.content.progress_summary,
+      completed_work: rows.length === 0 ? input.content.completed_work : JSON.stringify(rows),
+      planned_work: input.content.planned_work, issues_and_risks: input.content.issues_and_risks || null,
+      need_support: input.content.need_support || null }
+    const path = `${this.api.replace(/\/$/u, '')}/api/v1/apps/deepseek-harness/weekly-reports`
+    const write = async (url: string, method: 'PUT' | 'POST', value: object): Promise<unknown> => {
+      const response = await this.request(url, { method, redirect: 'error', signal,
+        headers: { authorization: credential.authorization, 'X-Active-Tenant': credential.tenant, 'content-type': 'application/json' },
+        body: JSON.stringify(value),
+      })
+      if (!response.ok) throw new ReportRequestError(response.status)
+      const report = field(field(await response.json(), 'data'), 'report')
+      const status = method === 'PUT' ? 'draft' : 'submitted'
+      if (field(report, 'status') !== status || field(report, 'period_start') !== start
+        || typeof field(report, 'id') !== 'number') throw new ReportRequestError(502)
+      return report
+    }
+    let draft: unknown
+    try {
+      draft = await write(path, 'PUT', body)
+    } catch (error) {
+      if (input.status !== 'submitted' || !(error instanceof ReportRequestError) || error.status !== 409) throw error
+      // 提交成功但回执丢失时，只接受正文完全一致的已提交记录。
+      const saved = await this.weekly(start, credential, signal)
+      if (saved.status !== 'submitted' || !Object.entries(body).every(([key, value]) =>
+        (field(saved.report, key) || null) === (value || null))) throw error
+      return saved.report
+    }
+    return input.status === 'draft' ? draft : write(`${path}/submit`, 'POST', { period_start: start })
   }
 
   /** 读取本周已提交日报，供周报自动归纳使用。 */

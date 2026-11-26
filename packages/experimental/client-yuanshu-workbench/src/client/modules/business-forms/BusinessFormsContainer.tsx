@@ -49,6 +49,7 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
   const [weeklyFrozen, setWeeklyFrozen] = useState(false)
   const [weeklyError, setWeeklyError] = useState<string>()
   const weeklyWrite = useRef<AbortController>()
+  const weeklyRetry = useRef<WeeklyDecision>()
   useEffect(() => () => { write.current?.abort(); weeklyWrite.current?.abort(); opening.current?.abort() }, [])
   const bindingReason = t('daily.binding')
   useLayoutEffect(() => {
@@ -147,9 +148,30 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
   }
   const decideWeekly = (action: 'save' | 'submit' | 'cancel' | 'retry') => {
     if (!sameAccount() || weeklyWrite.current || !weekly || !weeklyContent) return
-    const controller = new AbortController(); weeklyWrite.current = controller; setWeeklyBusy(true); setWeeklyError(undefined)
-    const decision: WeeklyDecision = { form_id: weekly.form.id, request_id: randomUUID(), action: action === 'retry' ? 'save' : action, content: weeklyContent }
-    void decideWeeklyForm(session, decision, controller.signal).then(() => { if (!controller.signal.aborted) { setWeekly(undefined); setWeeklyContent(undefined); setWeeklyFrozen(false) } }).catch(() => { if (!controller.signal.aborted) { setWeeklyFrozen(true); setWeeklyError(t('weekly.form.uncertain')) } }).finally(() => { weeklyWrite.current = undefined; if (!controller.signal.aborted) setWeeklyBusy(false) })
+    const decision: WeeklyDecision | undefined = action === 'retry' ? weeklyRetry.current
+      : { form_id: weekly.form.id, request_id: randomUUID(), action, content: weeklyContent }
+    if (decision === undefined) return
+    const controller = new AbortController()
+    weeklyWrite.current = controller
+    setWeeklyBusy(true)
+    setWeeklyError(undefined)
+    void decideWeeklyForm(session, decision, controller.signal).then(() => {
+      if (controller.signal.aborted) return
+      weeklyRetry.current = undefined
+      setWeekly(undefined)
+      setWeeklyContent(undefined)
+      setWeeklyFrozen(false)
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted) return
+      const key = errorKey(error)
+      const uncertain = key === 'daily.uncertain'
+      weeklyRetry.current = uncertain ? decision : undefined
+      setWeeklyFrozen(uncertain)
+      setWeeklyError(t(uncertain ? 'weekly.form.uncertain' : key))
+    }).finally(() => {
+      weeklyWrite.current = undefined
+      if (!controller.signal.aborted) setWeeklyBusy(false)
+    })
   }
   return <>
     {active && pending && !view && <div className={css.composerNotice} role="status">

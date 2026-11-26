@@ -135,7 +135,7 @@ export class BusinessForms {
     if (decision.action === 'cancel') { this.weeklyForms.set(state.form.id, { ...state, decision: fingerprint, status: 'cancelled' }); return null }
     try {
       const report = await this.records.saveWeekly(state.form.period_start, lease.credential, { content: decision.content,
-        version: state.form.expected_version, request: decision.request_id, status: decision.action === 'submit' ? 'submitted' : 'draft' }, signal)
+        status: decision.action === 'submit' ? 'submitted' : 'draft' }, signal)
       this.weeklyForms.set(state.form.id, { ...state, decision: fingerprint, status: decision.action === 'submit' ? 'submitted' : 'saved', report })
       return report
     } catch (error) {

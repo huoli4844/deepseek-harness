@@ -651,6 +651,8 @@
     { "path": "./packages/connector/notion" },
     { "path": "./packages/connector/tencent-docs" },
     { "path": "./packages/experimental/client-yuanshu-workbench/tsconfig.host.json" },
+    { "path": "./packages/experimental/client-yuanshu-doclib/tsconfig.host.json" },
+    { "path": "./packages/experimental/client-yuanshu-doclib/tsconfig.client.json" },
     { "path": "./packages/yuanshu/yuanshu-login-server" },
     { "path": "./packages/host/directory-picker" },
     { "path": "./packages/host/directory-picker-auto" },

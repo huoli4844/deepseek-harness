@@ -109,3 +109,24 @@ it('超时后只允许相同幂等请求重试，拒绝修改正文抢占', asyn
   await forms.decide(session.id, decision, signal)
   expect(saved).toHaveLength(1)
 })
+
+it('周报先按后台契约保存草稿，再通过提交端点取得回执', async () => {
+  const start = '2026-11-23'
+  const request = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json({ data: { report: { id: 8, period_start: start, status: 'draft' } } }))
+    .mockResolvedValueOnce(Response.json({ data: { report: { id: 8, period_start: start, status: 'submitted' } } }))
+  const records = new WorkRecords('https://test.invalid', request)
+  await expect(records.saveWeekly(start, credential, { status: 'submitted', content: {
+    period_start: start, progress_summary: '本周进展', completed_work: '本周成果',
+    planned_work: '下周计划', issues_and_risks: '', need_support: '', items: [],
+  } }, signal)).resolves.toMatchObject({ id: 8, status: 'submitted' })
+  expect(request.mock.calls.map(([url, init]) => [url, init?.method])).toEqual([
+    ['https://test.invalid/api/v1/apps/deepseek-harness/weekly-reports', 'PUT'],
+    ['https://test.invalid/api/v1/apps/deepseek-harness/weekly-reports/submit', 'POST'],
+  ])
+  const draft = request.mock.calls[0]?.[1]?.body
+  if (typeof draft !== 'string') throw new Error('测试预期 JSON 正文')
+  expect(JSON.parse(draft)).toEqual({ period_start: start, progress_summary: '本周进展',
+    completed_work: '本周成果', planned_work: '下周计划', issues_and_risks: null, need_support: null })
+  expect(request.mock.calls[1]?.[1]?.body).toBe(JSON.stringify({ period_start: start }))
+})

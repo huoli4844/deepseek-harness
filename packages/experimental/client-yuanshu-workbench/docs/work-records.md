@@ -61,3 +61,5 @@
 日报没有模型提交动作，但通用终端、HTTP、数据库等能力若另被授予，仍须通过平台沙箱与后台权限独立约束，不能只靠技能提示保证安全。
 
 维护流程先执行 `starpivot-backend/migrations/0009_daily_work_reports.sql`，再重启业务服务和工作台；启动不自动迁移，本次未修改云端业务库。前端验证入口为 `tests/daily-runtime.spec.ts`、`tests/daily-owner.spec.ts`、`tests/daily-form.client.spec.tsx`。后台真实 HTTP 与 PostgreSQL 测试只使用回环地址下的一次性隔离库，不写业务库或备份库。
+
+周报表单确认后先保存该自然周的草稿，选择提交时再通过独立提交端点登记提交。工作台核验报告日期和状态后才显示成功。周报接口没有日报的版本号和请求 ID 字段，工作台保留本次待确认操作用于会话内重试。

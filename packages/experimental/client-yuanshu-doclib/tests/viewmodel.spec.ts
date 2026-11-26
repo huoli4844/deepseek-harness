@@ -123,8 +123,9 @@ it('文档排序按标题、目录、密级与更新时间，选择状态三态�
 })
 
 it('由目录字段聚合目录树，并按目录前缀取文档', () => {
+  const manual = { ...document('a', 'application/pdf'), title: '质量手册', directoryPath: '体系/质量手册' }
   const documents = [
-    { ...document('a', 'application/pdf'), title: '质量手册', directoryPath: '体系/质量手册' },
+    manual,
     { ...document('b', 'application/pdf'), directoryPath: '体系/程序文件' },
     { ...document('c', 'application/pdf'), directoryPath: '计划' },
   ]
@@ -134,9 +135,9 @@ it('由目录字段聚合目录树，并按目录前缀取文档', () => {
   expect(documentsInDirectory(documents, '体系').map(item => item.id)).toEqual(['a', 'b'])
   expect(documentsInDirectory(documents, '体系/质量手册').map(item => item.id)).toEqual(['a'])
   expect(documentsInDirectory(documents, '不存在')).toEqual([])
-  expect(matchesKeyword(documents[0], '质量')).toBe(true)
-  expect(matchesKeyword(documents[0], '')).toBe(true)
-  expect(matchesKeyword(documents[0], '计划')).toBe(false)
+  expect(matchesKeyword(manual, '质量')).toBe(true)
+  expect(matchesKeyword(manual, '')).toBe(true)
+  expect(matchesKeyword(manual, '计划')).toBe(false)
 })
 
 it('当前工作区取第一个非空会话的 cwd，否则退回任意带目录的会话', () => {

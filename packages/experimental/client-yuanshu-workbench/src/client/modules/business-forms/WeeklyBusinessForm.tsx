@@ -25,7 +25,9 @@ export function WeeklyBusinessForm({ form, surface: _surface, content, busy, fro
   const updateItem = (index: number, patch: Partial<WeeklyItem>) => onChange({ ...content, items: content.items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })
   const addItem = () => { const item: WeeklyItem = { id: `item-${Date.now()}`, project_code: '', project_name: '', work_type: 'direct', work_item: '', completion_status: 'in_progress', has_risk: false, risk_details: '' }; onChange({ ...content, items: [...content.items, item] }); setSelected(content.items.length) }
   const removeItem = (index: number) => { onChange({ ...content, items: content.items.filter((_, itemIndex) => itemIndex !== index) }); setSelected(Math.max(0, Math.min(selected, content.items.length - 2))) }
-  const ready = content.progress_summary.trim() !== '' && content.items.every(item => item.project_code.trim() !== '' && item.work_item.trim() !== '')
+  const ready = content.progress_summary.trim() !== '' && content.planned_work.trim() !== ''
+    && (content.items.length > 0 || content.completed_work.trim() !== '')
+    && content.items.every(item => item.project_code.trim() !== '' && item.work_item.trim() !== '')
   return <Modal open title={t('weekly.form.title')} closeLabel={t('weekly.form.cancel')} className={css.modal ?? ''} maxWidth={760} contentClassName={css.modalContent ?? ''}
     onClose={() => { if (!busy && !frozen) onAction('cancel') }}>
     <div className={css.form}><div className={css.body}>
