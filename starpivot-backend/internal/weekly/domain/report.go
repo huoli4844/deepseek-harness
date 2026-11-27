@@ -24,6 +24,18 @@ var (
 
 var codePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
 
+var weeklyWorkTypes = map[string]struct{}{"direct": {}, "indirect": {}, "meeting": {}, "overtime": {}, "training": {}}
+var weeklyCompletionStatuses = map[string]struct{}{"pending": {}, "in_progress": {}, "completed": {}, "blocked": {}, "cancelled": {}}
+
+type weeklyItem struct {
+	ProjectCode      *string `json:"project_code"`
+	WorkType         *string `json:"work_type"`
+	Description      *string `json:"description"`
+	CompletionStatus *string `json:"completion_status"`
+	HasRisk          *bool   `json:"has_risk"`
+	RiskDetails      *string `json:"risk_details"`
+}
+
 // ValidProjectCode 校验少仕项目路径使用的编码。
 func ValidProjectCode(code string) bool {
 	return codePattern.MatchString(code)
@@ -82,7 +94,77 @@ func (d Draft) Validate() error {
 			return ErrInvalid
 		}
 	}
+	if !validWeeklyItems(d.CompletedWork, false) {
+		return ErrInvalid
+	}
 	return nil
+}
+
+// ValidateForSubmit 在基础正文校验外要求每条结构化事项填写完整。
+func (d Draft) ValidateForSubmit() error {
+	if err := d.Validate(); err != nil {
+		return err
+	}
+	if !validWeeklyItems(d.CompletedWork, true) {
+		return ErrIncomplete
+	}
+	return nil
+}
+
+func validWeeklyItems(value string, requireComplete bool) bool {
+	trimmed := strings.TrimSpace(value)
+	if !strings.HasPrefix(trimmed, "[") {
+		return true
+	}
+	var rows []weeklyItem
+	if json.Unmarshal([]byte(trimmed), &rows) != nil || rows == nil || len(rows) > 200 {
+		return false
+	}
+	var rawRows []map[string]json.RawMessage
+	if json.Unmarshal([]byte(trimmed), &rawRows) != nil {
+		return false
+	}
+	for index, row := range rows {
+		if !hasWeeklyItemShape(rawRows[index]) {
+			return false
+		}
+		description := row.Description
+		if row.ProjectCode == nil || (*row.ProjectCode != "" && !ValidProjectCode(*row.ProjectCode)) ||
+			row.WorkType == nil || (*row.WorkType != "" && !has(weeklyWorkTypes, *row.WorkType)) || description == nil ||
+			!validText(*description) || utf8.RuneCountInString(*description) > 10_000 || row.CompletionStatus == nil ||
+			(*row.CompletionStatus != "" && !has(weeklyCompletionStatuses, *row.CompletionStatus)) || row.HasRisk == nil {
+			return false
+		}
+		if requireComplete && (strings.TrimSpace(*row.ProjectCode) == "" || *row.WorkType == "" ||
+			strings.TrimSpace(*description) == "" || *row.CompletionStatus == "") {
+			return false
+		}
+		if row.RiskDetails != nil && (!validText(*row.RiskDetails) || utf8.RuneCountInString(*row.RiskDetails) > 10_000) {
+			return false
+		}
+		if !*row.HasRisk && row.RiskDetails != nil && strings.TrimSpace(*row.RiskDetails) != "" {
+			return false
+		}
+	}
+	return len(rows) > 0 || !requireComplete
+}
+
+func hasWeeklyItemShape(fields map[string]json.RawMessage) bool {
+	expected := [...]string{"project_code", "work_type", "description", "completion_status", "has_risk", "risk_details"}
+	if len(fields) != len(expected) {
+		return false
+	}
+	for _, key := range expected {
+		if _, ok := fields[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func has(values map[string]struct{}, value string) bool {
+	_, ok := values[value]
+	return ok
 }
 
 // Complete 判断所有必填正文是否都具备可提交的内容。

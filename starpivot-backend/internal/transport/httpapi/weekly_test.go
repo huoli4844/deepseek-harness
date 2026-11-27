@@ -70,6 +70,8 @@ func TestWeeklyReportRouteGuards(t *testing.T) {
 	weeklyRequest(t, mux, "PUT", weeklyPath, `{"period_start":"2026-11-23","progress_summary":"ok"}`, 200) // 草稿允许空正文
 	weeklyRequest(t, mux, "PUT", weeklyPath, `{"period_start":"2026-11-23","progress_summary":"ok",
 		"completed_work":"[]","planned_work":"[]"}`, 200)
+	weeklyRequest(t, mux, "PUT", weeklyPath, `{"period_start":"2026-11-23","completed_work":"[{\"project_code\":\"\",\"work_type\":\"\",\"description\":\"待补充\",\"completion_status\":\"\",\"has_risk\":false,\"risk_details\":null}]"}`, 200)
+	weeklyRequest(t, mux, "PUT", weeklyPath, `{"period_start":"2026-11-23","completed_work":"[{\"project_code\":\"P-1\",\"work_type\":\"invented\",\"description\":\"work\",\"completion_status\":\"completed\",\"has_risk\":false,\"risk_details\":null}]"}`, 400)
 	weeklyRequest(t, mux, "POST", weeklyPath+"/submit",
 		`{"period_start":"2026-11-23","progress_summary":"ok","completed_work":"[]","planned_work":"[]"}`, 200)
 	weeklyRequest(t, mux, "POST", weeklyPath, "", 405)

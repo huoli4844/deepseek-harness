@@ -127,6 +127,9 @@ func (p *Postgres) Submit(ctx context.Context, tenant, actor int64, week domain.
 		return domain.View{}, err
 	}
 	if report.Status == "draft" {
+		if err := report.Draft.ValidateForSubmit(); err != nil {
+			return domain.View{}, err
+		}
 		if !report.Complete() {
 			return domain.View{}, domain.ErrIncomplete
 		}

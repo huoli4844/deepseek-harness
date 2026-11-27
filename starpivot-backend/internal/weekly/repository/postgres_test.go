@@ -42,12 +42,19 @@ func TestPostgresWeeklyReportLifecycle(t *testing.T) {
 	if _, err := service.Submit(ctx, 7, 9, start); !errors.Is(err, domain.ErrIncomplete) {
 		t.Fatalf("必填正文为空时应拒绝提交：%v", err)
 	}
-	unknown := domain.Draft{ProgressSummary: "进展", CompletedWork: `[{"project_code":"NOPE-1"}]`, PlannedWork: "[]"}
+	unknown := domain.Draft{ProgressSummary: "进展", CompletedWork: `[{"project_code":"NOPE-1","work_type":"","description":"","completion_status":"","has_risk":false,"risk_details":null}]`, PlannedWork: "下周计划"}
 	if _, err := service.Save(ctx, 7, 9, start, unknown); !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("行内项目编码不属于本租户应拒绝保存：%v", err)
 	}
+	partial := domain.Draft{ProgressSummary: "进展", CompletedWork: `[{"project_code":"","work_type":"","description":"已记录","completion_status":"","has_risk":false,"risk_details":null}]`, PlannedWork: "下周计划"}
+	if _, err := service.Save(ctx, 7, 9, start, partial); err != nil {
+		t.Fatalf("未填完的事项应可存草稿：%v", err)
+	}
+	if _, err := service.Submit(ctx, 7, 9, start); !errors.Is(err, domain.ErrIncomplete) {
+		t.Fatalf("未填完的事项应拒绝提交：%v", err)
+	}
 	draft := domain.Draft{ProgressSummary: "进展",
-		CompletedWork: `[{"project_code":"PROJECT.1","task_id":1,"content":"已完成"}]`, PlannedWork: "[]"}
+		CompletedWork: `[{"project_code":"PROJECT.1","work_type":"direct","description":"已完成","completion_status":"completed","has_risk":false,"risk_details":null}]`, PlannedWork: "下周计划"}
 	updated, err := service.Save(ctx, 7, 9, start, draft)
 	if err != nil || updated.Report == nil || updated.Report.ID != empty.Report.ID ||
 		updated.Report.CreatedBy != 9 || !updated.Report.CreatedAt.Equal(empty.Report.CreatedAt) {
@@ -65,7 +72,7 @@ func TestPostgresWeeklyReportLifecycle(t *testing.T) {
 	retried, err := service.Submit(ctx, 7, 9, start)
 	if err != nil || retried.Report == nil || retried.Report.SubmittedBy == nil ||
 		*retried.Report.SubmittedBy != 9 || retried.Report.SubmittedAt == nil ||
-		!retried.Report.SubmittedAt.Equal(*submitted.Report.SubmittedAt) || retried.Labor.TotalHours != "102.50" {
+		!retried.Report.SubmittedAt.Equal(*submitted.Report.SubmittedAt) || retried.Labor.TotalHours != "101.25" {
 		t.Fatalf("重复提交应保留审计并读取实时工时：%+v / %v", retried, err)
 	}
 	if _, err := service.Save(ctx, 7, 9, start, draft); !errors.Is(err, domain.ErrLocked) {
@@ -90,6 +97,7 @@ func weeklyTestPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 	t.Cleanup(pool.Close)
 	runSQL(t, ctx, pool, `CREATE TABLE public.prj_projects (
 		id bigint PRIMARY KEY, business_tenant_id bigint NOT NULL, code varchar(64) UNIQUE, deleted_at timestamptz);
+		CREATE TABLE public.prj_project_tasks (id bigint PRIMARY KEY);
 		CREATE TABLE public.fin_labor_hours (
 		id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, business_tenant_id bigint NOT NULL, project_id bigint NOT NULL,
 		user_id bigint NOT NULL, work_date date, hours numeric(5,2) NOT NULL, status varchar(20) NOT NULL);
@@ -97,7 +105,7 @@ func weeklyTestPool(t *testing.T, ctx context.Context) *pgxpool.Pool {
 		ALTER TABLE public.prj_projects ADD COLUMN name text NOT NULL DEFAULT '测试项目';
 		INSERT INTO public.fin_labor_hours (business_tenant_id,project_id,user_id,work_date,hours,status) VALUES
 		(7,1,8,'2026-11-23',1.50,'approved'), (7,1,8,'2026-11-29',1.00,'approved'),
-		(7,1,9,'2026-11-24',1.25,'approved'), (7,1,8,'2026-11-24',100,'submitted'),
+		(7,1,9,'2026-11-24',1.25,'approved'), (7,1,9,'2026-11-24',100,'submitted'),
 		(8,1,8,'2026-11-24',100,'approved'), (7,2,18,'2026-11-24',100,'approved'),
 		(7,1,8,'2026-11-22',100,'approved'), (7,1,8,'2026-11-30',100,'approved'),
 		(7,1,8,NULL,100,'approved');`)

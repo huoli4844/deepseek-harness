@@ -91,11 +91,14 @@ curl --fail http://127.0.0.1:3081/api/v1/apps/deepseek-harness/health
 
 ## 项目周报和工时填报
 
+周报的结构化完成事项在保存草稿时可暂留空项目编码、工作类型、完成状态和说明。提交时至少需要一条完整事项，并重新校验非空项目编码的租户归属。历史纯文本仍按原口径读取。
+
 - `GET /api/v1/apps/shaoshi/projects` 提供项目选择，支持关键词和分页。
 - `/api/v1/apps/shaoshi/projects/{code}/labor-hours` 复用 `public.fin_labor_hours`，支持日期范围查询、创建本人的草稿和更新可编辑记录。通过 `POST /{id}/submit` 提交本人的工时草稿。小时数使用十进制字符串表示。
 - `/api/v1/apps/deepseek-harness/projects/{code}/weekly-reports` 查询和保存北京自然周的周报，通过 `POST /submit` 提交并锁定正文。汇总实时读取同租户、同项目、同周的已批准工时。
 - 周报需要 [0002_project_weekly_reports.sql](migrations/0002_project_weekly_reports.sql)。正式目标为云端 `cp_shaoshi`，由维护流程执行，服务启动时不自动执行。
 - `GET`、`PUT /api/v1/apps/deepseek-harness/weekly-reports` 读写当前登录人本人的周登记。身份来自网关头，或配置 `identity_api` 后由服务端携带浏览器下发的 `Authorization: Bearer` 与 `X-Active-Tenant` 向元枢 `/api/v1/user/me`、`/api/v1/user/tenants` 解析当前用户与当前租户；租户编码与凭证当前租户不一致时拒绝。该路由不接受临时租户身份，Bearer 身份只授予本人数据的读写权限；`DSH_BACKEND_IDENTITY_API` 可覆盖该配置，留空时保持仅网关鉴权。
+- 周报 `completed_work` 新写入时使用 JSON 编码的事项数组，字段、工作类型与完成状态以 `api/openapi.json` 的 `WeeklyReportItem` 为准；服务端拒绝未知字段、未知枚举、无效项目编码和无效风险组合，并在同一租户校验项目归属。旧版纯文本记录仍可读取；`planned_work` 保持文本。
 
 ## 工程与交接
 
