@@ -922,7 +922,7 @@ async function main(): Promise<void> {
   }
   const assertMainApplication = (event: IpcMainInvokeEvent): BrowserWindow => {
     if (!isPrimaryTrustedFrame(event)) throw new Error('Rejected Platform command')
-    if (mainWindow === null) throw new Error('Main application window is unavailable')
+    if (mainWindow === undefined) throw new Error('Main application window is unavailable')
     return mainWindow
   }
   installFileActions(assertMainApplication, () => hostUrl)
