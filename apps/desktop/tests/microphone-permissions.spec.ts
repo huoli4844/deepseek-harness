@@ -2,6 +2,7 @@
 import type { Session, WebContents } from 'electron'
 import { afterEach, expect, it, vi } from 'vitest'
 import { installMicrophonePermissions } from '../src/microphone-permissions.ts'
+import { allowWebLoginSender } from '../src/ipc.ts'
 
 const access = vi.hoisted(() => ({ getMediaAccessStatus: vi.fn(() => 'granted'), askForMediaAccess: vi.fn(async () => true) }))
 vi.mock('electron', () => ({ systemPreferences: access }))
@@ -24,6 +25,21 @@ it('allows only audio checks from the owned primary application frame', () => {
   expect(f.check(f.primary, 'media', 'dsh-app://app', { ...details, isMainFrame: false })).toBe(false)
   expect(f.check(f.primary, 'media', 'dsh-app://app', { ...details, mediaType: 'video' })).toBe(false)
   expect(f.check(f.primary, 'clipboard-sanitized-write', 'dsh-app://app', details)).toBe(true)
+})
+it('admits the registered web-login Host origin for audio', async () => {
+  const f = fixture()
+  allowWebLoginSender('http://127.0.0.1:3080')
+  try {
+    expect(f.check(f.primary, 'media', 'http://127.0.0.1:3080', { isMainFrame: true, mediaType: 'audio' })).toBe(true)
+    expect(f.check(f.primary, 'media', 'http://127.0.0.1:3081', { isMainFrame: true, mediaType: 'audio' })).toBe(false)
+    const done = vi.fn()
+    f.request(f.primary, 'media', done, {
+      isMainFrame: true, requestingUrl: 'http://127.0.0.1:3080/', mediaTypes: ['audio'],
+    })
+    await vi.waitFor(() => { expect(done).toHaveBeenLastCalledWith(true) })
+  } finally {
+    allowWebLoginSender(undefined)
+  }
 })
 it.each(['not-determined', 'granted', 'denied', 'restricted', 'unknown'] as const)(
   'reports existing macOS microphone authorization for %s', (status) => {

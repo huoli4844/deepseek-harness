@@ -1,0 +1,55 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/yuanshu-workbench/README.md
+/:
+  en: af7b1f36bd21b3bc
+  zh: fdd81933e57b119a
+/deepseek-ai-dsh-yuanshu-workbench:
+  en: 39c9b34c5ffdc483
+  zh: f26a2da9706ecfbb
+/deepseek-ai-dsh-yuanshu-workbench/summary:
+  en: 3b04e8b1a67e89d7
+  zh: 7bbf8130981b615c
+/deepseek-ai-dsh-yuanshu-workbench/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 364c80ee00a374ff
+/deepseek-ai-dsh-yuanshu-workbench/use-this-package:
+  en: bbff250eba0f1b89
+  zh: b20a47f82d8ab6e0
+/deepseek-ai-dsh-yuanshu-workbench/use-this-package/connect-an-employee-account:
+  en: d8f99ac8d1d04e6e
+  zh: 1fcbfaba627de572
+/deepseek-ai-dsh-yuanshu-workbench/use-this-package/preview-from-this-checkout:
+  en: 56133a0caa375dc6
+  zh: 7b23c2e49f28e88e
+/deepseek-ai-dsh-yuanshu-workbench/use-this-package/employee-daily-report-workflow:
+  en: 68ec8090e8c23261
+  zh: c60089526ff7c19b
+/deepseek-ai-dsh-yuanshu-workbench/use-this-package/what-you-can-try:
+  en: a2f05ed7c51346cf
+  zh: 589e1c9a96a74ce8
+/deepseek-ai-dsh-yuanshu-workbench/understand-the-implementation:
+  en: 0957a7ce9771e4c9
+  zh: 28d06c52ba30feeb
+/deepseek-ai-dsh-yuanshu-workbench/further-exploration:
+  en: 6606c3ebb8c203f4
+  zh: cf3e5210568ba4f4
+/deepseek-ai-dsh-yuanshu-workbench/model-experience:
+  en: 4c12c513665d0136
+  zh: 9ea51e7fbb6e1ae1
+/deepseek-ai-dsh-yuanshu-workbench/model-experience/kv-cache-effect:
+  en: 5a1a1793ff1a5bff
+  zh: 705488601c399fe4
+/deepseek-ai-dsh-yuanshu-workbench/known-limitations-and-deferred-work:
+  en: 1f36688efdc89152
+  zh: 25ea1586b6d7fbc1
+/deepseek-ai-dsh-yuanshu-workbench/known-limitations-and-deferred-work/dev-note:
+  en: 3d53a97e4184a0f7
+  zh: 8232fd9a576368e4
+/deepseek-ai-dsh-yuanshu-workbench/known-limitations-and-deferred-work/daily-and-weekly-report-receipts:
+  en: 493e335b434e5b91
+  zh: 4263a9acba39c0f2
+/deepseek-ai-dsh-yuanshu-workbench/known-limitations-and-deferred-work/equipment-intake-and-service-catalog:
+  en: 34b0850035421080
+  zh: 7a1bf93a8dbb31de

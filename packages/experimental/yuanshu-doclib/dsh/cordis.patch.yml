@@ -1,0 +1,5 @@
+- insert:
+    - id: yuanshu-doclib
+      name: '@deepseek-ai/dsh-yuanshu-doclib'
+      config:
+        apiUrl: http://localhost:8081

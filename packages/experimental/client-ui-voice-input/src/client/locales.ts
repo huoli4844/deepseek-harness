@@ -101,6 +101,7 @@ export const zh = {
   failed: '语音识别失败：{message}',
   unavailable: '当前浏览器不支持录音，请使用支持麦克风的浏览器。',
   permission: '麦克风权限未开启，请在浏览器和系统设置中允许访问。',
+  'permission.desktop': '麦克风权限未开启，请在系统设置中允许本应用访问麦克风。',
   tooLarge: '录音超过服务限制，请缩短录音后重试。',
 } as const
 
@@ -205,6 +206,7 @@ export const en: Record<VoiceKey, string> = {
   failed: 'Speech recognition failed: {message}',
   unavailable: 'This browser cannot record audio. Use a browser with microphone support.',
   permission: 'Microphone access is disabled. Allow it in browser and system settings.',
+  'permission.desktop': 'Microphone access is disabled. Allow this app to use the microphone in system settings.',
   tooLarge: 'The recording exceeds the service limit. Try a shorter recording.',
 }
 
@@ -325,6 +327,7 @@ export const ja = {
   'failed': '音声認識に失敗しました: {message}',
   'unavailable': 'このブラウザは音声を録音できません。マイクに対応したブラウザを使用してください。',
   'permission': 'マイクへのアクセスが無効になっています。ブラウザとシステムの設定で許可してください。',
+  'permission.desktop': 'マイクへのアクセスが無効になっています。システム設定でこのアプリにマイクの使用を許可してください。',
   'tooLarge': '録音がサービスの上限を超えています。短い録音をお試しください。',
 } satisfies Record<keyof typeof en, string>
 
@@ -426,6 +429,7 @@ export const es = {
   failed: 'Error en el reconocimiento de voz: {message}',
   unavailable: 'Este navegador no puede grabar audio. Utilice un navegador compatible con micrófono.',
   permission: 'El acceso al micrófono está deshabilitado. Permitirlo en la configuración del navegador y del sistema.',
+  'permission.desktop': 'El acceso al micrófono está deshabilitado. Permite que esta aplicación use el micrófono en los ajustes del sistema.',
   tooLarge: 'La grabación excede el límite del servicio. Pruebe con una grabación más corta.',
 } satisfies Record<keyof typeof en, string>
 
@@ -527,6 +531,7 @@ export const fr = {
   failed: 'Échec de la reconnaissance vocale : {message}',
   unavailable: 'Ce navigateur ne peut pas enregistrer de son. Utilisez un navigateur prenant en charge le microphone.',
   permission: "L'accès au microphone est désactivé. Autorisez-le dans les paramètres du navigateur et du système.",
+  'permission.desktop': "L'accès au microphone est désactivé. Autorisez cette application à utiliser le microphone dans les réglages système.",
   tooLarge: "L'enregistrement dépasse la limite du service. Essayez un enregistrement plus court.",
 } satisfies Record<keyof typeof en, string>
 
@@ -628,6 +633,7 @@ export const de = {
   failed: 'Spracherkennung fehlgeschlagen: {message}',
   unavailable: 'Dieser Browser kann keine Audiodaten aufzeichnen. Verwenden Sie einen Browser mit Mikrofonunterstützung.',
   permission: 'Der Mikrofonzugriff ist deaktiviert. Erlauben Sie es in den Browser- und Systemeinstellungen.',
+  'permission.desktop': 'Der Mikrofonzugriff ist deaktiviert. Erlauben Sie dieser App die Mikrofonnutzung in den Systemeinstellungen.',
   tooLarge: 'Die Aufnahme überschreitet das Dienstlimit. Versuchen Sie es mit einer kürzeren Aufnahme.',
 } satisfies Record<keyof typeof en, string>
 
@@ -729,6 +735,7 @@ export const ru = {
   failed: 'Не удалось распознать речь: {message}.',
   unavailable: 'Этот браузер не может записывать звук. Используйте браузер с поддержкой микрофона.',
   permission: 'Доступ к микрофону отключен. Разрешите это в настройках браузера и системы.',
+  'permission.desktop': 'Доступ к микрофону отключен. Разрешите этому приложению использовать микрофон в настройках системы.',
   tooLarge: 'Запись превышает лимит обслуживания. Попробуйте более короткую запись.',
 } satisfies Record<keyof typeof en, string>
 
@@ -830,5 +837,6 @@ export const pt = {
   failed: 'Falha no reconhecimento de fala: {message}',
   unavailable: 'Este navegador não pode gravar áudio. Use um navegador com suporte para microfone.',
   permission: 'O acesso ao microfone está desativado. Permita nas configurações do navegador e do sistema.',
+  'permission.desktop': 'O acesso ao microfone está desativado. Permita que este aplicativo use o microfone nas configurações do sistema.',
   tooLarge: 'A gravação excede o limite de serviço. Experimente uma gravação mais curta.',
 } satisfies Record<keyof typeof en, string>

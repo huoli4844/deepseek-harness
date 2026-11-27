@@ -1,0 +1,110 @@
+/* 工作台与弹窗复用同一份主题令牌。 */
+.theme {
+  /* 深蓝工业风主题：只在工作台子树内覆盖 DSH 设计令牌，默认对话保持原样。 */
+  color-scheme: dark;
+  --dsw-alias-bg-base: #070d18;
+  --dsw-alias-bg-primary: #0b1524;
+  --dsw-alias-bg-secondary: #101c2d;
+  --dsw-alias-bg-layer-1: #0d1727;
+  --dsw-alias-bg-layer-2: #122033;
+  --dsw-alias-bg-layer-3: #172941;
+  --dsw-alias-bg-module-platform: #0e1a2b;
+  --dsw-alias-bg-inverse: #e6eef8;
+  --dsw-alias-label-primary: #e6eef8;
+  --dsw-alias-label-secondary: #9fb0c6;
+  --dsw-alias-label-tertiary: #6f8299;
+  --dsw-alias-label-invert: #06101e;
+  --dsw-alias-label-inverse: #06101e;
+  --dsw-alias-border-l3: #1e2f47;
+  --dsw-alias-border-l4: #2a405c;
+  --dsw-alias-border-focus: #35c8f5;
+  --dsw-alias-line-secondary: #1b2b42;
+  --dsw-alias-brand-primary: #35c8f5;
+  --dsw-alias-bg-brand-strong: #1f6fd0;
+  --dsw-alias-bg-brand-subtlest: rgba(53, 200, 245, 0.12);
+  --dsw-alias-bg-success-subtlest: rgba(52, 211, 153, 0.14);
+  --dsw-alias-state-success-primary: #34d399;
+  --dsw-alias-state-warn-primary: #f2b23c;
+  --dsw-alias-state-error-primary: #f26d6d;
+  --dsw-alias-state-info-primary: #4aa8ff;
+  --dsw-alias-state-business-primary: #35c8f5;
+  --dsw-alias-fill-selected: rgba(53, 200, 245, 0.16);
+  --dsw-alias-fill-hover: rgba(120, 170, 220, 0.1);
+  --dsw-alias-interactive-bg-hover: rgba(120, 170, 220, 0.1);
+  --dsw-alias-interactive-bg-active: rgba(53, 200, 245, 0.18);
+  --dsw-alias-text-tertiary: #6f8299;
+  --dsw-alias-scrollbar-bg-l2: rgba(120, 170, 220, 0.12);
+  --dsw-alias-scrollbar-hover-l2: rgba(120, 170, 220, 0.28);
+  /* 原生对话的 Markdown 令牌默认跟随宿主浅色主题，这里在深色工作台内补齐，
+     避免行内代码/代码块在深色面板上显示为白块。 */
+  --dsw-alias-markdown-inline-code: #1b2b42;
+  --dsw-alias-markdown-code-block: #0d1727;
+  --dsw-alias-markdown-code-block-banner: #122033;
+  --dsw-alias-markdown-code-segment-selected: #1e2f47;
+  --dsw-alias-markdown-code-segment-unselected: #0d1727;
+  --dsw-alias-markdown-citation: #172941;
+  --dsw-alias-markdown-placeholder: #101c2d;
+  --dsw-alias-markdown-tag: #172941;
+  /* 对话气泡/输入框在 DSH 中走 specific 令牌，默认跟随宿主浅色主题，这里补深色值。 */
+  --dsw-specific-bubble: #172941;
+  --dsw-specific-bubble-highlight: #1e2f47;
+  --dsw-specific-input-major: #101c2d;
+  --dsw-specific-selector: #1e2f47;
+  --dsw-specific-tip: #122033;
+  /* 身份页仍使用旧版 --dsh-text-* 变量，这里补齐深色取值。 */
+  --dsh-text-strong: #e6eef8;
+  --dsh-text-body: #c9d6e6;
+  --dsh-text-muted: #9fb0c6;
+  --work-line: #1e2f47;
+  --work-muted: #9fb0c6;
+  --work-accent: #35c8f5;
+}
+
+.theme.light {
+  color-scheme: light;
+  --dsw-alias-bg-base: #f2f5f9;
+  --dsw-alias-bg-primary: #ffffff;
+  --dsw-alias-bg-secondary: #eef2f7;
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #f5f8fc;
+  --dsw-alias-bg-layer-3: #e9eff7;
+  --dsw-alias-bg-module-platform: #ffffff;
+  --dsw-alias-bg-inverse: #0d1b2a;
+  --dsw-alias-label-primary: #0d1b2a;
+  --dsw-alias-label-secondary: #46586c;
+  --dsw-alias-label-tertiary: #6c7d92;
+  --dsw-alias-label-invert: #ffffff;
+  --dsw-alias-label-inverse: #ffffff;
+  --dsw-alias-border-l3: #d7e1ed;
+  --dsw-alias-border-l4: #c2d0e0;
+  --dsw-alias-border-focus: #1478c9;
+  --dsw-alias-line-secondary: #e2e9f2;
+  --dsw-alias-bg-brand-subtlest: rgba(20, 120, 201, 0.1);
+  --dsw-alias-fill-selected: rgba(20, 120, 201, 0.12);
+  --dsw-alias-fill-hover: rgba(20, 120, 201, 0.06);
+  --dsw-alias-interactive-bg-hover: rgba(20, 120, 201, 0.06);
+  --dsw-alias-interactive-bg-active: rgba(20, 120, 201, 0.14);
+  --dsw-specific-bubble: #e7eef7;
+  --dsw-specific-bubble-highlight: #dbe6f2;
+  --dsw-specific-input-major: #ffffff;
+  --dsw-specific-selector: #eef2f7;
+  --dsw-specific-tip: #f5f8fc;
+  --dsw-alias-markdown-inline-code: #e7eef7;
+  --dsw-alias-markdown-code-block: #f2f6fb;
+  --dsw-alias-markdown-code-block-banner: #e9eff7;
+  --dsw-alias-markdown-code-segment-selected: #dbe6f2;
+  --dsw-alias-markdown-code-segment-unselected: #f2f6fb;
+  --dsw-alias-markdown-citation: #e7eef7;
+  --dsw-alias-markdown-placeholder: #f2f6fb;
+  --dsw-alias-markdown-tag: #e7eef7;
+  --dsh-text-strong: #0d1b2a;
+  --dsh-text-body: #2b3b4d;
+  --dsh-text-muted: #5a6b7f;
+  --work-line: #d7e1ed;
+  --work-muted: #5a6b7f;
+  --work-accent: #1478c9;
+}
+
+.small { --work-font-scale: 0.92; }
+.normal { --work-font-scale: 1; }
+.large { --work-font-scale: 1.08; }

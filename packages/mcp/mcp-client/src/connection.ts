@@ -122,6 +122,8 @@ export interface ConnectionHandle extends ServerContext {
    * @returns A reader pinned to the current connection generation.
    */
   projectionReader(): (name: string, signal: AbortSignal) => Promise<unknown>
+  /** 在当前连接刷新实际发布的工具目录。 */
+  refreshCatalog(): Promise<readonly string[]>
   /**
    * Settles when the first connection attempt completes or the instance is disposed.
    * The supervisor applies its retry or credential-wait policy; the caller
@@ -475,6 +477,14 @@ export function startConnection(
   settling = Promise.resolve().then(connectGeneration)
 
   const handle: ConnectionHandle = {
+    async refreshCatalog() {
+      const record = current
+      if (record?.connectedAt === undefined) throw new McpToolError(`${label}: server is disconnected`, 'MCP_SERVER_UNAVAILABLE')
+      const changed = await enqueueSync(record)
+      if (!isCurrent(record)) throw new McpToolError(`${label}: server is disconnected`, 'MCP_SERVER_UNAVAILABLE')
+      if (changed) status.update({ state: 'connected', toolCount: loader?.size ?? disposers.size, connectedAt: record.connectedAt })
+      return record.listing.tools?.map(tool => tool.name) ?? []
+    },
     projectionReader() {
       const record = current
       if (record?.connectedAt === undefined) {

@@ -15,6 +15,12 @@ import css from './AccountMenu.module.css'
 /** Account launcher composed by the settings shell. */
 export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 
+/** 外部身份接管时，登录入口应改用该平台自己的登录页。 */
+function externalLoginEnabled(): boolean {
+  const identity: unknown = Reflect.get(window, '__DSH_EXTERNAL_IDENTITY__')
+  return typeof identity === 'object' && identity !== null && 'accountLauncher' in identity && identity.accountLauncher === true
+}
+
 function readYuanShuLabel(): string | undefined {
   const identity: unknown = Reflect.get(window, '__DSH_EXTERNAL_IDENTITY__')
   if (typeof identity !== 'object' || identity === null || !('accountLauncher' in identity) || identity.accountLauncher !== true) return undefined
@@ -93,7 +99,12 @@ export function AccountMenu({
     finally { setBusy(false) }
   }
   // The plugin's start publishes `loginFailed` before it rejects, so the dialog owns the report.
-  const beginSignIn = (): void => { setOpen(false); void start().catch(() => undefined) }
+  // 元枢等外部身份启用时，登录按钮直接进入平台登录页，不再走默认 DeepSeek 授权。
+  const beginSignIn = (): void => {
+    setOpen(false)
+    if (externalLoginEnabled()) { window.location.replace('/login'); return }
+    void start().catch(() => undefined)
+  }
   return <div className={css.root} data-inset={hasIdentity && wide}>
     {signInNotice > 0 && <Toast key={signInNotice} text={t('modelSignInRequired')} onDone={() => { setSignInNotice(0) }} />}
     {yuanShuSignOutFailed && <Toast text={t('failed')} onDone={() => { setYuanShuSignOutFailed(false) }} />}

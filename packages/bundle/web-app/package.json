@@ -36,6 +36,7 @@
     "lib/startup.js",
     "cordis.patch.yml",
     "presets/standard.patch.yml",
+    "presets/yuanshu.patch.yml",
     "presets/ptc.patch.yml",
     "presets/minimal.patch.yml",
     "presets/cordis.patch.yml",
@@ -51,6 +52,7 @@
       "patch": [
         "./cordis.patch.yml",
         "./presets/standard.patch.yml",
+        "./presets/yuanshu.patch.yml",
         "./presets/ptc.patch.yml",
         "./presets/minimal.patch.yml",
         "./presets/cordis.patch.yml"

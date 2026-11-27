@@ -27,9 +27,10 @@ LOG_FILE="$ROOT/.local-tools/web-dev.log"
 BUILD_LOG="$ROOT/.local-tools/build.log"
 PID_FILE="$ROOT/.local-tools/web-dev.pid"
 PATTERN="apps/cli/src/bin.ts web"
-CLIENT_PKG="$ROOT/packages/experimental/client-yuanshu-workbench"
+CLIENT_PKG="$ROOT/packages/experimental/yuanshu-workbench"
 CLIENT_ARTIFACT="$CLIENT_PKG/lib/client.js"
 TSDOWN_BIN="$ROOT/node_modules/.bin/tsdown"
+TSC_BIN="$ROOT/node_modules/.bin/tsc"
 
 # 定位工作区要求的 Node（v24.22.3）：优先本目录，其次仓库根。
 NODE_BIN=""
@@ -53,17 +54,17 @@ dev_env() {
   export DSH_CLIENT_COMMIT_HASH=0000000
 }
 
-# 编译工作台客户端：直接调用 tsdown，绕开 pnpm 的依赖校验与隐式安装。
-build_client() {
-  if [ ! -x "$TSDOWN_BIN" ]; then
-    echo "错误：缺少打包器 tsdown（依赖未安装），本脚本不会自动安装。" >&2
+# 工作台宿主打包以 tsc 的输出为输入，先生成宿主代码再打包。
+build_workbench() {
+  if [ ! -x "$TSC_BIN" ] || [ ! -x "$TSDOWN_BIN" ]; then
+    echo "错误：缺少 tsc 或 tsdown（依赖未安装），本脚本不会自动安装。" >&2
     echo "请手动执行：cd $ROOT && corepack pnpm install" >&2
     exit 1
   fi
-  echo "编译工作台客户端 @deepseek-ai/dsh-client-yuanshu-workbench ……"
+  echo "编译工作台宿主和客户端 @deepseek-ai/dsh-yuanshu-workbench ……"
   mkdir -p "$(dirname "$BUILD_LOG")"
-  if ! ( cd "$CLIENT_PKG" && env -u NODE_OPTIONS DSH_CLIENT_COMMIT_HASH=0000000 "$TSDOWN_BIN" ) >> "$BUILD_LOG" 2>&1; then
-    echo "错误：工作台客户端编译失败，最后 20 行日志：" >&2
+  if ! ( cd "$CLIENT_PKG" && "$TSC_BIN" -p tsconfig.host.json && "$TSDOWN_BIN" ) >> "$BUILD_LOG" 2>&1; then
+    echo "错误：工作台编译失败，最后 20 行日志：" >&2
     tail -20 "$BUILD_LOG" >&2
     echo "完整编译日志：$BUILD_LOG" >&2
     exit 1
@@ -140,7 +141,7 @@ stop_desktop_if_needed() {
 start_web() {
   local web_args="$1"
   dev_env
-  build_client
+  build_workbench
 
   stop_desktop_if_needed
   if is_running; then

@@ -1,0 +1,126 @@
+/** 资料库文件动作样式：工具栏按钮、多选、可排序表头与弹窗按钮。 */
+.toolButton {
+  height: 30px;
+  padding: 0 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.toolButton:hover:not(:disabled) {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+}
+/* 图标按钮：与文字按钮同高，仅显示本地图标，名称由 aria-label/title 提供。 */
+.iconButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0.5px solid var(--work-line);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.iconButton:hover:not(:disabled) {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+}
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.toolButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dangerText {
+  color: #d93f2f;
+}
+.dangerText:hover:not(:disabled) {
+  border-color: #d93f2f;
+  color: #d93f2f;
+}
+.selectionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+}
+.sortHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sortHeader:hover {
+  color: var(--work-accent);
+}
+.checkColumn {
+  width: 32px;
+  padding-inline: 4px !important;
+  text-align: center;
+}
+.actionColumn {
+  position: sticky;
+  inset-inline-end: 0;
+  width: 44px;
+  padding-inline: 4px !important;
+  background: var(--dsw-alias-bg-layer-1);
+  text-align: center;
+}
+.rowAction {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rowAction:hover {
+  background: color-mix(in srgb, var(--work-accent) 10%, transparent);
+  color: var(--work-accent);
+}
+.secondaryButton {
+  height: 30px;
+  padding: 0 14px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.secondaryButton:hover {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+}
+.dangerButton {
+  border-color: #d93f2f;
+  background: #d93f2f;
+}
+.dialogText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}

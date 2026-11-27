@@ -120,10 +120,13 @@
     "@deepseek-ai/dsh-timeline": "workspace:*",
     "@deepseek-ai/dsh-experimental-plugin-market-bundle": "workspace:*",
     "@deepseek-ai/dsh-experimental-forge-bundle": "workspace:*",
-    "@deepseek-ai/dsh-deepseek-chat-import": "workspace:*"
+    "@deepseek-ai/dsh-deepseek-chat-import": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-voice-conversation": "workspace:*"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-client-yuanshu-workbench": "workspace:*",
+    "@deepseek-ai/dsh-yuanshu-doclib": "workspace:*",
+    "@deepseek-ai/dsh-yuanshu-skills": "workspace:*",
+    "@deepseek-ai/dsh-yuanshu-workbench": "workspace:*",
     "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/dsh-skill-badge": "workspace:*",
     "@deepseek-ai/dsh-webhook-github": "workspace:*",

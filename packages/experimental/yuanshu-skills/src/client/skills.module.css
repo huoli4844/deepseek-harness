@@ -1,0 +1,168 @@
+/* 技能市场面板：与工作台同一套明暗主题变量。 */
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  padding: 24px clamp(18px, 3cqw, 36px) 28px;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--work-muted, #6b7280);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--work-line, #e5e7eb);
+  padding-bottom: 8px;
+}
+
+.tab,
+.tabActive {
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--work-muted, #6b7280);
+}
+
+.tabActive {
+  background: var(--work-soft, rgba(59, 130, 246, 0.12));
+  color: var(--work-text, #111827);
+  font-weight: 600;
+}
+
+.count {
+  margin-left: auto;
+  color: var(--work-muted, #6b7280);
+  font-size: 12px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.state {
+  color: var(--work-muted, #6b7280);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.link {
+  margin-left: 8px;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--work-line, #e5e7eb);
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--work-muted, #6b7280);
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.narrow {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.nameButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--work-text, #111827);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.description {
+  margin: 4px 0 0;
+  color: var(--work-muted, #6b7280);
+  font-size: 12px;
+  max-width: 620px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--work-muted, #6b7280);
+}
+
+.fieldText {
+  font-size: 12px;
+  color: var(--work-muted, #6b7280);
+}
+
+.raw {
+  max-height: 420px;
+  overflow: auto;
+  background: var(--work-soft, rgba(17, 24, 39, 0.04));
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  z-index: 40;
+}

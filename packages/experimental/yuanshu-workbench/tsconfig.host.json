@@ -1,0 +1,54 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/host.tsbuildinfo",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/api-catalog/**/*.ts",
+    "src/employee.ts",
+    "src/employee-access*.ts",
+    "src/contract-*.ts",
+    "src/holiday-calendar.ts",
+    "src/identity-proxy.ts",
+    "src/index.ts",
+    "src/integration-status.ts",
+    "src/master-data-proxy.ts",
+    "src/mcp-capabilities.ts",
+    "src/organization-proxy.ts",
+    "src/project-proxy.ts",
+    "src/platform-home.ts",
+    "src/daily-report-*.ts",
+    "src/personal-page-drafts.ts",
+    "src/todos/**/*.ts",
+    "src/business-forms/**/*.ts",
+    "src/business-forms/**/*.json",
+    "src/plugins/**/*.ts"
+  ],
+  "references": [
+    { "path": "../../core/agent" },
+    { "path": "../../core/scope" },
+    { "path": "../../core/session" },
+    { "path": "../../core/tools" },
+    { "path": "../../preset/agent-preset-registry" },
+    { "path": "../../skill/skill" },
+    { "path": "../../session-query/session-query" },
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../host/webserver"
+    },
+    {
+      "path": "../../mcp/mcp-manager"
+    },
+    {
+      "path": "../../mcp/mcp-account"
+    }
+  ]
+}

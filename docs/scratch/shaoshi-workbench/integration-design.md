@@ -292,7 +292,7 @@ The local Session can store a human-readable summary, selected materials, cursor
 
 ## 10. DSH plugin conformance and reuse
 
-The current `client-yuanshu-workbench` on `dev` remains primarily a synthetic-data UI prototype, but its Host `src/index.ts` now registers an optional Streamable HTTP MCP connection and the native DSH MCP account entry; its client `src/client/index.ts` uses native Conversation, Session references and the role workbench. MCP configuration is off by default and workbench business data still comes from the local store. Its role/view/task/workgroup model, fixtures, locale dictionaries, and layout are useful interaction scaffolding. They must be replaced with typed Host calls and bind the MCP grant to the platform principal before the plugin represents a real employee.
+The current `yuanshu-workbench` on `dev` remains primarily a synthetic-data UI prototype, but its Host `src/index.ts` now registers an optional Streamable HTTP MCP connection and the native DSH MCP account entry; its client `src/client/index.ts` uses native Conversation, Session references and the role workbench. MCP configuration is off by default and workbench business data still comes from the local store. Its role/view/task/workgroup model, fixtures, locale dictionaries, and layout are useful interaction scaffolding. They must be replaced with typed Host calls and bind the MCP grant to the platform principal before the plugin represents a real employee.
 
 The `feature/yuanshu-platform` branch contains reusable foundations, not a package to merge wholesale:
 
@@ -435,6 +435,6 @@ Before live release, YuanShu owners must provide the deployed MCP resource/issue
 | Shaoshi briefing counts | `server/internal/apps/shaoshi/briefing.go:202-302` |
 | Position and KPI models | `server/internal/model/position.go`, `server/internal/service/system/position_kpi.go` |
 | Meetings, collaboration and retired local automation | `sql/shaoshi/migrations/202610290001_shaoshi_business_tables.sql`, `202611090004_shaoshi_remove_local_automation.sql` |
-| DSH prototype and reusable feature branch | `packages/experimental/client-yuanshu-workbench`, `feature/yuanshu-platform` packages listed in section 10 |
+| DSH prototype and reusable feature branch | `packages/experimental/yuanshu-workbench`, `feature/yuanshu-platform` packages listed in section 10 |
 
 The next document revision should replace any unresolved capability row with the platform's deployed contract and record the owner, version, permission, and acceptance fixture. Until then, the design remains a source-backed proposal with explicit integration gaps.

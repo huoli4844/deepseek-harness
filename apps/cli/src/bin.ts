@@ -29,7 +29,7 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
   const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
 
   const launchBundles = import.meta.main && import.meta.filename.endsWith('.ts') && invocation.profile === 'web'
-    ? ['@deepseek-ai/dsh-client-yuanshu-workbench', '@deepseek-ai/dsh-client-yuanshu-doclib']
+    ? ['@deepseek-ai/dsh-yuanshu-workbench', '@deepseek-ai/dsh-yuanshu-doclib', '@deepseek-ai/dsh-yuanshu-skills']
     : undefined
 
   switch (invocation.mode) {

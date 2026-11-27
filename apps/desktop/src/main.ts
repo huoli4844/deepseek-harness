@@ -316,7 +316,21 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     },
   })
   window.webContents.setWindowOpenHandler(({ url }) => {
-    if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
+    // 资料库预览窗口：同源、无凭据且路径固定的新窗口由应用自己承载，可拖到窗口之外。
+    const destination = new URL(url)
+    let current: URL | undefined
+    try { current = new URL(window.webContents.getURL()) } catch { current = undefined }
+    const sameOriginPreview = current !== undefined && destination.username === ''
+      && destination.password === '' && destination.origin === current.origin
+      && destination.pathname === '/yuanshu-doclib/window'
+    if (sameOriginPreview) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: { width: 960, height: 720, minWidth: 480, minHeight: 320, autoHideMenuBar: true },
+      }
+    }
+    // 日历协议交给系统日历应用；http(s) 交给默认浏览器。
+    if (['http:', 'https:', 'ical:', 'webcal:'].includes(destination.protocol)) void shell.openExternal(url)
     return { action: 'deny' }
   })
   if (process.platform === 'darwin' || process.platform === 'win32') {
@@ -908,7 +922,8 @@ async function main(): Promise<void> {
   }
   const assertMainApplication = (event: IpcMainInvokeEvent): BrowserWindow => {
     if (!isPrimaryTrustedFrame(event)) throw new Error('Rejected Platform command')
-    return mainWindow!
+    if (mainWindow === null) throw new Error('Main application window is unavailable')
+    return mainWindow
   }
   installFileActions(assertMainApplication, () => hostUrl)
   ipcMain.on(PLATFORM_IPC.bootstrap, (event) => {

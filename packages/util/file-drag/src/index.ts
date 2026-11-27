@@ -42,7 +42,7 @@ export interface DesktopFileDrag {
 
 /**
  * Resolve one platform-safe export filename. Explicit suffix wins; compatible suffixes survive.
- * A known conflicting suffix is replaced from MIME; unknown MIME never rejects a supplied name.
+ * A known conflicting suffix is replaced from MIME; unknown or generic binary MIME never rejects a supplied name.
  * @param request - caller name, declared content type, and optional explicit suffix.
  * @returns cleaned filename, with MIME-derived suffix only when needed.
  */
@@ -52,10 +52,15 @@ export function resolveDragFileName(request: DragFileName): string {
   const dot = clean.lastIndexOf('.')
   const suffix = dot < 0 ? '' : clean.slice(dot + 1)
   const declared = mediaType.replace(/;.*$/su, '').trim().toLowerCase()
-  const preferred = mime.getExtension(declared)
+  // 通用二进制 MIME 不携带格式信息；此时优先保留调用方给出的扩展名，避免 PDF 等被改成 .bin。
+  const generic = declared === 'application/octet-stream'
+  const preferred = generic ? null : mime.getExtension(declared)
   const explicit = outputExtension?.replace(/^\./u, '').replace(/[^a-z\d_-]/giu, '')
-  const compatible = mime.getAllExtensions(declared)?.has(suffix.toLowerCase()) === true
-  const extension = explicit || (suffix === '' || (preferred !== null && !compatible) ? preferred : suffix)
+  const compatible = !generic && mime.getAllExtensions(declared)?.has(suffix.toLowerCase()) === true
+  const derived = suffix === ''
+    ? preferred ?? (generic ? 'bin' : null)
+    : (preferred !== null && !compatible ? preferred : suffix)
+  const extension = explicit || derived
   if (extension) clean = `${dot < 0 ? clean : clean.slice(0, dot)}.${extension}`
   if (/^(con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/iu.test(clean)) clean = `_${clean}`
   const finalDot = clean.lastIndexOf('.')

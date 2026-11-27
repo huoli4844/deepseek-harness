@@ -270,6 +270,13 @@ export default class McpServerManager extends TypertRemoteService {
     return instance.projectionReader()
   }
 
+  /** 供宿主刷新已连接服务的工具目录，保留当前授权连接。 */
+  async refreshCatalog(server: string): Promise<readonly string[]> {
+    const instance = this.instances.get(server)?.instance
+    if (instance === undefined) throw new Error('MCP server connection unavailable')
+    return instance.refreshCatalog()
+  }
+
   /**
    * Stream server views for a management surface: the current list on
    * subscription, then the complete list again after each status or entry change.

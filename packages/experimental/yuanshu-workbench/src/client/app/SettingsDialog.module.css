@@ -1,0 +1,201 @@
+/* 设置弹窗通过 Modal 挂到 document.body，不能继承工作台根节点的主题令牌。
+   dark/light 两个类把工作台对应主题的令牌重新声明到弹窗根节点，
+   弹窗标题、按钮与表单控件才能跟随主题切换。 */
+.dialog {
+  width: min(560px, calc(100vw - 32px));
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+.dark {
+  color-scheme: dark;
+  --dsw-alias-bg-secondary: #101c2d;
+  --dsw-alias-bg-layer-1: #0d1727;
+  --dsw-alias-bg-layer-2: #122033;
+  --dsw-alias-label-primary: #e6eef8;
+  --dsw-alias-label-secondary: #9fb0c6;
+  --dsw-alias-line-secondary: #1b2b42;
+  --dsw-alias-brand-primary: #35c8f5;
+  --dsw-alias-fill-selected: rgba(53, 200, 245, 0.16);
+  --dsw-alias-interactive-bg-hover: rgba(120, 170, 220, 0.1);
+}
+.light {
+  color-scheme: light;
+  --dsw-alias-bg-secondary: #eef2f7;
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #f5f8fc;
+  --dsw-alias-label-primary: #0d1b2a;
+  --dsw-alias-label-secondary: #46586c;
+  --dsw-alias-line-secondary: #e2e9f2;
+  --dsw-alias-brand-primary: #1478c9;
+  --dsw-alias-fill-selected: rgba(20, 120, 201, 0.12);
+  --dsw-alias-interactive-bg-hover: rgba(20, 120, 201, 0.06);
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sectionTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--dsw-alias-label-secondary);
+}
+.options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.option,
+.optionActive {
+  min-width: 72px;
+  padding: 6px 12px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-secondary);
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.option:hover {
+  color: var(--dsw-alias-label-primary);
+  border-color: var(--dsw-alias-brand-primary);
+}
+.optionActive {
+  border-color: var(--dsw-alias-brand-primary);
+  background: var(--dsw-alias-fill-selected);
+  color: var(--dsw-alias-brand-primary);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.listRow {
+  padding: 6px 10px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-secondary);
+}
+/* 技能名称在卡片内单行省略，完整描述通过 title 悬停查看。 */
+.skillName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.pagerButton,
+.pagerActive {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.pagerButton:hover:not(:disabled) {
+  border-color: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-brand-primary);
+}
+.pagerButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pagerActive {
+  border-color: var(--dsw-alias-brand-primary);
+  background: var(--dsw-alias-fill-selected);
+  color: var(--dsw-alias-brand-primary);
+}
+.pagerStatus {
+  margin-inline-start: 4px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+.code {
+  font-family: var(--ds-font-family-code, monospace);
+  font-size: 11px;
+  color: var(--dsw-alias-label-primary);
+  word-break: break-all;
+}
+/* 插件卡片：两列紧凑网格，功能描述通过 title 悬停查看，避免列表过高撑满弹窗。 */
+.pluginGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pluginCard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-secondary);
+  font-size: 12px;
+}
+@media (max-width: 560px) {
+  .pluginGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.pluginName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pluginVersion {
+  flex: none;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pluginOn,
+.pluginOff {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.pluginOn {
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent);
+  color: var(--dsw-alias-state-success-primary);
+}
+.pluginOff {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 14%, transparent);
+  color: var(--dsw-alias-label-secondary);
+}
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}

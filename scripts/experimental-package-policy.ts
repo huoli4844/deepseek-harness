@@ -6,8 +6,9 @@
  * experimental name only through this map.
  */
 export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, string>> = {
-  'packages/experimental/client-yuanshu-doclib': '@deepseek-ai/dsh-client-yuanshu-doclib',
-  'packages/experimental/client-yuanshu-workbench': '@deepseek-ai/dsh-client-yuanshu-workbench',
+  'packages/experimental/yuanshu-doclib': '@deepseek-ai/dsh-yuanshu-doclib',
+  'packages/experimental/yuanshu-skills': '@deepseek-ai/dsh-yuanshu-skills',
+  'packages/experimental/yuanshu-workbench': '@deepseek-ai/dsh-yuanshu-workbench',
   'packages/experimental/cua': '@deepseek-ai/dsh-cua',
   'packages/experimental/cua-bundle': '@deepseek-ai/dsh-cua-bundle',
   'packages/experimental/cua-macos': '@deepseek-ai/dsh-cua-macos',
@@ -27,6 +28,7 @@ export const EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS: Readonly<Record<string, strin
   'packages/experimental/webhook-github': '@deepseek-ai/dsh-webhook-github',
   'packages/experimental/forge-gitlab': '@deepseek-ai/dsh-forge-gitlab',
   'packages/experimental/deepseek-chat-import': '@deepseek-ai/dsh-deepseek-chat-import',
+  'packages/experimental/client-ui-voice-conversation': '@deepseek-ai/dsh-client-ui-voice-conversation',
 } satisfies Record<`packages/experimental/${string}`, `@deepseek-ai/dsh-${string}`>
 
 /** Legacy npm namespace, allowed only in `LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES`. */

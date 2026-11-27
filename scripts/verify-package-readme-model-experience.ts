@@ -51,7 +51,9 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
  */
 const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/yuanshu/yuanshu-login-server': { kind: 'none', reason: 'Browser sign-in routes and static assets add no model input.' },
-  'packages/experimental/client-yuanshu-workbench': { kind: 'none', reason: 'The browser-only workbench uses in-memory demonstration data and preset suggestions; it registers no tools or model input.' },
+  'packages/experimental/yuanshu-workbench': { kind: 'none', reason: 'The browser-only workbench uses in-memory demonstration data and preset suggestions; it registers no tools or model input.' },
+  'packages/experimental/yuanshu-skills': { kind: 'none', reason: 'The browser-only skills market renders Host data and forwards explicit user actions without contributing model input.' },
+  'packages/experimental/yuanshu-doclib': { kind: 'none', reason: 'The browser-only library panel renders Host data and performs explicit user file actions without contributing model input.' },
   'packages/client/config': { kind: 'none', reason: 'Browser configuration types register nothing and add no model input.' },
   'packages/client/script-realm': { kind: 'none', reason: 'Optional browser execution-provider registration contributes no model input.' },
   'packages/client/script-realm-iframe': { kind: 'none', reason: 'Same-origin browser script environments contribute no model input.' },

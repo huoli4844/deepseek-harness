@@ -1,0 +1,92 @@
+/* 连续语音对话的输入区与状态条样式；只使用平台设计 token。 */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+  flex: none;
+}
+
+.trigger[data-phase='listening'],
+.trigger[data-phase='preparing'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.trigger[data-phase='speaking'] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.trigger[data-phase='error'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.triggerAnchor {
+  display: inline-flex;
+  flex: none;
+}
+
+/* 状态条贴在输入卡上方；dock 已提供独立布局，因此不设置定位。 */
+.panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-elevated);
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--dsw-alias-label-tertiary);
+}
+
+.dot[data-phase='listening'] {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.dot[data-phase='speaking'] {
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.dot[data-phase='error'] {
+  background: var(--dsw-alias-state-error-primary);
+}
+
+.transcript {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.failure {
+  flex: 1;
+  min-width: 0;
+  color: var(--dsw-alias-state-error-primary);
+  overflow-wrap: anywhere;
+}
+
+.stopButton {
+  flex: none;
+  margin-left: auto;
+}

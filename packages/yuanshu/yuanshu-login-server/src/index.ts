@@ -45,6 +45,10 @@ export const Config: z<Config> = z.object({
 })
 
 const LOGIN_PATH = '/login'
+/** 登录页同源 API 前缀：桌面端 dsh-app:// 源不在后台 CORS 白名单内，必须经宿主转发。 */
+const API_PROXY_PREFIX = '/yuanshu-api'
+/** 登录页转发请求体上限。 */
+const API_PROXY_BODY_LIMIT = 1_048_576
 const YUANSHU_TOKEN_PATH = '/yuanshu-token'
 const YUANSHU_TENANTS_PATH = '/api/v1/user/tenants'
 const TOKEN_PROOF_TIMEOUT_MS = 5000
@@ -97,7 +101,64 @@ const MIME_TYPES: Record<string, string> = {
   webmanifest: 'application/manifest+json',
 }
 
-function serveRequest(req: IncomingMessage, res: ServerResponse, distRoot: string, yuanshuApiUrl: string): void {
+/** 读取登录页转发的请求体；超过上限返回 undefined。 */
+async function readProxyBody(req: IncomingMessage): Promise<Buffer<ArrayBuffer> | undefined> {
+  const chunks: Buffer[] = []
+  let size = 0
+  for await (const chunk of req.iterator({ destroyOnReturn: false }) as AsyncIterableIterator<string | Uint8Array>) {
+    const bytes = Buffer.from(chunk)
+    size += bytes.byteLength
+    if (size > API_PROXY_BODY_LIMIT) return undefined
+    chunks.push(bytes)
+  }
+  return Buffer.concat(chunks, size) as Buffer<ArrayBuffer>
+}
+
+/** 把登录页的 /yuanshu-api/api/v1/* 请求转发到元枢后台，避免桌面端跨域限制。 */
+async function proxyYuanshuApi(req: IncomingMessage, res: ServerResponse, apiUrl: string): Promise<void> {
+  const url = new URL(req.url ?? '/', 'http://dsh.invalid')
+  const upstreamPath = url.pathname.slice(API_PROXY_PREFIX.length)
+  if (!upstreamPath.startsWith('/api/v1/')) {
+    res.writeHead(404, { 'cache-control': 'no-store' })
+    res.end()
+    return
+  }
+  const method = req.method ?? 'GET'
+  const headers: Record<string, string> = { accept: typeof req.headers.accept === 'string' ? req.headers.accept : 'application/json' }
+  for (const key of ['content-type', 'authorization', 'x-active-tenant'] as const) {
+    const value = req.headers[key]
+    if (typeof value === 'string' && value !== '') headers[key] = value
+  }
+  let body: Buffer<ArrayBuffer> | undefined
+  if (method !== 'GET' && method !== 'HEAD') {
+    body = await readProxyBody(req)
+    if (body === undefined) {
+      res.writeHead(413, { 'cache-control': 'no-store' })
+      res.end()
+      return
+    }
+  }
+  try {
+    const response = await fetch(`${apiUrl.replace(/\/+$/u, '')}${upstreamPath}${url.search}`, {
+      method,
+      headers,
+      ...(body === undefined ? {} : { body }),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(60_000),
+    })
+    const payload = Buffer.from(await response.arrayBuffer())
+    res.writeHead(response.status, {
+      'cache-control': 'no-store',
+      'content-type': response.headers.get('content-type') ?? 'application/json; charset=utf-8',
+    })
+    res.end(payload)
+  } catch {
+    res.writeHead(502, { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' })
+    res.end('{"code":502,"message":"元枢登录服务暂不可用"}')
+  }
+}
+
+function serveRequest(req: IncomingMessage, res: ServerResponse, distRoot: string): void {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const pathname = url.pathname
 
@@ -110,7 +171,7 @@ function serveRequest(req: IncomingMessage, res: ServerResponse, distRoot: strin
       // after it and must not lose its opening attributes.
       html = html.replace(
         '<script type="module"',
-        `<script type="module">window.__YUANSHU_API_URL__ = ${JSON.stringify(yuanshuApiUrl)};</script>`
+        `<script type="module">window.__YUANSHU_API_URL__ = ${JSON.stringify(API_PROXY_PREFIX)};</script>`
           + '<script type="module"',
       )
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
@@ -175,8 +236,16 @@ export function apply(ctx: Context, config: Config): void {
     kind: 'exact',
     path: LOGIN_PATH,
     auth: 'anonymous',
-    handler: (req, res) => { serveRequest(req, res, distRoot, yuanshuApiUrl) },
+    handler: (req, res) => { serveRequest(req, res, distRoot) },
   }), 'yuanshu-login-server: login page')
+
+  // 登录页 API 同源转发：桌面端渲染进程源为 dsh-app://app，云端 CORS 不放行。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: API_PROXY_PREFIX,
+    auth: 'anonymous',
+    handler: (req, res) => proxyYuanshuApi(req, res, yuanshuApiUrl),
+  }), 'yuanshu-login-server: api proxy')
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

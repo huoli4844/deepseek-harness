@@ -292,7 +292,7 @@ sequenceDiagram
 
 ## 10. DSH 插件规范与复用
 
-`dev` 中的 `client-yuanshu-workbench` 仍是以合成记录为主的 UI 原型，但 Host `src/index.ts` 已注册可选的 Streamable HTTP MCP 连接和 DSH 原生 MCP 账号入口；客户端 `src/client/index.ts` 已接入原生 Conversation、Session 引用和岗位工作台。当前 MCP 配置默认关闭，工作台业务数据仍来自本地 store。它的角色/视图/任务/工作群模型、fixtures、语言包和布局可以作为交互脚手架；在代表真实员工之前，必须把这些 store 读写替换为类型化 Host 调用，并让 MCP grant 与平台主体绑定。
+`dev` 中的 `yuanshu-workbench` 仍是以合成记录为主的 UI 原型，但 Host `src/index.ts` 已注册可选的 Streamable HTTP MCP 连接和 DSH 原生 MCP 账号入口；客户端 `src/client/index.ts` 已接入原生 Conversation、Session 引用和岗位工作台。当前 MCP 配置默认关闭，工作台业务数据仍来自本地 store。它的角色/视图/任务/工作群模型、fixtures、语言包和布局可以作为交互脚手架；在代表真实员工之前，必须把这些 store 读写替换为类型化 Host 调用，并让 MCP grant 与平台主体绑定。
 
 `feature/yuanshu-platform` 包含可复用基础，但不能整体合并：
 
@@ -435,6 +435,6 @@ sequenceDiagram
 | 少仕简报计数 | `server/internal/apps/shaoshi/briefing.go:202-302` |
 | 岗位和 KPI 模型 | `server/internal/model/position.go`、`server/internal/service/system/position_kpi.go` |
 | 会议、协同和本地自动化退役 | `sql/shaoshi/migrations/202610290001_shaoshi_business_tables.sql`、`202611090004_shaoshi_remove_local_automation.sql` |
-| DSH 原型和可复用 feature 分支 | `packages/experimental/client-yuanshu-workbench`、第 10 节列出的 `feature/yuanshu-platform` 包 |
+| DSH 原型和可复用 feature 分支 | `packages/experimental/yuanshu-workbench`、第 10 节列出的 `feature/yuanshu-platform` 包 |
 
 下一版应把每一条未确认能力替换成部署契约，并记录负责人、版本、权限和验收样例。在此之前，本文是一个有源码依据且明确标注缺口的集成提案。

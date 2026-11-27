@@ -1,0 +1,121 @@
+/* 「我的待办」卡片样式：沿用工作台浅色卡片与状态胶囊。 */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--dsw-alias-border-secondary);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary);
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.notifyOn {
+  font-size: 12px;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px dashed var(--dsw-alias-border-secondary);
+}
+
+.row[data-done='true'] .main strong {
+  text-decoration: line-through;
+  color: var(--dsw-alias-text-secondary);
+}
+
+.check {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-secondary);
+  border-radius: 6px;
+}
+
+.main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.main strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main small {
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.due {
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary);
+  white-space: nowrap;
+}
+
+.due[data-overdue='true'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.remove {
+  min-width: 20px;
+  padding: 0 4px;
+  color: var(--dsw-alias-text-secondary);
+}
+
+.empty {
+  margin: 0;
+  padding: 8px 2px;
+  font-size: 12px;
+  color: var(--dsw-alias-text-secondary);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-state-error-primary);
+}

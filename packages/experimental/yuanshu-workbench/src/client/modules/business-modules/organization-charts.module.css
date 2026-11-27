@@ -1,0 +1,180 @@
+/** 组织架构图表样式：折线图与柱状图的悬停提示、命中区与柱体。 */
+
+/* 图表外层：相对定位承载悬停提示。 */
+.chartWrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 折线图带纵轴的网格布局：第一列纵轴刻度、第二列绘图区与月份轴，两行对齐。 */
+.chartWithAxis {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 4px 4px;
+}
+/* 柱状图带纵轴的横向布局：刻度列只对齐柱轨高度，名称列在下方。 */
+.barWithAxis {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+/* 纵坐标刻度列：标签按百分比定位，样式与月份轴完全一致。 */
+.chartYAxis {
+  position: relative;
+  flex: none;
+  width: 32px;
+}
+.chartYAxis span {
+  position: absolute;
+  right: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* 月份轴：与绘图区同列对齐，字号与纵轴刻度一致。 */
+.chartMonths {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* 折线图网格线：与纵轴刻度对齐。 */
+.chartGrid {
+  stroke: var(--work-line);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.chart {
+  display: block;
+  width: 100%;
+  height: 200px;
+}
+.chartLine {
+  fill: none;
+  stroke: var(--dsw-alias-brand-primary);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chartDot {
+  fill: var(--dsw-alias-brand-primary);
+}
+/* 月份命中区：透明按钮铺满整列高度，扩大悬停范围。 */
+.chartHit {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: crosshair;
+}
+.chartHit:focus-visible {
+  outline: none;
+}
+/* 悬停提示：跟随数据点，置于点上方。 */
+.chartTip {
+  position: absolute;
+  z-index: 2;
+  padding: 3px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-3, var(--dsw-alias-bg-layer-2));
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 6px));
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+}
+
+/* 柱状图：横向排列的柱列，悬停整列显示提示。 */
+.barRow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 220px;
+}
+.barSlot {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  cursor: default;
+}
+.barTrack {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 180px;
+}
+.bar {
+  width: min(26px, 70%);
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background: var(--dsw-alias-brand-primary);
+}
+.barName {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.barSlot:hover .bar {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 78%, var(--work-accent));
+}
+/* 柱顶悬停提示：默认隐藏，悬停整列时显示。 */
+.barTip {
+  position: absolute;
+  bottom: calc(100% - 12px);
+  left: 50%;
+  z-index: 2;
+  padding: 3px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-3, var(--dsw-alias-bg-layer-2));
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  transition: opacity 0.12s ease;
+}
+.barSlot:hover .barTip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 图形主体 + 口径脚注。 */
+.chartFigureBody {
+  display: grid;
+  gap: 4px;
+}
+.chartHint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}

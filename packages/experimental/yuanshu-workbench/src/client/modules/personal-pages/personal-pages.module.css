@@ -1,0 +1,56 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: var(--dsw-space-3, 12px);
+}
+
+.toolbar,
+.pages,
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--dsw-space-2, 8px);
+}
+
+.pages {
+  flex: 1 1 auto;
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+.fields,
+.fields > label {
+  display: grid;
+  gap: var(--dsw-space-2, 8px);
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.settingsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--dsw-space-2, 8px);
+}
+
+.settingsName {
+  display: grid;
+  flex: 1 1 14ch;
+  gap: var(--dsw-space-2, 8px);
+}
+
+.visibility {
+  display: flex;
+  align-items: center;
+  gap: var(--dsw-space-2, 8px);
+  align-self: center;
+}

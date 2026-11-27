@@ -1,0 +1,11 @@
+- insert:
+    - id: yuanshu-workbench
+      name: '@deepseek-ai/dsh-yuanshu-workbench'
+      config:
+        mcp:
+          url: !!js "process.env.YUANSHU_REMOTE_MCP_URL ?? 'https://8-148-158-251.sslip.io/api/v1/client/mcp'"
+          apiUrl: !!js "process.env.YUANSHU_REMOTE_API_URL ?? 'https://8-148-158-251.sslip.io'"
+          startupTimeoutMs: !!js "Number(process.env.YUANSHU_MCP_STARTUP_TIMEOUT_MS ?? 30000)"
+          clientId: !!js "process.env.YUANSHU_MCP_CLIENT_ID ?? 'dsh-yuanshu'"
+        data:
+          apiUrl: !!js "process.env.YUANSHU_REMOTE_API_URL ?? 'https://8-148-158-251.sslip.io'"

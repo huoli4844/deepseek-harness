@@ -198,5 +198,5 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 | 开发内容 | 目录级规则 |
 |---|---|
 | 元枢业务插件，按插件分目录 | [插件开发规则](packages/experimental/AGENTS.md) |
-| 元枢员工技能，每个技能一个目录 | [技能包开发规则](packages/experimental/client-yuanshu-workbench/skills/AGENTS.md) |
-| A2UI 通用确认、内容编辑弹窗 | [固定模板与接入约定](packages/experimental/client-yuanshu-workbench/src/business-forms/templates/README.md) |
+| 元枢员工技能，每个技能一个目录 | [技能包开发规则](packages/experimental/yuanshu-workbench/skills/AGENTS.md) |
+| A2UI 通用确认、内容编辑弹窗 | [固定模板与接入约定](packages/experimental/yuanshu-workbench/src/business-forms/templates/README.md) |

@@ -1,0 +1,35 @@
+/* 资料库左侧目录树：展开按钮、叶子占位与行内按钮的宽度分配。 */
+.railTreeRow {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+.railTreeRowButton {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.railTreeToggle {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.railTreeToggle:hover {
+  background: color-mix(in srgb, var(--dsw-alias-label-secondary) 9%, transparent);
+  color: inherit;
+}
+.railTreeSpacer {
+  flex: 0 0 18px;
+  width: 18px;
+}

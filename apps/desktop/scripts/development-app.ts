@@ -19,6 +19,28 @@ export interface DevelopmentAppOptions {
 
 function quote(value: string): string { return `'${value.replaceAll("'", "'\\''")}'` }
 
+/** Display name kept when the platform OEM config cannot be reached. */
+const FALLBACK_PRODUCT_NAME = 'Harness Dev'
+/** Backend that serves the platform brand shown inside the workbench. */
+const OEM_API_BASE = process.env.YUANSHU_REMOTE_API_URL ?? 'https://8-148-158-251.sslip.io'
+
+/**
+ * Read the system name from the public OEM config so the Dock tooltip, the
+ * application menu, and the About panel match the platform branding.
+ * @returns Trimmed backend name, or the fallback when the request fails.
+ */
+function productName(): string {
+  try {
+    const url = `${OEM_API_BASE.replace(/\/+$/u, '')}/api/v1/oem-configs/public`
+    const body = execFileSync('/usr/bin/curl', ['-fsS', '--max-time', '3', url], { encoding: 'utf8' })
+    const name = (JSON.parse(body) as { data?: { system_name?: unknown } }).data?.system_name
+    if (typeof name === 'string' && name.trim() !== '') return name.trim()
+  } catch {
+    // Keep the development name when the backend is unavailable.
+  }
+  return FALLBACK_PRODUCT_NAME
+}
+
 /**
  * Prepare and register a disposable .app without changing the installed Electron package.
  * @param options - Current workspace, Electron binary, and private development locations.
@@ -30,15 +52,16 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
   const executable = join(bundle, 'Contents', 'MacOS', 'HarnessDev')
   const stamp = join(bundle, 'Contents', 'Resources', 'dsh-development.json')
   const launcher = developmentLauncher(options, bundle)
-  const identity = JSON.stringify({ ...options, launcher, plist: readFileSync(join(source, 'Contents', 'Info.plist'), 'utf8') })
+  const displayName = productName()
+  const identity = JSON.stringify({ ...options, displayName, launcher, plist: readFileSync(join(source, 'Contents', 'Info.plist'), 'utf8') })
   if (!existsSync(stamp) || readFileSync(stamp, 'utf8') !== identity) {
     rmSync(bundle, { recursive: true, force: true })
     execFileSync('/usr/bin/ditto', [source, bundle])
     const plist = join(bundle, 'Contents', 'Info.plist')
     const values = {
       CFBundleIdentifier: `com.deepseek.harness.dev.${createHash('sha256').update(options.appRoot).digest('hex').slice(0, 12)}`,
-      CFBundleName: 'Harness Dev',
-      CFBundleDisplayName: 'Harness Dev',
+      CFBundleName: displayName,
+      CFBundleDisplayName: displayName,
       CFBundleExecutable: 'HarnessDev',
       CFBundleURLTypes: [{ CFBundleURLName: 'DeepSeek Harness', CFBundleURLSchemes: ['dsh'], CFBundleTypeRole: 'Viewer' }],
     }

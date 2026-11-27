@@ -9,6 +9,10 @@ it.each([
   [{ name: 'report.png', mediaType: 'application/pdf' }, 'report.pdf'],
   [{ name: 'report.pdf', mediaType: 'application/pdf', outputExtension: '.bin' }, 'report.bin'],
   [{ name: 'report', mediaType: 'application/pdf', outputExtension: 'bin' }, 'report.bin'],
+  // 通用二进制 MIME 不应覆盖调用方已有的扩展名。
+  [{ name: '报告.pdf', mediaType: 'application/octet-stream' }, '报告.pdf'],
+  [{ name: 'archive.zip', mediaType: 'application/octet-stream' }, 'archive.zip'],
+  [{ name: 'report', mediaType: 'application/octet-stream' }, 'report.bin'],
   [{ name: 'custom.asset', mediaType: 'application/x-custom' }, 'custom.asset'],
   [{ name: 'custom', mediaType: 'application/x-custom' }, 'custom'],
   [{ name: '  .. ', mediaType: '' }, 'file'],

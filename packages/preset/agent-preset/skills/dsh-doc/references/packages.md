@@ -220,7 +220,9 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 
 | Package | Config | Description |
 |---|---|---|
-| `@deepseek-ai/dsh-client-yuanshu-workbench` | yes | Opt-in Shaoshi role workbench with local demonstration data |
+| `@deepseek-ai/dsh-yuanshu-doclib` | yes | YuanShu document library panel browsing enterprise knowledge-base documents |
+| `@deepseek-ai/dsh-yuanshu-skills` | yes | YuanShu skills market panel browsing and installing enterprise skills |
+| `@deepseek-ai/dsh-yuanshu-workbench` | yes | Opt-in Shaoshi role workbench with local demonstration data |
 | `@deepseek-ai/dsh-cua` | no | Shared Computer Use application objects, authorization, and logged tool execution |
 | `@deepseek-ai/dsh-cua-macos` | yes | macOS native provider for shared Computer Use application and window objects |
 | `@deepseek-ai/dsh-cua-mcp` | yes | Computer Use as an MCP stdio server: a dsh profile bundle that exposes cua_run_code to external agent harnesses |

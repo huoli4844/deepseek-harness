@@ -1805,12 +1805,13 @@ describe('running and lock semantics', () => {
 
   it('the inert textarea opens the Workspace picker by pointer or keyboard', () => {
     const onRequestWorkspace = vi.fn()
-    const { view, textarea } = bench({
+    const { view, textarea, slotCalls } = bench({
       inert: true,
       workspacePickerOpen: false,
       onRequestWorkspace,
       placeholder: '选择一个工作区开始',
     })
+    expect(slotCalls.some(({ key }) => key === 'conversation.input.overlay')).toBe(false)
     expect(textarea.getAttribute('aria-disabled')).not.toBe('true')
     expect(editableOf(textarea)).toBe(false)
     expect(textarea.getAttribute('aria-haspopup')).toBe('menu')
@@ -2190,7 +2191,7 @@ describe('command launcher chrome and control seats', () => {
       'conversation.input.overlay', 'conversation.input.attachments',
       'conversation.input.permission', 'conversation.input.plan', 'conversation.input.left',
       'conversation.input.right', 'conversation.input.model', 'conversation.input.activity',
-      'conversation.composer.dock',
+      'conversation.input.trailing', 'conversation.composer.dock',
     ])
     expect(view.queryByLabelText('Plan mode')).toBeNull()
     expect(view.queryByLabelText('Model')).toBeNull()

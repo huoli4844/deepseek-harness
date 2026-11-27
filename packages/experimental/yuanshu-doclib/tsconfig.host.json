@@ -1,0 +1,39 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/host.tsbuildinfo",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src/index.ts",
+    "src/doclib-proxy.ts",
+    "src/office-preview.ts",
+    "src/preview-window.ts",
+    "src/workspace-handler.ts",
+    "src/workspace-ops.ts",
+    "src/workspace-paths.ts",
+    "src/workspace-route.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../document/office-kit"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../host/webserver"
+    },
+    {
+      "path": "../../api/workspace-files/tsconfig.host.json"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+/* 弹窗挂载在 body，须显式复用工作台字号。原生对话沿用宿主文字设置。 */
+.modal {
+  max-height: 100%;
+  font-family: var(--dsw-font-family, inherit);
+  font-size: var(--dsh-content-font-size, var(--dsw-font-xs-13-font-size, 13px));
+  line-height: 1.6;
+  color: var(--dsw-alias-label-primary);
+}
+
+.modal.workbench {
+  font-size: calc(var(--dsw-font-xs-13-font-size, 13px) * var(--work-font-scale, 1));
+}
+
+.modal h2 {
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 600;
+}
+
+.modal :is(input, textarea, select, button) {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.content > :first-child { flex: none; }
+.content > :last-child { min-height: 0; }

@@ -1688,6 +1688,25 @@ describe('desktop main startup', () => {
     expect(harness.openExternal).not.toHaveBeenCalled()
   })
 
+  it('allows the same-origin doclib preview window while keeping other links external', async () => {
+    await readyForUpdate()
+    const window = harness.windows[0]!
+    const openWindow = window.webContents.setWindowOpenHandler.mock.calls[0]![0] as
+      (details: { url: string }) => { action: string; overrideBrowserWindowOptions?: Record<string, unknown> }
+    // 桌面内置协议页与 Web 登录页都应放行固定路径的同源窗口。
+    expect(openWindow({ url: 'dsh-app://app/yuanshu-doclib/window?id=f1&name=a.pdf' })).toEqual({
+      action: 'allow',
+      overrideBrowserWindowOptions: { width: 960, height: 720, minWidth: 480, minHeight: 320, autoHideMenuBar: true },
+    })
+    window.urls.push('http://127.0.0.1:3080/')
+    expect(openWindow({ url: 'http://127.0.0.1:3080/yuanshu-doclib/window?id=f1' }).action).toBe('allow')
+    // 同源其他路径与外域仍拒绝，http(s) 交给系统浏览器。
+    expect(openWindow({ url: 'http://127.0.0.1:3080/other' }).action).toBe('deny')
+    harness.openExternal.mockClear()
+    expect(openWindow({ url: 'https://example.com/yuanshu-doclib/window' }).action).toBe('deny')
+    expect(harness.openExternal).toHaveBeenCalledWith('https://example.com/yuanshu-doclib/window')
+  })
+
   async function readyForUpdate() {
     await import('../src/main.ts')
     await harness.preparing.promise

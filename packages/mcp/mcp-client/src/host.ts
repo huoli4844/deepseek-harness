@@ -43,6 +43,8 @@ export interface McpServerInstance {
    * @returns A reader pinned to the current connection generation.
    */
   projectionReader(): (name: string, signal: AbortSignal) => Promise<unknown>
+  /** 刷新当前授权连接的工具目录。 */
+  refreshCatalog(): Promise<readonly string[]>
 }
 
 /** Validates, mounts, probes, and authorizes MCP servers for the plugin that manages them. */
@@ -97,6 +99,11 @@ export class McpClientHost extends Service {
     // package replaces the host's instances together with the entries that load the same module.
     const fiber = this.ownerContext.plugin(McpClient, config)
     return {
+      refreshCatalog: async () => {
+        const connection = connectionIn(fiber)
+        if (connection === undefined) throw new Error('MCP server connection unavailable')
+        return connection.refreshCatalog()
+      },
       ready: fiber.await().then(() => {
         const status = connectionStatusIn(fiber)
         /* v8 ignore next -- an instance registers its status cell before its activation completes */

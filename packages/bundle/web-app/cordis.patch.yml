@@ -265,7 +265,7 @@
       name: '@deepseek-ai/dsh-yuanshu-login-server'
       inject: [webServer, connection, webApp]
       config:
-        yuanshuApiUrl: !!js "process.env.YUANSHU_MCP_TARGET === 'remote' ? process.env.YUANSHU_REMOTE_API_URL : process.env.YUANSHU_MCP_TARGET === undefined || process.env.YUANSHU_MCP_TARGET === 'local' ? 'http://localhost:8081' : undefined"
+        yuanshuApiUrl: !!js "process.env.YUANSHU_REMOTE_API_URL ?? 'https://8-148-158-251.sslip.io'"
 
     # Raw Blob and ReadableStream uploads run independently of Connection's
     # RPC and generation service.

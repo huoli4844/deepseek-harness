@@ -888,12 +888,44 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-trajectory -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-client-yuanshu-workbench -->
-<a id="deepseek-aidsh-client-yuanshu-workbench"></a>
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
+<a id="deepseek-aidsh-yuanshu-doclib"></a>
 
-## `@deepseek-ai/dsh-client-yuanshu-workbench`
+## `@deepseek-ai/dsh-yuanshu-doclib`
 
-- `source`: [`packages/experimental/client-yuanshu-workbench/src/index.ts:16`](../packages/experimental/client-yuanshu-workbench/src/index.ts)
+- `source`: [`packages/experimental/yuanshu-doclib/src/index.ts:15`](../packages/experimental/yuanshu-doclib/src/index.ts)
+
+```ts config-catalog
+/** 资料库插件配置。 */
+export interface Config {
+  /** 元枢后台 API 基地址。 */
+  apiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
+<a id="deepseek-aidsh-yuanshu-skills"></a>
+
+## `@deepseek-ai/dsh-yuanshu-skills`
+
+- `source`: [`packages/experimental/yuanshu-skills/src/index.ts:13`](../packages/experimental/yuanshu-skills/src/index.ts)
+
+```ts config-catalog
+/** 技能市场插件配置。 */
+export interface Config {
+  /** 元枢后台 API 基地址。 */
+  apiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
+<a id="deepseek-aidsh-yuanshu-workbench"></a>
+
+## `@deepseek-ai/dsh-yuanshu-workbench`
+
+- `source`: [`packages/experimental/yuanshu-workbench/src/index.ts:26`](../packages/experimental/yuanshu-workbench/src/index.ts)
 
 ```ts config-catalog
 /** Optional employee MCP connection for a single-account DSH Host. */
@@ -911,9 +943,14 @@ export interface Config {
     /** Deadline for workbench API and MCP tool requests, in milliseconds. */
     requestTimeoutMs: number
   }
+  /** Local business-data service configuration. */
+  data: {
+    /** Local API base URL. */
+    apiUrl: string
+  }
 }
 ```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-yuanshu-workbench -->
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
 
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
 <a id="deepseek-aidsh-compaction-basic"></a>

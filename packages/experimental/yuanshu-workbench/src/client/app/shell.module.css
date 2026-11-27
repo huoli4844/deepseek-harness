@@ -1,0 +1,810 @@
+/**
+ * 工作台外壳骨架样式：顶部全局 Header、左轨/主区/右侧问答栏的布局与常驻问答栏。
+ * 页面级样式仍保留在 Workbench.module.css；本文件只服务 Workbench.tsx 的外壳节点。
+ */
+/* 顶部品牌区：桌面端用 top-clearance 让开 macOS 红绿灯。 */
+.brandBlock {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-start: max(0px, calc(var(--dsh-frame-top-clearance, 0px) * 1.6));
+}
+.brandBlock strong {
+  font-size: 15px;
+}
+.brandBlock small {
+  margin-top: 1px;
+}
+/* KPI 区：只读本地已有计数，标签 10px、数值 13px（不超过菜单字号）。 */
+.kpiStrip {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+.kpiCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 0 14px;
+  border-inline-start: 0.5px solid var(--work-line);
+  text-align: center;
+}
+.kpiCell:first-child {
+  border-inline-start: 0;
+}
+.kpiLabel {
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  color: var(--work-muted);
+  white-space: nowrap;
+}
+.kpiValue {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-label-primary);
+  white-space: nowrap;
+}
+/* 不同 KPI 用状态色区分，接近原型的彩色指标。 */
+.kpiCell:nth-child(1) .kpiValue {
+  color: var(--work-accent);
+}
+.kpiCell:nth-child(2) .kpiValue {
+  color: var(--dsw-alias-state-success-primary);
+}
+.kpiCell:nth-child(3) .kpiValue {
+  color: var(--dsw-alias-state-warn-primary);
+}
+.kpiCell:nth-child(4) .kpiValue {
+  color: var(--dsw-alias-state-info-primary);
+}
+.headerMeta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dateChip {
+  padding: 3px 9px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--work-muted);
+  white-space: nowrap;
+}
+/* 窄屏才出现的问答栏开关。 */
+.railToggle {
+  display: none;
+}
+/* 常驻智能问答栏。 */
+.assistantRail {
+  position: relative;
+  grid-row: 2;
+  grid-column: 3;
+  flex: none;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* 宽度可被拖到 0，超出部分必须裁掉，避免内容盖到左侧内容区。 */
+  min-width: 0;
+  overflow: hidden;
+  border-inline-start: 0.5px solid var(--work-line);
+  background: var(--dsw-alias-bg-layer-1);
+  /* 原生对话字号由设置控制，默认 12px，不超过工作台菜单的 13px。 */
+  --dsh-content-font-size: var(--dsh-chat-font-size, 12px);
+  --dsh-content-font-size-secondary: 11px;
+  --dsh-content-font-delta: -2px;
+  --dsh-content-font-delta-secondary: -1px;
+  /* Markdown 字体令牌在 :root 就已解析成 14px，必须在本作用域重新声明，
+     否则用户气泡与助手回复字号不一致。 */
+  --dsw-font-markdown-base: var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  --dsw-font-markdown-base-strong: 600 var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  /* 标题不再随聊天字号加码，统一不超过 13px，用字重区分层级。 */
+  --dsw-font-markdown-h1: 700 var(--dsh-chat-font-size, 12px) / 22px var(--dsw-font-family);
+  --dsw-font-markdown-h2: 600 var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  --dsw-font-markdown-h3: 600 var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  --dsw-font-markdown-h4: 600 var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  --dsw-font-markdown-code: calc(var(--dsh-chat-font-size, 12px) - 1px) / 18px var(--ds-font-family-code);
+  --dsw-font-markdown-table: var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+  --dsw-font-markdown-table-head: 600 var(--dsh-chat-font-size, 12px) / 20px var(--dsw-font-family);
+}
+.railCollapsed {
+  display: none;
+}
+.railHeader {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 0.5px solid var(--work-line);
+  color: var(--work-accent);
+}
+.railHeader strong {
+  font-size: 13px;
+}
+.railClose {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--work-muted);
+}
+.railBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.railGreeting {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.railAvatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.railGreeting strong {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.railGreeting p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--work-muted);
+}
+.railSuggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.railSuggestion {
+  padding: 6px 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+.railSuggestion:hover {
+  border-color: var(--work-accent);
+  color: var(--work-accent);
+  background: var(--dsw-alias-bg-brand-subtlest);
+}
+.railFooter {
+  flex: none;
+  padding: 12px 14px;
+  border-top: 0.5px solid var(--work-line);
+}
+.railFooter > button {
+  width: 100%;
+}
+.railState {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--work-muted);
+}
+.railSession {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 对话栏右上角工作区切换：触发按钮与向下弹出的二级树面板。 */
+.railWorkspace {
+  position: relative;
+  display: flex;
+  flex: none;
+}
+.railWorkspaceTrigger {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.railWorkspaceTrigger:hover {
+  border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
+  color: var(--work-accent);
+}
+.railNavBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.railWorkspacePanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  width: 300px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
+}
+.railWorkspaceState {
+  margin: 6px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+.railWsGroup + .railWsGroup {
+  margin-top: 2px;
+}
+.railWsHead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.railWsOpen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+.railWsOpen:hover {
+  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+}
+.railWsTitle {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.railWsCount {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.railWsChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+.railWsChevronIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.railWsSessions {
+  margin: 0 0 2px 14px;
+}
+.railWsSession {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+.railWsSession:hover {
+  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+  color: var(--dsw-alias-label-primary);
+}
+.railWsSessionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.railWsAdd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 8px;
+  border: 0.5px dashed var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.railWsAdd:hover {
+  color: var(--work-accent);
+  border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
+}
+/* 左轨顶部三个模块入口。 */
+.modules {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 0.5px solid var(--work-line);
+}
+.module {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  text-align: start;
+}
+.module:hover {
+  border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
+  background: var(--dsw-alias-fill-hover);
+}
+/* 三个入口各用不同底色，接近原型的分区色。 */
+.moduleAi {
+  background: color-mix(in srgb, var(--work-accent) 10%, var(--dsw-alias-bg-layer-2));
+}
+.moduleProjects {
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, var(--dsw-alias-bg-layer-2));
+}
+.moduleKnowledge {
+  background: color-mix(in srgb, var(--dsw-alias-bg-brand-strong) 18%, var(--dsw-alias-bg-layer-2));
+}
+.moduleIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+}
+.moduleActive {
+  border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+}
+.moduleText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.moduleText strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+.moduleText small {
+  font-size: 10px;
+}
+.moduleBadge {
+  margin-inline-start: auto;
+  padding: 1px 7px;
+  border: 0.5px solid color-mix(in srgb, var(--work-accent) 40%, transparent);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* 左轨底部工作量摘要卡。 */
+.railSummary {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.railSummaryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--work-muted);
+}
+.railSummaryHead b {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+.railProgress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-3);
+  overflow: hidden;
+}
+.railProgress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--dsw-alias-state-info-primary), var(--work-accent));
+}
+.railSummary small {
+  font-size: 10px;
+}
+/* 顶栏右侧：通知铃、数据同步、日期时间、当前用户。 */
+.iconButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+}
+.iconButton:hover {
+  color: var(--work-accent);
+  border-color: var(--work-accent);
+}
+/* 顶栏 AI 开关：控制右侧问答栏显示与隐藏。 */
+.aiToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--work-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.aiToggle[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--work-accent) 45%, transparent);
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+}
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-label-inverse);
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+.syncPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--work-muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.syncPill:hover {
+  border-color: var(--dsw-alias-bg-brand-strong);
+  color: var(--dsw-alias-bg-brand-strong);
+}
+.syncPill b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsw-alias-state-success-primary);
+}
+.clockChip,
+.userChip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.clockChip {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+.clockChip:hover b {
+  color: var(--work-accent);
+}
+/* 头像与时间之间的竖向分隔线。 */
+.headerDivider {
+  flex: none;
+  width: 0.5px;
+  height: 20px;
+  background: var(--work-line);
+}
+/* 右上角人员头像。 */
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.clockChip b,
+.userChip b {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+.clockChip b {
+  font-variant-numeric: tabular-nums;
+}
+.clockChip small,
+.userChip small {
+  font-size: 10px;
+  color: var(--work-muted);
+}
+/* 右侧问答栏页签与风险/措施列表。 */
+.railTabs {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.railTab,
+.railTabActive {
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--work-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.railTabActive {
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--work-accent);
+}
+.railSectionHint {
+  font-size: 11px;
+  color: var(--work-muted);
+}
+.railListItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.railListItem strong {
+  font-size: 12px;
+}
+.railListItem small {
+  font-size: 10px;
+  color: var(--work-muted);
+}
+.riskLevel {
+  align-self: flex-start;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 16%, transparent);
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 10px;
+}
+/* 输入区对齐 DSH 默认样式：单个胶囊输入框 + 内置发送按钮。 */
+.railComposer {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 3px 3px 12px;
+  border: 0.5px solid var(--work-line);
+  border-radius: 999px;
+  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-2));
+}
+.railComposer > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.railComposer input {
+  font-size: 12px;
+  line-height: 20px;
+}
+.railComposer button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+}
+/* 内容区与问答栏之间的拖拽分隔条。 */
+.railResizer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 8;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.railResizer::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.railResizer:hover::after,
+.railResizer:active::after {
+  background: var(--work-accent);
+}
+/* 右栏完全收起后的恢复把手：贴在窗口右缘（顶栏下方），向左拖动即可拉出右栏。 */
+.railRestore {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  z-index: 9;
+  width: 10px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.railRestore::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 1px;
+  background: var(--work-line);
+  transition: background 0.15s ease;
+}
+.railRestore:hover::after,
+.railRestore:active::after {
+  background: var(--work-accent);
+}
+/* 展开后只占内容区：顶部 Header 与左侧导航保持可见。 */
+.railFullscreen {
+  grid-column: 2 / -1;
+  width: auto;
+  z-index: 6;
+  background: var(--dsw-alias-bg-base);
+}
+/* 容器较窄时右栏收成抽屉：默认隐藏，由顶栏开关唤出。 */
+@container (max-width: 1180px) {
+  .assistantRail {
+    display: none;
+  }
+  .assistantRail.railExpanded {
+    display: flex;
+    position: absolute;
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(360px, 100%);
+    z-index: 40;
+    box-shadow: -18px 0 40px color-mix(in srgb, var(--dsw-alias-bg-base) 60%, transparent);
+  }
+  .railToggle {
+    display: inline-flex;
+  }
+  /* 展开态在窄容器里也是覆盖内容区，不压顶栏与左轨。 */
+  .assistantRail.railFullscreen {
+    display: flex;
+    position: absolute;
+    top: 56px;
+    right: 0;
+    bottom: 0;
+    left: 184px;
+    width: auto;
+    z-index: 60;
+    background: var(--dsw-alias-bg-base);
+  }
+  .clockChip {
+    display: none;
+  }
+  .syncPill > span {
+    display: none;
+  }
+  /* 抽屉模式下不支持拖拽调宽。 */
+  .railResizer {
+    display: none;
+  }
+}
+@container (max-width: 900px) {
+  .brandBlock small {
+    display: none;
+  }
+  .kpiCell:nth-child(n + 3) {
+    display: none;
+  }
+  .dateChip {
+    display: none;
+  }
+  .userChip {
+    display: none;
+  }
+  .syncPill {
+    display: none;
+  }
+  .assistantRail.railFullscreen {
+    left: 0;
+  }
+}

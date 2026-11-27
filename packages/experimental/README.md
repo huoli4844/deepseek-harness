@@ -34,9 +34,11 @@ Promotion requires a named product role, documented public behavior and limitati
 <a id="packages"></a>
 ## Packages
 
+The project registry for YuanShu business plugins is maintained in the [plugin package overview](插件包总览.md).
+
 | Package | Role | ctx key |
 |---|---|---|
-| [`client-yuanshu-workbench`](client-yuanshu-workbench/README.md) | Opt-in Shaoshi position dashboards, role SOP flows, task and workgroup demos | — |
+| [`yuanshu-workbench`](yuanshu-workbench/README.md) | Opt-in Shaoshi position dashboards, role SOP flows, task and workgroup demos | — |
 | [`tool-session-query`](tool-session-query/README.md) | Workspace-authorized model session search, trace, and event reads | — |
 | [`session-search`](session-search/README.md) | Optional experimental global session search tools | — |
 | [`deepseek-chat-import`](deepseek-chat-import/README.md) | Optional upload of DeepSeek website chat exports as Sessions in a chosen Workspace | `ctx.deepseekChatImport` |

@@ -330,6 +330,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.input.activity': { kind: 'single'; scope: 'session'; owner: InputActivityOwnerProps }
     /**
+     * Compact actions after the toolbar activity and before the submit action; fixed overlays must
+     * portal to the document body because the docked composer contains them.
+     */
+    'conversation.input.trailing': { kind: 'list'; scope: 'session' }
+    /**
      * Resident composer body, including the no-Session inert state; fixed overlays must portal to
      * the document body because the docked composer contains them.
      */
@@ -677,6 +682,7 @@ const baseComposerChildren = {
   'conversation.input.right': { kind: 'list', scope: 'session' },
   'conversation.input.model': { kind: 'single', scope: 'session' },
   'conversation.input.activity': { kind: 'single', scope: 'session' },
+  'conversation.input.trailing': { kind: 'list', scope: 'session' },
   'conversation.composer.dock': { kind: 'list', scope: 'session' },
 } as const satisfies ChildrenDecl
 

@@ -9,7 +9,7 @@ declare global {
 
 const apiUrl = (typeof window !== 'undefined' && window.__YUANSHU_API_URL__)
   ? window.__YUANSHU_API_URL__
-  : (import.meta.env.VITE_API_URL || 'http://localhost:8081')
+  : (import.meta.env.VITE_API_URL || 'https://8-148-158-251.sslip.io')
 
 const apiPrefix = import.meta.env.VITE_API_URL_PREFIX || '/api/v1'
 

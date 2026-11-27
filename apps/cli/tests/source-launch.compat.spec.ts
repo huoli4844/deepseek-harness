@@ -43,7 +43,9 @@ describe('dsh SOURCE launcher (node --import tsx/esm)', () => {
         env: { DSH_HOME: home },
         timeout: 25_000,
       })
-      expect(stdout).toMatch(/- id: yuanshu-workbench\n  name: '@deepseek-ai\/dsh-client-yuanshu-workbench'\n  disabled: true/)
+      expect(stdout).toMatch(/^- id: yuanshu-workbench\n  name: '@deepseek-ai\/dsh-yuanshu-workbench'\n(?:  .*\n)*?  disabled: true$/mu)
+      expect(stdout).toMatch(/^- id: yuanshu-doclib\n  name: '@deepseek-ai\/dsh-yuanshu-doclib'$/mu)
+      expect(stdout).toMatch(/^- id: yuanshu-skills\n  name: '@deepseek-ai\/dsh-yuanshu-skills'$/mu)
       expect(await readFile(join(dir, 'package.json'), 'utf8')).toBe(manifest)
       expect(await readFile(join(dir, 'cordis.patch.yml'), 'utf8')).toBe(patch)
     } finally {

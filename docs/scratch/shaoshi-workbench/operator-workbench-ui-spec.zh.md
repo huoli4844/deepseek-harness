@@ -18,7 +18,7 @@
 |---|---|
 | 接口规模 | shaoshi 共 308 个操作，其中 211 个挂在 `projects/{code}/` 下，天然是「按项目记账」视角，缺公司级入口 |
 | 契约质量 | 308/308 响应是 `RuntimeRouteResponse`（`data` 任意），144 个写操作是 `GenericJsonRequest`，**零 query 参数**（无分页/筛选/排序） |
-| 前端现状 | `packages/experimental/client-yuanshu-workbench`，11 个分区；Live 模式只接 5 个 MCP 工具（profile / home / briefing / decisions / position） |
+| 前端现状 | `packages/experimental/yuanshu-workbench`，11 个分区；Live 模式只接 5 个 MCP 工具（profile / home / briefing / decisions / position） |
 | 前端已解析字段 | `platform-home.ts`：`risks`（id, title, risk_code, project_name, handler_name, deadline, status）、`my_tasks`（id, name, code, project_name, owner_name, plan_end, status）、`projects`（name）、`milestones`（name）、`kpis`（label, value, reason 等）、`items`（title 等）、`workflows`（label 等） |
 | 权限约束 | 工作台投影是岗位视图而非权限系统；`tenant_data_query_records` 的聚合默认使用**已发布指标**，当前 8 条指标定义全为 draft、`kpi_results` 为空表 |
 | 数据缺口 | 无公司级汇总接口、无时序快照、无报表导出、无统一审批状态机（唯一显式决策接口为受控文档版本 `decision`）、无告警接口 |

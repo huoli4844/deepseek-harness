@@ -1,0 +1,5 @@
+- insert:
+    - id: yuanshu-skills
+      name: '@deepseek-ai/dsh-yuanshu-skills'
+      config:
+        apiUrl: http://localhost:8081
