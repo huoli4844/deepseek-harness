@@ -44,3 +44,45 @@ it('从动态字段显示中文枚举，拒绝保存后保留修改，收到回�
   fireEvent.click(screen.getByRole('button', { name: '确认' }))
   expect(close).toHaveBeenCalledOnce()
 })
+
+it.each(['客户', '项目', '销售合同'])('对话通过动态字段打开%s复核，失败保留输入，成功后由人工关闭', async (title) => {
+  const { ConversationEquipment } = await import('../src/client/modules/business-forms/ConversationEquipment.tsx')
+  const strings: Readonly<Record<string, string>> = { ...businessFormsZh, ...equipmentZh }
+  const t: WorkbenchT = (key, values) => Object.entries(values ?? {}).reduce(
+    (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), strings[key] ?? key)
+  localStorage.setItem('workbench-client-token', 'test-only')
+  localStorage.setItem('yuanshu-active-tenant', '7')
+  const draft = {
+    id: '00000000-0000-4000-8000-000000000001', kind: 'dynamic', title,
+    fields: [{ key: 'name', label: '名称', type: 'string', required: true }], content: { name: '预填名称' },
+  }
+  const writes: unknown[] = []
+  const fetcher = vi.fn<typeof fetch>(async (input, init) => {
+    if (typeof input !== 'string') throw new Error('测试预期同源代理')
+    if (input.includes('/equipment-form?')) return Response.json({ data: draft })
+    if (input.includes('/equipment-submit?')) {
+      writes.push(JSON.parse(typeof init?.body === 'string' ? init.body : 'null'))
+      return writes.length === 1
+        ? Response.json({ data: { validation_message: '请检查名称' } }, { status: 422 })
+        : Response.json({ data: { receipt: '910' } })
+    }
+    if (input.includes('/equipment-dismiss?')) return Response.json({ data: {} })
+    throw new Error('出现未声明的请求')
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<ConversationEquipment session="dynamic-chat" t={t} />)
+  const dialog = await screen.findByRole('dialog', { name: `新增复核 · ${title}` }, { timeout: 3000 })
+  const name = screen.getByRole('textbox', { name: /名称/ })
+  expect(name).toHaveProperty('value', '预填名称')
+  expect(writes).toHaveLength(0)
+  fireEvent.change(name, { target: { value: '人工名称' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  expect((await screen.findByRole('alert')).textContent).toContain('请检查名称')
+  expect(name).toHaveProperty('value', '人工名称')
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  expect((await screen.findByRole('status')).textContent).toContain('910')
+  expect(dialog.isConnected).toBe(true)
+  expect(writes).toEqual(Array.from({ length: 2 }, () => ({ id: draft.id, content: { name: '人工名称' } })))
+  fireEvent.click(screen.getByRole('button', { name: '确认' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+})

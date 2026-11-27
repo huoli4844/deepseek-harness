@@ -2,8 +2,8 @@
 /** 从对话预填进入项目表单，模拟同源代理的查重、保存及回执。 */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { EquipmentIntake } from '../src/client/modules/business-modules/EquipmentIntake.tsx'
 import { zh } from '../src/client/core/locales/locales.ts'
-import { ConversationEquipment } from '../src/client/modules/business-forms/ConversationEquipment.tsx'
 
 const t = (key: keyof typeof zh, values?: Readonly<Record<string, unknown>>) =>
   Object.entries(values ?? {}).reduce((copy, [name, value]) => copy.replaceAll(`{${name}}`, String(value)), zh[key])
@@ -30,7 +30,7 @@ it('项目表单由本人保存，保留权限错误后的输入，并按项目�
     if (writes.length === 1) return new Response(null, { status: 403 })
     return Response.json({ code: 0, data: { id: 7 } })
   }))
-  render(<ConversationEquipment session="project-chat" t={t} />)
+  render(<EquipmentIntake kind="project" initial={{ code: 'EP220501', name: '示例项目', project_type: 'rd' }} t={t} onClose={() => { cleanup() }} />)
   const form = within(await screen.findByRole('dialog', { name: '新建项目' }, { timeout: 3000 }))
   expect(form.getByRole('option', { name: '研发' })).toHaveProperty('selected', true)
   expect(writes).toHaveLength(0)

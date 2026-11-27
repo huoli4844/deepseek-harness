@@ -2,8 +2,8 @@
 /** 验证销售合同通过对话复核登记，覆盖编号保护、云端拒绝和可核实回执。 */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
+import { EquipmentIntake } from '../src/client/modules/business-modules/EquipmentIntake.tsx'
 import { zh } from '../src/client/core/locales/locales.ts'
-import { ConversationEquipment } from '../src/client/modules/business-forms/ConversationEquipment.tsx'
 
 const t = (key: keyof typeof zh, values?: Readonly<Record<string, unknown>>) =>
   Object.entries(values ?? {}).reduce((copy, [name, value]) => copy.replaceAll(`{${name}}`, String(value)), zh[key])
@@ -40,7 +40,7 @@ it('保留指定合同编号，人工清空并保存后才发送项目销售合�
     }
     return Response.json({ data: { items: writes.length === 2 ? [receipt] : [] } })
   }))
-  render(<ConversationEquipment session="contract-chat" t={t} />)
+  render(<EquipmentIntake kind="sales-contract" initial={{ project_code: 'P-1', requested_code: 'CUSTOM-1', counterparty_name: '示例客户', total_amount: '100.50' }} t={t} onClose={() => { cleanup() }} />)
 
   const form = within(await screen.findByRole('dialog', { name: '新建销售合同' }, { timeout: 3000 }))
   const number = form.getByLabelText(zh['contract.code'])

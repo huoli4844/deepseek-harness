@@ -6,7 +6,7 @@ import type { FileDragActions } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DoclibWorkbench } from '../src/client/DoclibWorkbench.tsx'
 import { DocumentTable } from '../src/client/components/DocumentTable.tsx'
 import type { DoclibDocument } from '../src/client/model.ts'
-import { remoteStub, sessionsStub, t, urlText } from './support.ts'
+import { remoteStub, sessionsStub, t, urlText } from './support.client.ts'
 
 afterEach(() => {
   cleanup()

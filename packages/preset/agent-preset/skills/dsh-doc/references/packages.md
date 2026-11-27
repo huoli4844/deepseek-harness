@@ -220,9 +220,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 
 | Package | Config | Description |
 |---|---|---|
-| `@deepseek-ai/dsh-yuanshu-doclib` | yes | YuanShu document library panel browsing enterprise knowledge-base documents |
-| `@deepseek-ai/dsh-yuanshu-skills` | yes | YuanShu skills market panel browsing and installing enterprise skills |
-| `@deepseek-ai/dsh-yuanshu-workbench` | yes | Opt-in Shaoshi role workbench with local demonstration data |
+| `@deepseek-ai/dsh-client-ui-voice-conversation` | no | Continuous hands-free voice conversation: always-on microphone, utterance segmentation, auto-send, and spoken replies |
 | `@deepseek-ai/dsh-cua` | no | Shared Computer Use application objects, authorization, and logged tool execution |
 | `@deepseek-ai/dsh-cua-macos` | yes | macOS native provider for shared Computer Use application and window objects |
 | `@deepseek-ai/dsh-cua-mcp` | yes | Computer Use as an MCP stdio server: a dsh profile bundle that exposes cua_run_code to external agent harnesses |
@@ -265,6 +263,9 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-tool-terminal` | yes | Six model-facing persistent PTY tools with owner isolation and generic background-job integration |
 | `@deepseek-ai/dsh-webhook` | no | Fire-and-forget webhook rule runtime that creates Workspace-backed DeepSeek Harness Sessions |
 | `@deepseek-ai/dsh-webhook-github` | yes | Signed GitHub HTTP webhook adapter for the DeepSeek Harness webhook runtime |
+| `@deepseek-ai/dsh-yuanshu-doclib` | yes | YuanShu document library panel browsing enterprise knowledge-base documents |
+| `@deepseek-ai/dsh-yuanshu-skills` | yes | YuanShu skills market panel browsing and installing enterprise skills |
+| `@deepseek-ai/dsh-yuanshu-workbench` | yes | Opt-in Shaoshi role workbench backed by YuanShu cloud services |
 
 ## extensions
 

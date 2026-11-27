@@ -5,8 +5,8 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { ConversationPersonalPages, PersonalPages } from '../src/client/modules/personal-pages/index.ts'
 import { zh } from '../src/client/core/locales/locales.ts'
 
-const t = (key: keyof typeof zh, params?: Readonly<Record<string, unknown>>) => Object.entries(params ?? {}).reduce(
-  (label, [name, value]) => label.replaceAll(`{${name}}`, String(value)), zh[key],
+const t = (key: string, params?: Readonly<Record<string, unknown>>) => Object.entries(params ?? {}).reduce(
+  (label, [name, value]) => label.replaceAll(`{${name}}`, String(value)), zh[key as keyof typeof zh] ?? key,
 )
 
 afterEach(() => {

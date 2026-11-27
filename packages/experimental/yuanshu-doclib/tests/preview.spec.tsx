@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { FileActions } from '@deepseek-ai/dsh-client-ui-file-actions/types'
 import { DoclibWorkbench } from '../src/client/DoclibWorkbench.tsx'
-import { remoteStub, sessionsStub, t, urlText } from './support.ts'
+import { remoteStub, sessionsStub, t, urlText } from './support.client.ts'
 
 afterEach(() => {
   cleanup()

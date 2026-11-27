@@ -3,7 +3,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { BusinessFormsContainer, ReportTasks } from '../src/client/modules/business-forms/index.ts'
-import { beijingDay, parseContent, type DailyForm } from '../src/business-forms/model.ts'
+import { beijingDay, parseContent, type DailyForm, type WeeklyForm } from '../src/business-forms/model.ts'
 import { dailySurface, weeklySurface } from '../src/business-forms/a2ui.ts'
 import { canSubmit, formView } from '../src/client/modules/business-forms/viewmodel.ts'
 import { zh } from '../src/client/core/locales/locales.ts'
@@ -134,7 +134,7 @@ it('周报使用中文枚举且轮询不会覆盖项目选择或编辑内容', a
   localStorage.setItem('workbench-client-token', 'test-only')
   localStorage.setItem('yuanshu-active-tenant', '7')
   const start = '2026-11-23'
-  const weekly = {
+  const weekly: WeeklyForm = { evidence_refs: [],
     schema_id: 'weekly-report.v1', template_id: 'weekly-edit', template_version: 1,
     id: '00000000-0000-4000-8000-000000000009', period_start: start, period_end: '2026-11-29',
     expected_version: 0, expires_at: Date.now() + 100_000, coverage: 'verified-weekly-daily-reports-and-local-workbench-journal',
@@ -166,6 +166,7 @@ it('周报使用中文枚举且轮询不会覆盖项目选择或编辑内容', a
   expect(screen.getByRole('option', { name: '待处理' })).toBeDefined()
   expect(screen.getByRole('option', { name: '进行中' })).toBeDefined()
   const selectors = screen.getAllByRole('combobox')
+  if (!selectors[0] || !selectors[1] || !selectors[2]) throw new Error('缺少周报选择控件')
   fireEvent.change(selectors[0], { target: { value: 'P-1' } })
   fireEvent.change(selectors[1], { target: { value: 'direct' } })
   fireEvent.change(selectors[2], { target: { value: 'in_progress' } })

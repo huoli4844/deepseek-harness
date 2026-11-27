@@ -483,9 +483,6 @@
       "@deepseek-ai/dsh-bash-sandbox": ["./packages/shell/bash-sandbox/src"],
       "@deepseek-ai/dsh-brand": ["./packages/util/brand/src"],
       "@deepseek-ai/dsh-chunked-list": ["./packages/util/chunked-list/src"],
-      "@deepseek-ai/dsh-yuanshu-doclib": ["./packages/experimental/yuanshu-doclib/src"],
-      "@deepseek-ai/dsh-yuanshu-skills": ["./packages/experimental/yuanshu-skills/src"],
-      "@deepseek-ai/dsh-yuanshu-workbench": ["./packages/experimental/yuanshu-workbench/src"],
       "@deepseek-ai/dsh-cmdline": ["./packages/boot/cmdline/src"],
       "@deepseek-ai/dsh-command-compact": ["./packages/compaction/command-compact/src"],
       "@deepseek-ai/dsh-command-feedback": ["./packages/feedback/command-feedback/src"],
@@ -681,7 +678,10 @@
       "@deepseek-ai/dsh-working-directory": ["./packages/session/working-directory/src"],
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
       "@deepseek-ai/dsh-workspace-changes": ["./packages/deliverables/workspace-changes/src"],
-      "@deepseek-ai/dsh-yuanshu-login-server": ["./packages/yuanshu/yuanshu-login-server/src"]
+      "@deepseek-ai/dsh-yuanshu-doclib": ["./packages/experimental/yuanshu-doclib/src"],
+      "@deepseek-ai/dsh-yuanshu-login-server": ["./packages/yuanshu/yuanshu-login-server/src"],
+      "@deepseek-ai/dsh-yuanshu-skills": ["./packages/experimental/yuanshu-skills/src"],
+      "@deepseek-ai/dsh-yuanshu-workbench": ["./packages/experimental/yuanshu-workbench/src"]
       // END generated package aliases
     }
   }

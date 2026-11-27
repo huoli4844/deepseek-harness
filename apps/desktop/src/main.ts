@@ -912,13 +912,14 @@ async function main(): Promise<void> {
     callback({ requestHeaders: { ...headers, origin: target.origin, cookie: hostCookie, 'sec-fetch-site': 'same-origin' } })
   })
 
-  // A web-login document is a trusted Desktop sender too: the frame URL check
-  // accepts the registered Host origin alongside the dsh-app shell origin.
+  // 自定义协议的 origin 为 null，必须比较协议与宿主名才能区分所属页面。
   const isPrimaryTrustedFrame = (event: IpcMainInvokeEvent): boolean => {
     if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) return false
-    const frameOrigin = new URL(event.senderFrame.url).origin
-    return frameOrigin === new URL(applicationUrl).origin
-      || (webLogin && webLoginEntryOrigin !== undefined && frameOrigin === webLoginEntryOrigin)
+    if (!isAllowedApplicationUrl(event.senderFrame.url)) return false
+    const frame = new URL(event.senderFrame.url)
+    const application = new URL(applicationUrl)
+    return (frame.protocol === application.protocol && frame.host === application.host)
+      || (webLogin && webLoginEntryOrigin !== undefined && frame.origin === webLoginEntryOrigin)
   }
   const assertMainApplication = (event: IpcMainInvokeEvent): BrowserWindow => {
     if (!isPrimaryTrustedFrame(event)) throw new Error('Rejected Platform command')

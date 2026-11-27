@@ -42,7 +42,7 @@ function fixture(previewEnabled = false) {
   const read = vi.fn(async () => ({ userId: 8, tenantId: '7', roles: [], permissions: [permission] }))
   const registry = createDynamicRegistry(forms, lookup, api, signal, { read }, previewEnabled)
   return { id: session.id, forms, registry, lookup, read, request, responses,
-    publish(document = catalog(action)) { published = document },
+    publish(document: object = catalog(action)) { published = document },
     writes: () => request.mock.calls.filter(call => call[1]?.method === 'POST') }
 }
 

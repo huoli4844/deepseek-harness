@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import { BusinessForms } from '../src/plugins/yuanshu-business-forms/index.ts'
 import { WorkRecords } from '../src/plugins/yuanshu-work-records/index.ts'
-import { beijingDay, field, type DailyContent, type DailyDecision, type WorkEvidence } from '../src/business-forms/model.ts'
+import { beijingDay, field, type WeeklyContent, type DailyContent, type DailyDecision, type WorkEvidence } from '../src/business-forms/model.ts'
 
 const content: DailyContent = { completed_work: '完成接口开发', in_progress_work: '', planned_work: '', issues_and_risks: '', need_support: '' }
 const credential = { authorization: 'Bearer test-only', tenant: '7' }
@@ -163,7 +163,7 @@ it('周报先按后台契约保存草稿，再通过提交端点取得回执', a
     .mockResolvedValueOnce(Response.json({ data: { report: { id: 8, period_start: start, status: 'draft' } } }))
     .mockResolvedValueOnce(Response.json({ data: { report: { id: 8, period_start: start, status: 'submitted' } } }))
   const records = new WorkRecords('https://test.invalid', request)
-  const weeklyContent = {
+  const weeklyContent: WeeklyContent = {
     period_start: start, progress_summary: '本周进展', completed_work: '',
     planned_work: '下周计划', issues_and_risks: '', need_support: '',
     items: [{ id: 'item-1', project_code: 'P-8', project_name: '项目八', work_type: 'direct',
@@ -226,15 +226,15 @@ it('旧登记页草稿和未填完的新草稿都能重新打开', async () => {
 
 it('提交回执丢失时用后台事项契约比对已提交正文', async () => {
   const start = '2026-11-23'
-  const item = { project_code: 'P-8', work_type: 'direct', description: '完成联调',
-    completion_status: 'completed', has_risk: false, risk_details: null }
+  const item = { project_code: 'P-8', work_type: 'direct' as const, description: '完成联调',
+    completion_status: 'completed' as const, has_risk: false, risk_details: null }
   const request = vi.fn<typeof fetch>()
     .mockResolvedValueOnce(Response.json({ data: { report: { id: 11, period_start: start, status: 'draft' } } }))
     .mockResolvedValueOnce(Response.json({ code: 409, message: '已提交' }, { status: 409 }))
     .mockResolvedValueOnce(Response.json({ data: { report: { id: 11, period_start: start, status: 'submitted',
       progress_summary: '本周进展', completed_work: JSON.stringify([item]), planned_work: '下周计划',
       issues_and_risks: null, need_support: null } } }))
-  const content = { period_start: start, progress_summary: '本周进展', completed_work: '',
+  const content: WeeklyContent = { period_start: start, progress_summary: '本周进展', completed_work: '',
     planned_work: '下周计划', issues_and_risks: '', need_support: '', items: [{ ...item,
       id: 'local-id', project_name: '本地项目名称', risk_details: '' }] }
   const result = await new WorkRecords('https://test.invalid', request).saveWeekly(start, credential,

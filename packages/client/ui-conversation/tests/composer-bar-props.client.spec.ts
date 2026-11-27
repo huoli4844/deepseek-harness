@@ -19,6 +19,7 @@ it('accepts props supplied by existing composer bar registrations', () => {
     'conversation.input.permission': { kind: 'single', scope: 'session' },
     'conversation.input.plan': { kind: 'single', scope: 'session' },
     'conversation.input.right': { kind: 'list', scope: 'session' },
+    'conversation.input.trailing': { kind: 'list', scope: 'session' },
   } satisfies ChildrenDecl
 
   const ExistingBar = ({ renderSlot }: ComposerBarProps) => renderSlot('conversation.input.left', {})

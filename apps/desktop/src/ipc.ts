@@ -142,7 +142,7 @@ export function isAllowedApplicationUrl(raw: string): boolean {
   try { url = new URL(raw) } catch { return false }
   if (webLoginSenderOrigin !== undefined && (url.protocol === 'https:' || url.protocol === 'http:')
     && url.origin === webLoginSenderOrigin) return true
-  return url.protocol === `${SCHEME}:`
+  return url.protocol === `${SCHEME}:` && (url.hostname === 'app' || url.hostname === 'shell')
 }
 
 /**

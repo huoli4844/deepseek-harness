@@ -56,6 +56,7 @@
     "packages/client/*/tests/**/*.host.ts"
   ],
   "references": [
+    { "path": "./packages/experimental/client-ui-voice-conversation" },
     { "path": "./packages/experimental/yuanshu-workbench/tsconfig.client.json" },
     { "path": "./packages/experimental/yuanshu-doclib/tsconfig.client.json" },
     { "path": "./packages/experimental/yuanshu-skills/tsconfig.client.json" },

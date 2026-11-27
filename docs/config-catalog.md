@@ -886,70 +886,6 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-trajectory -->
 
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
-<a id="deepseek-aidsh-yuanshu-doclib"></a>
-
-## `@deepseek-ai/dsh-yuanshu-doclib`
-
-- `source`: [`packages/experimental/yuanshu-doclib/src/index.ts:15`](../packages/experimental/yuanshu-doclib/src/index.ts)
-
-```ts config-catalog
-/** 资料库插件配置。 */
-export interface Config {
-  /** 元枢后台 API 基地址。 */
-  apiUrl: string
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
-
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
-<a id="deepseek-aidsh-yuanshu-skills"></a>
-
-## `@deepseek-ai/dsh-yuanshu-skills`
-
-- `source`: [`packages/experimental/yuanshu-skills/src/index.ts:13`](../packages/experimental/yuanshu-skills/src/index.ts)
-
-```ts config-catalog
-/** 技能市场插件配置。 */
-export interface Config {
-  /** 元枢后台 API 基地址。 */
-  apiUrl: string
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
-
-<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
-<a id="deepseek-aidsh-yuanshu-workbench"></a>
-
-## `@deepseek-ai/dsh-yuanshu-workbench`
-
-- `source`: [`packages/experimental/yuanshu-workbench/src/index.ts:26`](../packages/experimental/yuanshu-workbench/src/index.ts)
-
-```ts config-catalog
-/** Optional employee MCP connection for a single-account DSH Host. */
-export interface Config {
-  /** Employee MCP authorization and request settings, or false to disable the connection. */
-  mcp: false | {
-    /** MCP endpoint. */
-    url: string
-    /** Registered OAuth client ID. */
-    clientId: string
-    /** YuanShu API base URL. */
-    apiUrl: string
-    /** Deadline for MCP connection startup and initial tool discovery, in milliseconds. */
-    startupTimeoutMs: number
-    /** Deadline for workbench API and MCP tool requests, in milliseconds. */
-    requestTimeoutMs: number
-  }
-  /** Local business-data service configuration. */
-  data: {
-    /** Local API base URL. */
-    apiUrl: string
-  }
-}
-```
-<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
-
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
 <a id="deepseek-aidsh-compaction-basic"></a>
 
@@ -5650,6 +5586,22 @@ export interface Config {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-workspace-changes -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
+<a id="deepseek-aidsh-yuanshu-doclib"></a>
+
+## `@deepseek-ai/dsh-yuanshu-doclib`
+
+- `source`: [`packages/experimental/yuanshu-doclib/src/index.ts:17`](../packages/experimental/yuanshu-doclib/src/index.ts)
+
+```ts config-catalog
+/** 资料库插件配置。 */
+export interface Config {
+  /** 元枢后台 API 基地址。 */
+  apiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-doclib -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
 <a id="deepseek-aidsh-yuanshu-login-server"></a>
 
@@ -5668,6 +5620,54 @@ export interface Config {
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-login-server -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
+<a id="deepseek-aidsh-yuanshu-skills"></a>
+
+## `@deepseek-ai/dsh-yuanshu-skills`
+
+- `source`: [`packages/experimental/yuanshu-skills/src/index.ts:13`](../packages/experimental/yuanshu-skills/src/index.ts)
+
+```ts config-catalog
+/** 技能市场插件配置。 */
+export interface Config {
+  /** 元枢后台 API 基地址。 */
+  apiUrl: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-skills -->
+
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
+<a id="deepseek-aidsh-yuanshu-workbench"></a>
+
+## `@deepseek-ai/dsh-yuanshu-workbench`
+
+- `source`: [`packages/experimental/yuanshu-workbench/src/index.ts:35`](../packages/experimental/yuanshu-workbench/src/index.ts)
+
+```ts config-catalog
+/** Optional employee MCP connection for a single-account DSH Host. */
+export interface Config {
+  /** Employee MCP authorization and request settings, or false to disable the connection. */
+  mcp: false | {
+    /** MCP endpoint. */
+    url: string
+    /** Registered OAuth client ID. */
+    clientId: string
+    /** YuanShu API base URL. */
+    apiUrl: string
+    /** Deadline for MCP connection startup and initial tool discovery, in milliseconds. */
+    startupTimeoutMs: number
+    /** Deadline for workbench API and MCP tool requests, in milliseconds. */
+    requestTimeoutMs: number
+  }
+  /** YuanShu business-data API configuration. */
+  data: {
+    /** Business API base URL. */
+    apiUrl: string
+  }
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-yuanshu-workbench -->
 
 ## Loadable plugins with no config
 
@@ -5742,6 +5742,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-subagent` | — | [`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-tool` | — | [`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-user-questions` | — | [`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts) |
+| `@deepseek-ai/dsh-client-ui-voice-conversation` | — | [`packages/experimental/client-ui-voice-conversation/src/index.ts`](../packages/experimental/client-ui-voice-conversation/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | — | [`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |

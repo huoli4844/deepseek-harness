@@ -3,7 +3,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { zh } from '../src/client/core/locales/locales.ts'
-import { ConversationEquipment } from '../src/client/modules/business-forms/ConversationEquipment.tsx'
 import { EquipmentIntake } from '../src/client/modules/business-modules/EquipmentIntake.tsx'
 import { findRecordDuplicate } from '../src/client/modules/business-modules/equipment-api.ts'
 import { invalidCustomerFields } from '../src/business-forms/customer-create-contract.ts'
@@ -22,7 +21,7 @@ it('客户登记只接受已定义的状态和可准确发送的额度', () => {
   expect(invalidCustomerFields({ code: 'C-01', status: '2', credit_limit: '001' })).toEqual(['name', 'credit_limit', 'status'])
 })
 
-it('聊天预填客户，仅人工确认后查重和新增，后台拒绝时保留输入', async () => {
+it('客户资源登记仅人工确认后查重和新增，后台拒绝时保留输入', async () => {
   localStorage.setItem('workbench-client-token', 'employee')
   localStorage.setItem('yuanshu-active-tenant', '9')
   const writes: unknown[] = []
@@ -49,7 +48,7 @@ it('聊天预填客户，仅人工确认后查重和新增，后台拒绝时保�
     const list = writes.length === 2 ? [{ id: 3, code: 'CUS-002', name: '示例客户' }] : []
     return Response.json({ code: 200, data: { list, pagination: { total: list.length, page: 1 } } })
   }))
-  render(<ConversationEquipment session="customer-chat" t={t} />)
+  render(<EquipmentIntake kind="customer" initial={{ code: 'CUS-001', name: '示例客户', level: 'important', status: '1' }} t={t} onClose={() => { cleanup() }} />)
 
   const dialog = within(await screen.findByRole('dialog', { name: '新增客户' }, { timeout: 3000 }))
   expect(dialog.getByLabelText('客户名称')).toHaveProperty('value', '示例客户')
