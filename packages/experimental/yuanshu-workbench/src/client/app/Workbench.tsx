@@ -10,6 +10,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { WorkbenchAppearanceContext } from './workbench-appearance.ts'
 import appearance from './workbench-appearance.module.css'
 import { PlatformHome } from '../modules/platform-home/PlatformHome.tsx'
+import { ProcurementDeliveryCharts } from '../modules/dashboard/ProcurementDeliveryCharts.tsx'
 import { PersonalPages } from '../modules/personal-pages/index.ts'
 import { PersonalWorkspace } from '../modules/personal-workspace/PersonalWorkspace.tsx'
 import { ProjectCalendar } from '../modules/calendar/ProjectCalendar.tsx'
@@ -101,7 +102,7 @@ import { IntegrationStatusDialog } from './IntegrationStatusDialog.tsx'
 import { fetchIntegrationStatus, testIntegration, type IntegrationSnapshot, type IntegrationTarget } from './integration-api.ts'
 import { useHostTheme } from './use-host-theme.ts'
 import { PositionOperations } from '../modules/position-ops/index.ts'
-import { PositionWorkspaceToggle } from '../modules/position-ops/PositionWorkspaceToggle.tsx'
+import { WorkMethodsScreen } from '../modules/work-methods/WorkMethodsScreen.tsx'
 import {
   accessRoleOf,
   BudgetCostScreen,
@@ -124,10 +125,12 @@ import shell from './shell.module.css'
 interface WorkbenchInjected {
   readonly openAssistant: (role: string, prompt?: string) => Promise<SessionReference>
   readonly onReturn: () => void
-  /** 打开（切换到）指定工作区的会话；由 apply 闭包注入。 */
-  readonly openWorkspace: (workspaceId: WorkspaceId) => Promise<void>
-  /** 打开工作区下的指定会话；由 apply 闭包注入。 */
-  readonly openSession: (sessionId: SessionId) => Promise<void>
+  /** 右栏内切换到指定工作区（打开最近会话或新建），不触发宿主面板跳转；由 apply 闭包注入。 */
+  readonly openWorkspace: (workspaceId: WorkspaceId) => Promise<SessionReference | undefined>
+  /** 右栏内打开指定会话；由 apply 闭包注入。 */
+  readonly openSession: (sessionId: SessionId) => Promise<SessionReference>
+  /** 重命名工作区（远程 rename，标题必须唯一非空）；由 apply 闭包注入。 */
+  readonly renameWorkspace: (workspaceId: WorkspaceId, title: string) => Promise<void>
   /** 资料库面板由工作台统一挂载；缺少 Remote 服务时为空。 */
   readonly doclib?: DoclibPanelProps | undefined
   /** 设置弹窗的仓库与已安装插件数据；缺少 Remote 服务时为空。 */
@@ -191,6 +194,7 @@ const navIcons: Record<string, typeof IconLayersOutlineRegular> = {
   'weekly-daily-reports': IconEditOutlineRegular,
   'meeting-rooms': IconMicrophoneOutlineRegular,
   organization: IconWorkspaceTreeOutlineRegular,
+  'work-methods': IconLightOutlineRegular,
   doclib: IconFolderOpenRegular,
 }
 
@@ -207,6 +211,7 @@ export function Workbench(props: WorkbenchProps) {
     openAssistant,
     openWorkspace,
     openSession,
+    renameWorkspace,
     renderSlot,
     renderFactorySlot,
     SessionProvider,
@@ -437,11 +442,40 @@ export function Workbench(props: WorkbenchProps) {
     startAssistantSession(prompt, sessionKey)
   }
   // 桌面端进入工作台即为当前岗位建立原生会话，右栏直接显示 DSH 默认对话界面。
+  // 首次打开软件时后台连接与会话服务常未就绪，首调容易失败：
+  // 这里失败后自动重试（间隔 3 秒、最多 3 次），期间保持加载态；仍失败才显示错误横幅。
   useEffect(() => {
     if (!liveHome) return
     if (autoSessionRole.current === role) return
     autoSessionRole.current = role
-    startAssistantSession()
+    let attempt = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const attemptSession = async () => {
+      // 归属校验兼作取消标志：岗位已切换或 effect 已清理（current 置回 undefined）则中止。
+      if (autoSessionRole.current !== role) return
+      attempt += 1
+      setAssistantLoading(true)
+      setAssistantError(false)
+      try {
+        const reference = await openAssistant(role)
+        if (autoSessionRole.current !== role) return
+        setAssistantReference(reference)
+        setAssistantLoading(false)
+      } catch {
+        if (autoSessionRole.current !== role) return
+        if (attempt < 3) {
+          timer = setTimeout(() => { void attemptSession() }, 3000)
+        } else {
+          setAssistantError(true)
+          setAssistantLoading(false)
+        }
+      }
+    }
+    void attemptSession()
+    return () => {
+      autoSessionRole.current = undefined
+      clearTimeout(timer)
+    }
   }, [role, liveHome])
   // 开始拖拽右栏：上限取导航栏右侧的全部可用宽度，让两侧都能被完全挤占。
   const beginRailResize = (event: ReactPointerEvent): void => {
@@ -1028,18 +1062,20 @@ export function Workbench(props: WorkbenchProps) {
                     <NotificationsScreen t={t} />
                   </>
                 ) : view === 'dashboard' ? (
-                  /* 岗位工作台（dashboard）：右上角切换查看岗位图表或采购业务链路静态模板。 */
-                  <PositionWorkspaceToggle t={t}>
-                    <DashboardScreen t={t} />
-                  </PositionWorkspaceToggle>
+                  <DashboardScreen t={t} />
                 ) : view === 'position-operations' ? (
-                  /* 首页模式下岗位操作台同样提供右上角切换（岗位工作 / 采购业务链路）。 */
-                  <PositionWorkspaceToggle t={t}>
-                    <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
-                  </PositionWorkspaceToggle>
+                  <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
                 ) : ['priorities', 'methods', 'project-operations'].includes(view)
-                  ? <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
-                  : view === 'calendar'
+                  ? (
+                    <>
+                      <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
+                      {/* 线上模式的项目管理页同样展示迁移来的采购交付六卡。 */}
+                      {view === 'project-operations' && <ProcurementDeliveryCharts t={t} />}
+                    </>
+                  )
+                  : view === 'work-methods' ? (
+                    <WorkMethodsScreen t={t} />
+                  ) : view === 'calendar'
                     ? <ProjectCalendar t={t} />
                     : view === 'files'
                       ? <FilesScreen t={t} />
@@ -1050,39 +1086,37 @@ export function Workbench(props: WorkbenchProps) {
                   <NotificationsScreen t={t} />
                 </>
               ) : view === 'dashboard' ? (
-                <PositionWorkspaceToggle t={t}>
-                  <DashboardScreen t={t} />
-                </PositionWorkspaceToggle>
+                <DashboardScreen t={t} />
               ) : view === 'project-operations' ? (
                 <ProjectOpsScreen t={t} />
               ) : view === 'position-operations' ? (
-                /* 岗位工作台：右上角切换查看岗位工作或采购业务链路静态模板（测试阶段不限角色）。 */
-                <PositionWorkspaceToggle t={t}>
-                  {role === 'project' ? (
-                    <section className={css.card}>
-                      <p>{t('position.module.pending')}</p>
-                    </section>
-                  ) : (
-                    <PositionOperations
-                      key={role}
-                      t={t}
-                      role={role}
-                      record={positionCase}
-                      delivery={positionDelivery}
-                      onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
-                      onGroup={openWorkgroup}
-                      onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
-                      onReview={(note, outcome, checks) => {
-                        const reviewText = outcome === 'rework'
-                          ? t('position.returned', { note })
-                          : `${t('position.status.accepted')} · ${note}`
-                        actions.reviewPositionCase(role, note, outcome, checks, reviewText)
-                      }}
-                    />
-                  )}
-                </PositionWorkspaceToggle>
+                /* 岗位操作台：按岗位展示运营内容；业务链路统一移至「工作方法」页。 */
+                role === 'project' ? (
+                  <section className={css.card}>
+                    <p>{t('position.module.pending')}</p>
+                  </section>
+                ) : (
+                  <PositionOperations
+                    key={role}
+                    t={t}
+                    role={role}
+                    record={positionCase}
+                    delivery={positionDelivery}
+                    onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
+                    onGroup={openWorkgroup}
+                    onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
+                    onReview={(note, outcome, checks) => {
+                      const reviewText = outcome === 'rework'
+                        ? t('position.returned', { note })
+                        : `${t('position.status.accepted')} · ${note}`
+                      actions.reviewPositionCase(role, note, outcome, checks, reviewText)
+                    }}
+                  />
+                )
               ) : view === 'priorities' ? (
                 <PrioritiesScreen t={t} />
+              ) : view === 'work-methods' ? (
+                <WorkMethodsScreen t={t} />
               ) : view === 'agent' ? (
                 <AgentScreen t={t} />
               ) : view === 'versions' ? (
@@ -1193,7 +1227,20 @@ export function Workbench(props: WorkbenchProps) {
               <div className={shell.railSession}>
                 <AssistantWorkspaceProvider control={
                   <RailWorkspaceTree t={t} workspaces={workspaceSnapshot} sessions={sessionsById}
-                    openWorkspace={openWorkspace} openSession={openSession} renderFactorySlot={renderFactorySlot} />
+                    openWorkspace={workspaceId => openWorkspace(workspaceId).then((reference) => {
+                      // 右栏内切换：展示该工作区最近会话或新建会话，不触发宿主面板跳转。
+                      if (reference !== undefined) setAssistantReference(reference)
+                      setAssistantError(false)
+                      setAssistantLoading(false)
+                      return undefined
+                    })}
+                    openSession={sessionId => openSession(sessionId).then((reference) => {
+                      setAssistantReference(reference)
+                      setAssistantError(false)
+                      setAssistantLoading(false)
+                      return undefined
+                    })}
+                    renameWorkspace={renameWorkspace} renderFactorySlot={renderFactorySlot} />
                 }>
                   <SessionProvider session={assistantReference}>
                     {renderSlot('yuanshu.assistant.conversation', {})}

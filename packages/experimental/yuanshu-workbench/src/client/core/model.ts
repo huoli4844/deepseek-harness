@@ -47,7 +47,7 @@ export type ViewId =
   | 'tasks' | 'versions' | 'calendar' | 'team' | 'groups' | 'files' | 'methods' | 'work'
   | 'profile' | 'customer-resources' | 'material-management' | 'supplier-management' | 'equipment-ledger'
   | 'contract-management' | 'budget-cost' | 'work-hours' | 'weekly-daily-reports'
-  | 'meeting-rooms' | 'organization' | 'doclib' | 'personal-pages'
+  | 'meeting-rooms' | 'organization' | 'doclib' | 'personal-pages' | 'work-methods'
   | OperatorViewId
 
 /** 判断一个 ViewId 是否属于运营者视角五屏。 */

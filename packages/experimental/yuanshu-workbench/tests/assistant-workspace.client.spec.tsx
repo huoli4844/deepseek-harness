@@ -26,17 +26,19 @@ afterEach(cleanup)
 function fixture() {
   const openWorkspace = vi.fn(async (_id: WorkspaceId) => {})
   const openSession = vi.fn(async (_id: SessionId) => {})
+  const renameWorkspace = vi.fn(async (_id: WorkspaceId, _title: string) => {})
   const renderFactorySlot = vi.fn<PropsRenderFactories['renderFactorySlot']>(() => null)
   const view = render(<aside data-testid="rail" style={{ overflow: 'hidden', width: 280 }}>
     <header>智能问答</header>
     <AssistantWorkspaceProvider control={
       <RailWorkspaceTree t={t} workspaces={snapshot} sessions={{ [sessionId]: { displayTitle: '工作记录' } }}
-        openWorkspace={openWorkspace} openSession={openSession} renderFactorySlot={renderFactorySlot} />
+        openWorkspace={openWorkspace} openSession={openSession} renameWorkspace={renameWorkspace}
+        renderFactorySlot={renderFactorySlot} />
     }>
       <div data-testid="composer"><AssistantWorkspaceDock /><textarea aria-label="消息" /></div>
     </AssistantWorkspaceProvider>
   </aside>)
-  return { ...view, openWorkspace, openSession, renderFactorySlot }
+  return { ...view, openWorkspace, openSession, renameWorkspace, renderFactorySlot }
 }
 
 it('只在提供控件的右栏输入区显示，顶栏和独立会话均不重复显示', () => {
@@ -68,7 +70,8 @@ it('切换工作区与会话后关闭菜单，新建目录流始终使用存活�
   const { openWorkspace, openSession, renderFactorySlot } = fixture()
   const trigger = screen.getByRole('button', { name: '工作区' })
   fireEvent.click(trigger)
-  fireEvent.click(screen.getByRole('button', { name: /一个很长的工作区名称/ }))
+  // 工作区行按钮的可访问名以标题开头；重命名按钮的 aria-label 以「重命名工作区」开头，用锚定区分。
+  fireEvent.click(screen.getByRole('button', { name: /^一个很长的工作区名称/u }))
   await waitFor(() => { expect(screen.queryByRole('navigation')).toBeNull() })
   expect(openWorkspace).toHaveBeenCalledWith(workspaceId)
   fireEvent.click(trigger)
@@ -83,4 +86,21 @@ it('切换工作区与会话后关闭菜单，新建目录流始终使用存活�
   expect(field(factory?.[1], 'open')).toBe(true)
   expect(field(field(factory?.[1], 'anchorRef'), 'current')).toBe(trigger)
   expect(trigger.isConnected).toBe(true)
+})
+
+it('重命名工作区：空标题不提交，保存后调用远程改名并退出编辑，Esc 取消', async () => {
+  const { renameWorkspace } = fixture()
+  fireEvent.click(screen.getByRole('button', { name: '工作区' }))
+  fireEvent.click(screen.getByRole('button', { name: /重命名工作区/ }))
+  const input = screen.getByRole('textbox', { name: '重命名工作区' })
+  fireEvent.change(input, { target: { value: '   ' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  expect(renameWorkspace).not.toHaveBeenCalled()
+  expect(screen.getByRole('alert')).toBeDefined()
+  fireEvent.change(input, { target: { value: '改名后的工作区' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
+  await waitFor(() => { expect(renameWorkspace).toHaveBeenCalledWith(workspaceId, '改名后的工作区') })
+  fireEvent.click(screen.getByRole('button', { name: /重命名工作区/ }))
+  fireEvent.keyDown(screen.getByRole('textbox', { name: '重命名工作区' }), { key: 'Escape' })
+  expect(screen.queryByRole('textbox', { name: '重命名工作区' })).toBeNull()
 })

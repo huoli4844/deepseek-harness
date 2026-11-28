@@ -17,7 +17,7 @@ describe('岗位菜单配置', () => {
     for (const role of roleIds) {
       expect(menuForRole(role).map(section => section.id)).toEqual(['work', 'business', 'collaboration', 'personal'])
       expect(idsInGroup(role, 'work')).toEqual(['dashboard', 'tasks', 'weekly-daily-reports', 'calendar'])
-      expect(idsInGroup(role, 'collaboration')).toEqual(['organization'])
+      expect(idsInGroup(role, 'collaboration')).toEqual(['organization', 'work-methods'])
       expect(idsInGroup(role, 'personal')).toEqual(['profile'])
       expect([...idsInGroup(role, 'work'), ...idsInGroup(role, 'business')]).not.toContain('files')
     }

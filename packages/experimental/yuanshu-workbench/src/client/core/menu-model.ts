@@ -47,6 +47,7 @@ const WORK_ENTRIES: readonly MenuEntry[] = [
 /** 组织与协作层：同样全员恒定；资料库改为左轨「知识中心」入口。 */
 const COLLABORATION_ENTRIES: readonly MenuEntry[] = [
   { id: 'organization', label: 'nav.organization' },
+  { id: 'work-methods', label: 'nav.workMethods' },
 ]
 
 /** 个人层：全员恒定。 */

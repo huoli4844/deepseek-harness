@@ -46,7 +46,8 @@ it('分页显示真实总数并在弹窗中提交新增、编辑和删除', asyn
   expect(await screen.findByText('供应商 21')).toBeDefined()
   fireEvent.click(screen.getByRole('button', { name: '编辑供应商' }))
   const edit = within(screen.getByRole('dialog', { name: '编辑供应商' }))
-  fireEvent.change(edit.getByLabelText('供应商名称'), { target: { value: '更新供应商' } })
+  // 编码/名称/联系人已合并为单个输入框，「/」分隔解析回三字段。
+  fireEvent.change(edit.getByLabelText('供应商编码 / 名称 / 联系人'), { target: { value: 'S-21 / 更新供应商 / 张三' } })
   fireEvent.click(edit.getByRole('button', { name: '保存供应商' }))
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith('/yuanshu-workbench/suppliers/21', expect.objectContaining({
@@ -55,12 +56,12 @@ it('分页显示真实总数并在弹窗中提交新增、编辑和删除', asyn
     const updated = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
     expect(updated?.[1]?.body).toContain('"supplier_type":"material"')
     expect(updated?.[1]?.body).toContain('"name":"更新供应商"')
+    expect(updated?.[1]?.body).toContain('"contact_person":"张三"')
   })
 
   fireEvent.click(await screen.findByRole('button', { name: '新增供应商' }))
   const add = within(screen.getByRole('dialog', { name: '新增供应商' }))
-  fireEvent.change(add.getByLabelText('供应商编码'), { target: { value: 'S-NEW' } })
-  fireEvent.change(add.getByLabelText('供应商名称'), { target: { value: '新增测试档案' } })
+  fireEvent.change(add.getByLabelText('供应商编码 / 名称 / 联系人'), { target: { value: 'S-NEW / 新增测试档案' } })
   fireEvent.click(add.getByRole('button', { name: '保存供应商' }))
   await screen.findByText('供应商已保存。')
   expect(fetchMock).toHaveBeenCalledWith('/yuanshu-workbench/suppliers', expect.objectContaining({ method: 'POST' }))

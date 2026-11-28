@@ -1,0 +1,13 @@
+/* 智能体清单以自适应卡片网格展示，样式继承设置弹窗主题。
+   间距使用本模块内定值：设置弹窗作用域不提供 --dsw-business-form-space-* 变量。 */
+.section { display: flex; flex-direction: column; gap: 8px; }
+.title { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 11px; font-weight: 600; }
+.hint { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; }
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.card { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid var(--dsw-alias-line-secondary); border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-secondary); }
+.cardHead { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.name { flex: 1 1 auto; min-width: 0; color: var(--dsw-alias-label-primary); font-size: 12px; font-weight: 600; }
+.badge, .broken { padding: 1px 8px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-fill-selected); color: var(--dsw-alias-brand-primary); font-size: 11px; }
+.broken { background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-secondary); }
+.id { color: var(--dsw-alias-label-secondary); font-size: 11px; overflow-wrap: anywhere; }
+.description { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; }

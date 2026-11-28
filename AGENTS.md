@@ -80,7 +80,7 @@ scripts/     gates and generators
 website/     VitePress documentation projection
 ```
 
-Package groups: [packages/README.md](packages/README.md). [Experimental status](packages/experimental/README.md#status) is independent of optional delivery; nonexperimental packages need product use or an explicit [classification](scripts/product-package-policy.ts).
+Package groups: [packages/README.md](packages/README.md). [Experimental status](packages/experimental/README.md#status) differs from optional delivery; other packages need product use or an explicit [classification](scripts/product-package-policy.ts).
 
 ## Commands
 
@@ -175,7 +175,7 @@ Real-API tests/demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, and 
 
 Before finishing, self-review against [DSH Core Guidelines](docs/core-guidelines/README.md).
 
-Read [docs/defensive-patterns/README.md](docs/defensive-patterns/README.md) before changing a package surface, remote service, client component or state, conversation or Session behavior, or lifecycle, concurrency, subprocess, and teardown code.
+Read [defensive patterns](docs/defensive-patterns/README.md) before changing package APIs, remote services, client state, Sessions, lifecycle, concurrency, subprocesses, or teardown.
 
 ## Type safety and documentation
 
@@ -187,11 +187,11 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 
 ## Editing these instructions
 
-`CLAUDE.md` symlinks `AGENTS.md` at root and `packages/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content needs more space.
+`CLAUDE.md` symlinks root and package `AGENTS.md`; edit the real file. Keep rules self-contained and concise; justify any `verify-doc-budgets` ceiling increase.
 
 ## Vendoring policy
 
-`vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
+`vendor/` contains pinned sources. Follow the [sync procedure](vendor/README.md), reconcile local changes, then run `pnpm run test && pnpm run build`.
 
 ## 元枢员工工作台扩展开发入口
 
@@ -199,4 +199,5 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 |---|---|
 | 元枢业务插件，按插件分目录 | [插件开发规则](packages/experimental/AGENTS.md) |
 | 元枢员工技能，每个技能一个目录 | [技能包开发规则](packages/experimental/yuanshu-workbench/skills/AGENTS.md) |
+| 元枢业务智能体，每个智能体一个开发目录 | [智能体开发规则](packages/experimental/yuanshu-workbench/agents/AGENTS.md) |
 | A2UI 通用确认、内容编辑弹窗 | [固定模板与接入约定](packages/experimental/yuanshu-workbench/src/business-forms/templates/README.md) |

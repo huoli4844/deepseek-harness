@@ -15,6 +15,22 @@
   gap: var(--dsw-space-2, 8px);
 }
 
+/* 设置弹窗「个人页」页签的内容容器：纵向排布字段区与动作区。 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsw-space-3, 12px);
+  min-width: 0;
+}
+
+/* 面板内的状态与空态提示：跟随设置弹窗正文的 12px，压过 Modal 默认字号。 */
+.panelNote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}
+
 .pages {
   flex: 1 1 auto;
 }

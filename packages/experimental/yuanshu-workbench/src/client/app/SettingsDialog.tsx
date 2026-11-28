@@ -10,6 +10,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, Modal, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SkillPackageEntry } from './skill-store-api.ts'
+import { AgentSettingsPanel, type InstalledAgentEntry } from './AgentSettingsPanel.tsx'
+import { PersonalPageSettingsPanel } from '../modules/personal-pages/index.ts'
 import css from './SettingsDialog.module.css'
 
 export type WorkbenchTheme = 'dark' | 'light' | 'system'
@@ -38,6 +40,8 @@ export interface InstalledSkillEntry {
 
 export interface WorkbenchSettingsSource {
   readonly loadPlugins: () => Promise<readonly InstalledPluginEntry[]>
+  /** 读取当前宿主已经注册的 Agent preset，包括加载失败项。 */
+  readonly loadAgents: () => Promise<readonly InstalledAgentEntry[]>
   /** 读取当前会话的技能目录；没有可用会话或接口失败时返回空列表。 */
   readonly loadSkills: (sessionId?: string) => Promise<readonly InstalledSkillEntry[]>
   /** 读取元枢后台的技能包清单。 */
@@ -77,8 +81,8 @@ const THEME_LABELS: Record<WorkbenchTheme, 'settings.theme.system' | 'settings.t
 }
 const SIZES: readonly WorkbenchTextSize[] = ['small', 'normal', 'large']
 const PLUGINS_PER_PAGE = 8
-type SettingsTab = 'appearance' | 'plugins' | 'skills' | 'skillPackages'
-const TAB_ORDER: readonly SettingsTab[] = ['appearance', 'plugins', 'skills', 'skillPackages']
+type SettingsTab = 'appearance' | 'plugins' | 'agents' | 'skills' | 'skillPackages' | 'personalPages'
+const TAB_ORDER: readonly SettingsTab[] = ['appearance', 'plugins', 'agents', 'skills', 'skillPackages', 'personalPages']
 
 /**
  * 分页条：上一页、下一页、最多 10 个页码，并按每 10 页一组切换。
@@ -409,6 +413,7 @@ export function SettingsDialog({
               )}
             </section>
           ) : null}
+          {tab === 'agents' ? <AgentSettingsPanel source={source} t={t} /> : null}
           {tab === 'skills' ? (
             <section className={css.section}>
               <h3 className={css.sectionTitle}>{t('settings.skills')}</h3>
@@ -516,6 +521,7 @@ export function SettingsDialog({
               {notice === undefined ? null : <p className={noticeError ? css.noticeError : css.notice}>{notice}</p>}
             </section>
           ) : null}
+          {tab === 'personalPages' ? <PersonalPageSettingsPanel t={t} /> : null}
         </div>
       </div>
     </Modal>

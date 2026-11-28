@@ -233,12 +233,14 @@
 /* 右栏的工作区切换固定在原生输入框上方；宽度扣除与输入卡片一致的侧留白，
    让触发按钮与弹出面板的右缘对齐输入卡片右缘（clearance 变量由 composer 根提供）。 */
 .railComposerWorkspace {
+  /* 与输入框卡片同宽同位：原生 dock 容器已在 .root 的侧留白内，
+     这里跟随 composer 卡片的 max-width 并居中，控件行右缘即输入框右缘。 */
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width, 100%);
+  margin-inline: auto;
   display: flex;
   justify-content: flex-end;
   min-width: 0;
-  width: calc(100% - 2 * var(--dsh-composer-side-clearance, 16px));
-  max-width: 100%;
-  margin: 0 auto;
 }
 .railWorkspace {
   position: relative;
@@ -319,6 +321,54 @@
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
+}
+/* 工作区行内的重命名入口按钮：弱化显示，hover 高亮。 */
+.railWsRenameBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+.railWsRenameBtn:hover {
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent);
+  color: var(--dsw-alias-label-primary);
+}
+/* 重命名编辑表单：输入框占满行宽，保存按钮固定在右侧，错误提示独占一行。 */
+.railWsRename {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px;
+}
+.railWsRename input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+}
+.railWsRenameSave {
+  flex: none;
+  padding: 3px 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.railWsRenameError {
+  flex-basis: 100%;
+  color: var(--dsw-alias-state-danger-primary);
+  font-size: 11px;
 }
 .railWsChevronIcon {
   display: flex;

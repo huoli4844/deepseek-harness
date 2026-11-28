@@ -44,9 +44,14 @@ async function bench() {
   runtime.ctx.provide('uiWorkspace', { startSession } as never)
   // 设置弹窗与资料库面板读取的 Remote 命名空间，测试中给出空实现即可挂载。
   runtime.ctx.provide('remote.pluginManager', { listBundles: async () => ({ ok: true, value: [] }) } as never)
+  runtime.ctx.provide('remote.agentPresets', { list: async () => ({ ok: true, value: { presets: [
+    { id: 'yuanshu', name: '元枢助手', description: '在工作台完成业务任务', isDefault: false },
+    { id: 'broken', name: '待修复智能体', isDefault: false, broken: 'Missing dependency' },
+  ] } }) } as never)
   runtime.ctx.provide('remote.skills', { list: async () => ({ ok: true, value: { skills: [] } }) } as never)
   runtime.ctx.provide('remote.workspaceFiles', {} as never)
   runtime.ctx.provide('remote.session', {} as never)
+  runtime.ctx.provide('remote.workspace', {} as never)
   await runtime.declare({
     main: { kind: 'keyed', scope: 'root' },
     'sidebar.panellist': { kind: 'list', scope: 'root' },
@@ -64,6 +69,18 @@ it('在知识中心下方打开统一个人页入口', async () => {
   fireEvent.click(personal)
   expect(personal.getAttribute('aria-current')).toBe('page')
   await screen.findByText('请重新登录元枢后打开个人页面。')
+})
+
+it('设置页显示本机已注册智能体及其加载状态', async () => {
+  await bench()
+  fireEvent.click(screen.getByRole('button', { name: '工作台设置' }))
+  fireEvent.click(screen.getByRole('tab', { name: '智能体' }))
+  expect(await screen.findByText('元枢助手')).toBeDefined()
+  expect(screen.getByText('待修复智能体')).toBeDefined()
+  expect(screen.getByText('不可用')).toBeDefined()
+  fireEvent.click(screen.getByText('元枢助手'))
+  expect(screen.getByText('在工作台完成业务任务')).toBeDefined()
+  expect(screen.getByText('yuanshu')).toBeDefined()
 })
 
 it('shows every business module in the project position view', async () => {
@@ -133,7 +150,8 @@ it.each([
 ])('opens $title data and its corresponding task', async ({ role, title, row, value, task: _task }) => {
   await bench()
   fireEvent.change(screen.getByRole('combobox', { name: '当前岗位视角' }), { target: { value: role } })
-  fireEvent.click(screen.getByRole('button', { name: '岗位工作台' }))
+  // 采购交付图表已从岗位工作台迁移至项目管理页；其余岗位图表仍在岗位工作台打开。
+  fireEvent.click(screen.getByRole('button', { name: role === 'procurement' ? '项目管理' : '岗位工作台' }))
   fireEvent.click(screen.getByRole('button', { name: `查看图表明细：${title}` }))
   const detail = screen.getByRole('dialog', { name: title })
   const dataRow = within(detail).getByRole('row', { name: new RegExp(row) })

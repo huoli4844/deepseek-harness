@@ -9,6 +9,7 @@ import {
 } from '../../core/data/project-operations.ts'
 import { ChangeDemoPanel } from './ChangeDemoPanel.tsx'
 import { fixtureChangeId, fixtureDecisionId } from '../../core/data/change-demo.ts'
+import { ProcurementDeliveryCharts } from '../dashboard/ProcurementDeliveryCharts.tsx'
 import { useWorkbenchPage, type WorkbenchT } from '../../app/page-api.ts'
 import css from '../../app/Workbench.module.css'
 
@@ -236,6 +237,8 @@ export function ProjectOpsScreen({ t }: { readonly t: WorkbenchT }) {
           })}
         </section>
       </div>
+      {/* 采购交付图表区：从岗位工作台（采购岗位经营总览）迁移来的六张卡。 */}
+      <ProcurementDeliveryCharts t={t} />
     </>
   )
 }

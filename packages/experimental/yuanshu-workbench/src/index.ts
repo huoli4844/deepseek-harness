@@ -411,6 +411,15 @@ export function apply(ctx: Context, config: Config): void {
         + '命中多个时按业务对象与模块选择最接近的一条，必要时向员工确认。再调用 yuanshu_api_query，path 原样使用检索结果，参数只用目录声明的名称，缺少必填条件先询问员工。'
         + '只读查询，不修改、不导出；查不到对应能力时如实说明无法查询，不编造数据。结果被裁剪时告知还有更多数据并请员工补充条件。',
     })
+    registerBusinessSkill(scope, {
+      name: 'yuanshu-hr-analysis',
+      description: '为获授权的人力组按月核定项目与职能工作投入，生成唯一的固定模板 Excel。',
+      path: fileURLToPath(new URL('../skills/yuanshu-hr-analysis/SKILL.md', import.meta.url)),
+      rank: 570,
+      guidance: '员工请求人力投入分析时，先确认月份、组织与人员范围，再核对当前身份在读取、分析和导出各动作上的权限。'
+        + '逐项核对数据覆盖、分类复核、确定性计算、对账和固定模板导出能力；缺少任一正式能力时说明停在哪一步，不用普通只读查询拼出正式分析或 Excel。'
+        + '只有工作台计算与复核完成、导出成功后才能交付唯一的 Excel 文件；不创建 A2UI 报告界面或预览文件。结果未知时先核对任务状态。',
+    })
   })
   const dataApi = config.data.apiUrl.replace(/\/+$/u, '')
   let connecting = false

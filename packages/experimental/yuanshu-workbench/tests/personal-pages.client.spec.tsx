@@ -2,7 +2,7 @@
 /** 验证命名发布、顶部切换和重新打开时的动态查询。 */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { ConversationPersonalPages, PersonalPages } from '../src/client/modules/personal-pages/index.ts'
+import { ConversationPersonalPages, PersonalPageSettingsPanel, PersonalPages } from '../src/client/modules/personal-pages/index.ts'
 import { zh } from '../src/client/core/locales/locales.ts'
 
 const t = (key: string, params?: Readonly<Record<string, unknown>>) => Object.entries(params ?? {}).reduce(
@@ -35,16 +35,18 @@ it('设置里可二次确认卸载单个或全部个人页', async () => {
   vi.stubGlobal('fetch', fetchMock)
   render(<PersonalPages t={t} />)
   await screen.findByRole('button', { name: '页面甲' })
-  fireEvent.click(screen.getByRole('button', { name: '个人页设置' }))
-  const dialog = within(screen.getByRole('dialog', { name: '个人页设置' }))
+  // 设置入口已迁到工作台设置弹窗的「个人页」页签；测试直接挂载该面板验证行为。
+  render(<PersonalPageSettingsPanel t={t} />)
+  // 面板异步恢复账号与页面列表后再执行卸载。
+  const unload = await screen.findAllByRole('button', { name: '卸载' })
   // 单个卸载：先点卸载，再点确认卸载，页面立即从切换栏消失。
-  fireEvent.click(dialog.getAllByRole('button', { name: '卸载' })[0]!)
-  fireEvent.click(dialog.getByRole('button', { name: '确认卸载' }))
+  fireEvent.click(unload[0]!)
+  fireEvent.click(screen.getByRole('button', { name: '确认卸载' }))
   await waitFor(() => { expect(screen.queryByRole('button', { name: '页面甲' })).toBeNull() })
   expect(screen.getByRole('button', { name: '页面乙' })).toBeDefined()
   // 卸载全部：确认后回到空态提示。
-  fireEvent.click(dialog.getByRole('button', { name: '卸载全部' }))
-  fireEvent.click(dialog.getByRole('button', { name: '确认卸载全部' }))
+  fireEvent.click(screen.getByRole('button', { name: '卸载全部' }))
+  fireEvent.click(screen.getByRole('button', { name: '确认卸载全部' }))
   await screen.findByText('在工作台对话中提出创建个人页面。')
   expect(screen.queryByRole('button', { name: '页面乙' })).toBeNull()
 })
@@ -121,13 +123,13 @@ it('确认修改后的名称才发布，按名称切换，重新打开读取最�
   fireEvent.click(screen.getByRole('button', { name: '本周项目工时' }))
   await screen.findByText('3.00')
 
-  fireEvent.click(screen.getByRole('button', { name: '个人页设置' }))
-  let settings = within(screen.getByRole('dialog', { name: '个人页设置' }))
-  expect(settings.queryByRole('button', { name: '创建页面' })).toBeNull()
-  fireEvent.change(settings.getAllByRole('textbox', { name: '页面名称' })[1]!, { target: { value: '月度项目工时' } })
-  fireEvent.click(settings.getAllByRole('button', { name: '上移' })[1]!)
-  fireEvent.click(settings.getAllByRole('checkbox', { name: '显示页面' })[1]!)
-  fireEvent.click(settings.getByRole('button', { name: '保存' }))
+  const settingsPanel = render(<PersonalPageSettingsPanel t={t} />)
+  expect(screen.queryByRole('button', { name: '创建页面' })).toBeNull()
+  const names = await screen.findAllByRole('textbox', { name: '页面名称' })
+  fireEvent.change(names[1]!, { target: { value: '月度项目工时' } })
+  fireEvent.click(screen.getAllByRole('button', { name: '上移' })[1]!)
+  fireEvent.click(screen.getAllByRole('checkbox', { name: '显示页面' })[1]!)
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
   // 保存已改为写入宿主端点的异步流程，等待隐藏页面从导航中消失。
   await waitFor(() => { expect(screen.queryByRole('button', { name: '本周项目工时' })).toBeNull() })
   await screen.findByRole('button', { name: '月度项目工时', pressed: true })
@@ -137,10 +139,11 @@ it('确认修改后的名称才发布，按名称切换，重新打开读取最�
   const reopened = render(<PersonalPages t={t} />)
   await screen.findByRole('button', { name: '月度项目工时', pressed: true })
   await screen.findByText('4.00')
-  fireEvent.click(screen.getByRole('button', { name: '个人页设置' }))
-  settings = within(screen.getByRole('dialog', { name: '个人页设置' }))
-  fireEvent.click(settings.getAllByRole('checkbox', { name: '显示页面' })[1]!)
-  fireEvent.click(settings.getByRole('button', { name: '保存' }))
+  settingsPanel.unmount()
+  render(<PersonalPageSettingsPanel t={t} />)
+  const checkboxes = await screen.findAllByRole('checkbox', { name: '显示页面' })
+  fireEvent.click(checkboxes[1]!)
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
   // 等重新显示的页面回到导航后再断言顺序。
   await screen.findByRole('button', { name: '本周项目工时' })
   const tabs = within(screen.getByRole('navigation', { name: '个人页面' })).getAllByRole('button')
@@ -150,7 +153,9 @@ it('确认修改后的名称才发布，按名称切换，重新打开读取最�
   user = 13
   localStorage.setItem('workbench-client-token', 'another-token')
   render(<PersonalPages t={t} />)
-  await screen.findByRole('button', { name: '个人页设置' })
+  render(<PersonalPageSettingsPanel t={t} />)
+  // 账号切换后设置面板与主视图都提示重新登录，不显示旧账号的页面。
+  await screen.findAllByRole('alert')
   expect(screen.queryByRole('button', { name: '本周项目工时' })).toBeNull()
 })
 

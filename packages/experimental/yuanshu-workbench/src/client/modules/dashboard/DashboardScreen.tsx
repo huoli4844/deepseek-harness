@@ -40,42 +40,47 @@ export function DashboardScreen({ t }: { readonly t: WorkbenchT }) {
           </button>
         ))}
       </div>
-      <div className={css.chartSectionHeading}>
-        <h2>{t('nav.dashboard')}</h2>
-        <Tag>{t(role === 'executive' || role === 'president' ? 'chart.eight' : 'chart.six')}</Tag>
-      </div>
-      <div className={css.chartGrid}>
-        <section className={css.card} data-dashboard-chart="trend" aria-label={t(`${role}.chart`)}>
-          <div className={css.sectionHeading}>
-            <h2>{t(`${role}.chart`)}</h2>
-            <small>{t('chart.unit')}</small>
+      {/* 采购岗位的六张交付图表已整体迁移至项目管理页（ProcurementDeliveryCharts），此处不再重复展示。 */}
+      {role !== 'procurement' && (
+        <>
+          <div className={css.chartSectionHeading}>
+            <h2>{t('nav.dashboard')}</h2>
+            <Tag>{t(role === 'executive' || role === 'president' ? 'chart.eight' : 'chart.six')}</Tag>
           </div>
-          <TrendChart />
-          <p className={css.chartCaption}>{t('chartHint')}</p>
-        </section>
-        <section className={css.card} data-dashboard-chart="progress" aria-label={t(`${role}.bars`)}>
-          <div className={css.sectionHeading}>
-            <h2>{t(`${role}.bars`)}</h2>
-            <small>{t('thisWeek')}</small>
+          <div className={css.chartGrid}>
+            <section className={css.card} data-dashboard-chart="trend" aria-label={t(`${role}.chart`)}>
+              <div className={css.sectionHeading}>
+                <h2>{t(`${role}.chart`)}</h2>
+                <small>{t('chart.unit')}</small>
+              </div>
+              <TrendChart />
+              <p className={css.chartCaption}>{t('chartHint')}</p>
+            </section>
+            <section className={css.card} data-dashboard-chart="progress" aria-label={t(`${role}.bars`)}>
+              <div className={css.sectionHeading}>
+                <h2>{t(`${role}.bars`)}</h2>
+                <small>{t('thisWeek')}</small>
+              </div>
+              <div className={css.bars}>
+                {fixture.bars.map((value, i) => (
+                  <button
+                    key={i}
+                    className={css.barRow}
+                    onClick={() => { selectView('tasks') }}
+                  >
+                    <span>{t(`${role}.bar${i + 1}` as WorkbenchKey)}</span>
+                    <b>{value}%</b>
+                    <span className={css.barTrack}>
+                      <span style={{ width: `${value}%` }} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <DashboardCharts t={t} charts={dashboardCharts[role]} tasks={fixture.tasks} onTask={openTask} />
           </div>
-          <div className={css.bars}>
-            {fixture.bars.map((value, i) => (
-              <button
-                key={i}
-                className={css.barRow}
-                onClick={() => { selectView('tasks') }}
-              >
-                <span>{t(`${role}.bar${i + 1}` as WorkbenchKey)}</span>
-                <b>{value}%</b>
-                <span className={css.barTrack}>
-                  <span style={{ width: `${value}%` }} />
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-        <DashboardCharts t={t} charts={dashboardCharts[role]} tasks={fixture.tasks} onTask={openTask} />
-      </div>
+        </>
+      )}
       {(role === 'executive' || role === 'president') && (
         <section className={css.card}>
           <div className={css.sectionHeading}>

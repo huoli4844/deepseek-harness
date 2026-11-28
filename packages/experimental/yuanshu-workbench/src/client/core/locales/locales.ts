@@ -10,6 +10,7 @@ import { operatorEn, operatorZh } from '../../operator/operator-locales.ts'
 import { identityEn, identityZh } from '../../identity/identity-locales.ts'
 import { liveEn, liveZh } from './live-locales.ts'
 import { shellEn, shellZh } from './shell-locales.ts'
+import { agentSettingsEn, agentSettingsZh } from './agent-settings-locales.ts'
 import { chartEn, chartZh } from './chart-locales.ts'
 import { roleContentEn, roleContentZh } from './role-content-locales.ts'
 import { taskWorkEn, taskWorkZh } from '../../modules/task-work/task-work-locales.ts'
@@ -48,6 +49,7 @@ export const en = {
   ...procurementChainEn,
   ...liveEn,
   ...shellEn,
+  ...agentSettingsEn,
   ...chartEn,
   ...roleContentEn,
   ...taskWorkEn,
@@ -90,6 +92,7 @@ export const zh: Record<keyof typeof en, string> = {
   ...procurementChainZh,
   ...liveZh,
   ...shellZh,
+  ...agentSettingsZh,
   ...chartZh,
   ...roleContentZh,
   ...taskWorkZh,

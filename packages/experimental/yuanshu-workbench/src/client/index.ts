@@ -1,5 +1,7 @@
 /** Native DSH main-panel and sidebar contribution; no document injection. */
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type { AgentPresetRow } from '@deepseek-ai/dsh-agent-preset-registry/types'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -45,6 +47,13 @@ const WORKBENCH_AGENT_PRESET = 'yuanshu'
 const ASSISTANT_SESSION_KEY = 'dsh.yuanshu.workbench.assistant-sessions.v2'
 const ASSISTANT_SOURCE = 'yuanshuWorkbench'
 
+/** 仅在远程命名空间确实提供清单方法时读取智能体。 */
+function isAgentPresetRemote(value: unknown): value is {
+  list: () => Promise<{ ok: boolean; value?: { presets: readonly AgentPresetRow[] } }>
+} {
+  return typeof value === 'object' && value !== null && 'list' in value && typeof value.list === 'function'
+}
+
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap {
     yuanshuWorkbench: unknown
@@ -87,7 +96,7 @@ function readAssistantSessions(): Record<string, string> {
 export const inject = [
   'slots', 'locale', 'layout', 'uiWorkspace', 'sessions', 'workspaces',
   // Remote 命名空间必须先声明 inject，访问 ctx.remote.<namespace> 才不会抛错。
-  'remote', 'remote.pluginManager', 'remote.skills', 'remote.workspaceFiles', 'remote.session',
+  'remote', 'remote.pluginManager', 'remote.agentPresets', 'remote.skills', 'remote.workspaceFiles', 'remote.session', 'remote.workspace',
 ]
 
 /**
@@ -152,6 +161,25 @@ export function apply(ctx: Context): void {
     }
     return reference
   }
+  // 右栏按会话直接打开：同一会话复用已 retain 的引用，避免重复挂引用计数。
+  const assistantSessionReferences = new Map<SessionId, SessionReference>()
+  const openAssistantSession = async (sessionId: SessionId): Promise<SessionReference> => {
+    const existing = assistantSessionReferences.get(sessionId)
+    if (existing !== undefined) return existing
+    const reference = ctx.sessions.retain(sessionId, { source: ASSISTANT_SOURCE, facets: { conversation: true } })
+    assistantSessionReferences.set(sessionId, reference)
+    await reference.ready
+    return reference
+  }
+  // 右栏切换工作区：记住归属上下文；有会话打开最近一个，无会话则新建归属该工作区的会话。
+  const openAssistantWorkspace = async (workspaceId: WorkspaceId): Promise<SessionReference | undefined> => {
+    selectedAssistantWorkspace = workspaceId
+    const workspace = ctx.get('workspaces')?.list.getSnapshot().items.find(item => item.workspaceId === workspaceId)
+    const latest = workspace?.sessionIds.at(-1)
+    if (latest !== undefined) return await openAssistantSession(latest)
+    const id = await ctx.sessions.create({ workspaceId, agentPreset: WORKBENCH_AGENT_PRESET })
+    return await openAssistantSession(id)
+  }
   ctx.effect(function* () {
     yield ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
       name: 'conversation.input.dock', id: 'yuanshu-assistant-workspace', order: 100,
@@ -190,15 +218,12 @@ export function apply(ctx: Context): void {
           store,
           inject: () => ({
             openAssistant: (role: string, prompt?: string) => getAssistantSession(role, prompt),
-            openWorkspace: (workspaceId: WorkspaceId) => {
-              // 只切换智能问答浮窗的当前工作区上下文（后续新建会话归属该工作区），
-              // 不调用宿主跳转，避免整个主区被切到默认对话页。
-              selectedAssistantWorkspace = workspaceId
-              return Promise.resolve()
-            },
-            openSession: (sessionId: SessionId) => {
-              ctx.uiWorkspace.openSession(sessionId)
-              return Promise.resolve()
+            // 右栏内切换工作区/会话：不调用宿主跳转，避免整个主区被切到默认对话页。
+            openWorkspace: (workspaceId: WorkspaceId) => openAssistantWorkspace(workspaceId),
+            openSession: (sessionId: SessionId) => openAssistantSession(sessionId),
+            renameWorkspace: async (workspaceId: WorkspaceId, title: string) => {
+              const result = await ctx.remote.workspace.rename({ workspaceId, title })
+              if (!result.ok) throw result.error
             },
             onReturn: () => {
               ctx.layout.selectPanel(null)
@@ -265,6 +290,13 @@ export function apply(ctx: Context): void {
                       ...(item.availability === undefined ? {} : { availability: item.availability }),
                       ...(item.description === undefined ? {} : { description: item.description }),
                     }))
+                },
+                loadAgents: async () => {
+                  const registry: unknown = ctx.get('remote.agentPresets')
+                  if (!isAgentPresetRemote(registry)) throw new Error('Agent preset roster is unavailable')
+                  const result = await registry.list()
+                  if (!result.ok || result.value === undefined) throw new Error('Agent preset roster could not be read')
+                  return result.value.presets
                 },
                 loadSkills: async (sessionId?: string) => {
                   const skills = remote?.skills

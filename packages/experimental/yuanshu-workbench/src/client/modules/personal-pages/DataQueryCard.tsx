@@ -132,7 +132,7 @@ export function DataQueryCard({ widget, t, onReady }: {
     if (rows === undefined) return map
     if (aggregate === 'count') return map.set('total', total)
     for (const key of numericKeys) {
-      const values = rows.flatMap(row => typeof row[key] === 'number' ? [row[key] as number] : [])
+      const values = rows.flatMap(row => typeof row[key] === 'number' ? [row[key]] : [])
       if (values.length === 0) continue
       if (aggregate === 'avg') map.set(key, values.reduce((left, right) => left + right, 0) / values.length)
       else if (aggregate === 'max') map.set(key, Math.max(...values))

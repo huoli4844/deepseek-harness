@@ -85,7 +85,7 @@ function normalizePage(value: unknown): PersonalPage | undefined {
       const cleaned = widget.params === undefined ? widget : { ...widget, params: normalizeQueryParams(widget.params) }
       const labels = widget.labels === undefined
         ? cleaned
-        : { ...cleaned, labels: Object.fromEntries(Object.entries(widget.labels).map(([name, raw]) => [name, String(raw).trim()])) }
+        : { ...cleaned, labels: Object.fromEntries(Object.entries(widget.labels).map(([name, raw]) => [name, raw.trim()])) }
       return [labels]
     })
     return widgets.length > 0 ? { id, name, hidden: hidden === true, widgets } : undefined

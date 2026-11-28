@@ -1,0 +1,14 @@
+/** 工作方法页样式：链路切换按钮行居左，下方为当前链路视图。 */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

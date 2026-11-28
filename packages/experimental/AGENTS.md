@@ -11,7 +11,7 @@ These rules supplement the [package rules](../AGENTS.md). The [experimental refe
 
 ## 元枢员工工作台业务插件
 
-本节适用于元枢企业工作台。独立的内部业务插件放在本目录的 `<plugin-name>/`，现有工作台插件位于 `yuanshu-workbench/`。同一插件内的业务模块继续由该插件维护。随工作台分发的员工技能统一放入[技能包根目录](yuanshu-workbench/skills/AGENTS.md)。
+本节适用于元枢企业工作台。独立的内部业务插件放在本目录的 `<plugin-name>/`，现有工作台插件位于 `yuanshu-workbench/`。同一插件内的业务模块继续由该插件维护。随工作台分发的员工技能统一放入[技能包根目录](yuanshu-workbench/skills/AGENTS.md)。业务智能体的开发目录及组合包归属见[智能体开发规则](yuanshu-workbench/agents/AGENTS.md)。
 
 - 元枢自定义插件的名称、注册 ID 和目录名统一以 `yuanshu-` 开头。npm 包名保留仓库统一的 `@deepseek-ai/dsh-` 前缀，例为 `@deepseek-ai/dsh-yuanshu-workbench`。包内独立业务插件目录也遵循该规则。更名时同步更新依赖、打包配置和插件总览，并兼容已持久化的旧标识。
 

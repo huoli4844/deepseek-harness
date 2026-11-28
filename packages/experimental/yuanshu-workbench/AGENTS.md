@@ -1,6 +1,6 @@
 # 元枢工作台开发规则
 
-本目录适用于元枢工作台插件、业务表单与随包技能。全局编码约束见 [工作区编码规则](../../../../CODING_RULES.md)，员工技能规则见 [skills/AGENTS.md](skills/AGENTS.md)。
+本目录适用于元枢工作台插件、业务表单、随包技能与业务智能体。全局编码约束见 [工作区编码规则](../../../../CODING_RULES.md)，员工技能规则见 [skills/AGENTS.md](skills/AGENTS.md)，智能体开发规则见 [agents/AGENTS.md](agents/AGENTS.md)。
 
 ## 对话业务新增
 

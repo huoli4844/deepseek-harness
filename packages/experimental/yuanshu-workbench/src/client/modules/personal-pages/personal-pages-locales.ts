@@ -2,11 +2,10 @@
 export const personalPagesEn = {
   'personalPages.nav': 'My personal page',
   'personalPages.add': 'Create page',
-  'personalPages.settings': 'Personal page settings',
   'personalPages.show': 'Show page',
   'personalPages.moveUp': 'Move up',
   'personalPages.moveDown': 'Move down',
-  'personalPages.allHidden': 'Show a page again in personal page settings.',
+  'personalPages.allHidden': 'Show a page again in workbench settings, under Personal pages.',
   'personalPages.pages': 'Personal pages',
   'personalPages.empty': 'Ask the workbench assistant to create your first personal page.',
   'personalPages.emptyTitle': 'No personal pages yet',
@@ -46,17 +45,17 @@ export const personalPagesEn = {
   'personalPages.hours': 'Hours',
   'personalPages.description': 'Description',
   'personalPages.signIn': 'Sign in to YuanShu again to open your personal pages.',
+  'personalPages.saved': 'Personal page settings saved.',
 } as const
 
 /** 与英文版共用个人页文案键。 */
 export const personalPagesZh: Record<keyof typeof personalPagesEn, string> = {
   'personalPages.nav': '我的个人页',
   'personalPages.add': '创建页面',
-  'personalPages.settings': '个人页设置',
   'personalPages.show': '显示页面',
   'personalPages.moveUp': '上移',
   'personalPages.moveDown': '下移',
-  'personalPages.allHidden': '可在个人页设置中恢复显示页面。',
+  'personalPages.allHidden': '可在工作台设置的「个人页」页签中恢复显示页面。',
   'personalPages.pages': '个人页面',
   'personalPages.empty': '在工作台对话中提出创建个人页面。',
   'personalPages.emptyTitle': '还没有个人页面',
@@ -96,4 +95,5 @@ export const personalPagesZh: Record<keyof typeof personalPagesEn, string> = {
   'personalPages.hours': '工时（小时）',
   'personalPages.description': '工作内容',
   'personalPages.signIn': '请重新登录元枢后打开个人页面。',
+  'personalPages.saved': '个人页设置已保存。',
 }

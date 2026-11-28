@@ -70,6 +70,12 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     let renewed = 0
+    let failures = 0
+    let delay = 2000
+    /** 空闲时段放低轮询频率；页面隐藏时不轮询，回到前台立即补一次。 */
+    const schedule = (next: number) => {
+      timer = setTimeout(() => { void poll() }, document.hidden ? 30_000 : next)
+    }
     const poll = async () => {
       try {
         if (!sameAccount()) { releaseComposer(); setView(undefined); setContent(undefined); setLoadError('daily.loadError'); return }
@@ -87,6 +93,7 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
         }
         const weeklyValue = await pendingWeeklyForm(session, controller.signal)
         controller.signal.throwIfAborted()
+        failures = 0
         setLoadError(undefined)
         if (weeklyValue && weeklyFormId.current !== weeklyValue.form.id) {
           weeklyFormId.current = weeklyValue.form.id
@@ -95,19 +102,41 @@ export function BusinessFormsContainer({ session, active, t, blocks, onNewChat }
           setWeeklyError(undefined)
           setWeeklyFrozen(false)
         }
-        timer = setTimeout(() => { void poll() }, 2000)
+        // 有待确认表单时保持 2 秒及时同步版本与到期；空闲时段放宽到 8 秒。
+        delay = value !== null || weeklyValue !== null ? 2000 : 8000
+        schedule(delay)
       } catch (failure) {
         if (!controller.signal.aborted) {
           const request = failure instanceof BusinessFormError ? failure : undefined
-          setLoadError(request?.newSessionRequired === true ? 'daily.unboundHistory'
-            : request?.status === 404 ? 'daily.notDeployed' : 'daily.loadError')
-          if (request === undefined || request.status >= 500) timer = setTimeout(() => { void poll() }, 2000)
+          // 4xx 是确定性业务状态（登录/绑定/部署），立即提示；5xx 与网络错误连续 3 次才提示，避免瞬时抖动闪现横幅。
+          if (request !== undefined && request.status >= 400 && request.status < 500) {
+            setLoadError(request.newSessionRequired ? 'daily.unboundHistory'
+              : request.status === 404 ? 'daily.notDeployed' : 'daily.loadError')
+          } else if (failures >= 3) {
+            setLoadError('daily.loadError')
+          }
+          if (request === undefined || request.status >= 500) {
+            // 失败退避：间隔翻倍至 30 秒上限，减少后端不可用时的无效请求压力。
+            delay = Math.min(delay * 2, 30_000)
+            schedule(delay)
+          }
         }
       }
     }
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      clearTimeout(timer)
+      void poll()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     setLoadError(undefined)
     void poll()
-    return () => { controller.abort(); clearTimeout(timer); releaseComposer() }
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      releaseComposer()
+    }
   }, [session, active, retry, sameAccount, blocks, bindingReason])
   const openNewChat = () => {
     if (opening.current !== undefined || onNewChat === undefined) return

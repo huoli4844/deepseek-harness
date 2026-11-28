@@ -5,5 +5,6 @@
 - 命令 `/yuanshu-business-capabilities` 查询指定业务能否新增、需准备哪些资料。也可以问「现在能新增项目合同吗」。[查询业务能力](yuanshu-business-capabilities/SKILL.md)
 
 - 命令 `/yuanshu-custom-page-create` 加载创建自定义页面技能，指引员工预览、确认名称并发布到「我的个人页」。[创建自定义页面](yuanshu-custom-page-create/SKILL.md)
+- 命令 `/yuanshu-hr-analysis` 加载人力投入分析技能，也可以说「生成上月人力投入分析」。按已授权范围复核数据和归属，待工作台提供正式分析与导出能力后取得唯一的固定模板 Excel。[人力投入分析](yuanshu-hr-analysis/SKILL.md)
 
 新增技能时遵循[开发规则](AGENTS.md)，并更新[技能包总览](技能包总览.md)。

@@ -43,19 +43,24 @@ export function PositionAlert() {
   )
 }
 
-/** 角色指标六周趋势图（演示 SVG）。 */
-export function TrendChart() {
+/**
+ * 角色指标六周趋势图（演示 SVG）。默认随当前角色取数；跨页面固定展示某一角色的
+ * 趋势时（如项目管理页的采购卡），传入 `trend` 与 `titleKey` 固定数据与标题。
+ */
+export function TrendChart(props: { readonly trend?: readonly number[]; readonly titleKey?: WorkbenchKey } = {}) {
   const page = useWorkbenchPage()
   const { t, role, fixture, selectView } = page
-  const coords = fixture.trend.map((value, i) => `${32 + i * 60},${160 - value * 1.3}`).join(' ')
+  const trend = props.trend ?? fixture.trend
+  const titleKey = props.titleKey ?? `${role}.chart`
+  const coords = trend.map((value, i) => `${32 + i * 60},${160 - value * 1.3}`).join(' ')
   return (
     <button
       className={css.trendButton}
       onClick={() => { selectView('tasks') }}
       aria-label={t('chart.detail')}
     >
-      <svg className={css.trend} viewBox="0 0 370 190" role="img" aria-label={t(`${role}.chart`)}>
-        <title>{t(`${role}.chart`)}</title>
+      <svg className={css.trend} viewBox="0 0 370 190" role="img" aria-label={t(titleKey)}>
+        <title>{t(titleKey)}</title>
         {[40, 60, 80, 100].map(n => (
           <g key={n}>
             <line x1="30" x2="347" y1={160 - n * 1.3} y2={160 - n * 1.3} />
@@ -65,7 +70,7 @@ export function TrendChart() {
           </g>
         ))}
         <polyline points={coords} />
-        {fixture.trend.map((value, i) => (
+        {trend.map((value, i) => (
           <g key={i}>
             <circle cx={32 + i * 60} cy={160 - value * 1.3} r="3.5">
               <title>
