@@ -26,6 +26,9 @@
   overflow: hidden;
 }
 .kpiCell {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -227,7 +230,16 @@
   flex-direction: column;
   overflow: hidden;
 }
-/* 对话栏右上角工作区切换：触发按钮与向下弹出的二级树面板。 */
+/* 右栏的工作区切换固定在原生输入框上方；宽度扣除与输入卡片一致的侧留白，
+   让触发按钮与弹出面板的右缘对齐输入卡片右缘（clearance 变量由 composer 根提供）。 */
+.railComposerWorkspace {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  width: calc(100% - 2 * var(--dsh-composer-side-clearance, 16px));
+  max-width: 100%;
+  margin: 0 auto;
+}
 .railWorkspace {
   position: relative;
   display: flex;
@@ -249,24 +261,8 @@
   border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
   color: var(--work-accent);
 }
-.railNavBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-}
 .railWorkspacePanel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 41;
   width: 300px;
-  max-height: 420px;
-  overflow: auto;
-  padding: 8px;
-  border: 0.5px solid var(--work-line);
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-bg-layer-1);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
 }
 .railWorkspaceState {
   margin: 6px 8px;
@@ -297,7 +293,7 @@
   cursor: pointer;
 }
 .railWsOpen:hover {
-  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent);
 }
 .railWsTitle {
   flex: 1 1 auto;
@@ -347,7 +343,7 @@
   cursor: pointer;
 }
 .railWsSession:hover {
-  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent);
   color: var(--dsw-alias-label-primary);
 }
 .railWsSessionTitle {
@@ -362,7 +358,7 @@
   width: 100%;
   margin-top: 6px;
   padding: 7px 8px;
-  border: 0.5px dashed var(--work-line);
+  border: 0.5px dashed var(--dsw-alias-border-l4);
   border-radius: var(--dsw-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-secondary);
@@ -370,8 +366,8 @@
   cursor: pointer;
 }
 .railWsAdd:hover {
-  color: var(--work-accent);
-  border-color: color-mix(in srgb, var(--work-accent) 40%, transparent);
+  color: var(--dsw-alias-state-business-primary);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 40%, transparent);
 }
 /* 左轨顶部三个模块入口。 */
 .modules {
@@ -381,6 +377,12 @@
   gap: 3px;
   padding-bottom: 8px;
   border-bottom: 0.5px solid var(--work-line);
+}
+/* 图标模式（菜单栏最小化或 <100px）：模块入口只留图标，居中显示。 */
+.modulesIcon .module {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
 }
 .module {
   display: flex;

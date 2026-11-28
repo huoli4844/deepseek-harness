@@ -5,6 +5,8 @@
   gap: 14px;
   height: 100%;
   min-height: 0;
+  /* 统计图表较高时页面内部滚动，部门树与成员列表仍有最小可见高度。 */
+  overflow-y: auto;
 }
 /* 组织架构顶部统计条。 */
 .stats {
@@ -14,6 +16,9 @@
   gap: 8px;
 }
 .stat {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -63,6 +68,9 @@
   gap: 8px;
 }
 .statCard {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 1px;
   padding: 7px 10px;
@@ -118,7 +126,8 @@
   grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
   flex: 1 1 auto;
   gap: 12px;
-  min-height: 0;
+  /* 统计图表较高时布局仍保留可阅读的最小高度，页面根节点负责滚动。 */
+  min-height: 460px;
 }
 @media (max-width: 880px) {
   .screen {

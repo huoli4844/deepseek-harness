@@ -225,7 +225,12 @@ export async function pendingPersonalPage(session: string, signal: AbortSignal) 
   const id = field(value, 'id'), name = field(value, 'name'), account = field(value, 'account')
   if (typeof id !== 'string' || typeof name !== 'string' || typeof account !== 'string'
     || !/^\d+:\d+$/u.test(account)) return
-  return { id, name, account } as const
+  // 草稿可携带对话预填的卡片；只透传对象数组，具体结构由个人页编辑器校验。
+  const widgets = field(value, 'widgets')
+  return {
+    id, name, account,
+    ...(Array.isArray(widgets) ? { widgets: widgets.filter(item => typeof item === 'object' && item !== null) } : {}),
+  } as const
 }
 
 /** 关闭已处理的对话请求。 */

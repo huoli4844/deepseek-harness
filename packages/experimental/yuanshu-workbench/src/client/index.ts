@@ -17,12 +17,14 @@ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { en as doclibEn, zh as doclibZh } from '@deepseek-ai/dsh-yuanshu-doclib/client'
 import type { DoclibPanelProps } from '@deepseek-ai/dsh-yuanshu-doclib/client'
 import { Workbench, WorkbenchIcon } from './app/Workbench.tsx'
+import { AssistantWorkspaceDock } from './app/AssistantWorkspace.tsx'
 import { loadOemBrand, OemBrandMark, OemBrandName, PRODUCT_TITLE_EVENT } from './app/OemBrand.tsx'
 import { createWorkbenchStore } from './core/model.ts'
 import { en, zh } from './core/locales/locales.ts'
 import { startTodoReminders } from './modules/todos/todos-reminder.ts'
 import { assistantAccountKey, bindAssistantSession, BusinessFormError, ConversationBusinessForms, createCredentialGuard } from './modules/business-forms/index.ts'
 import { initializeEnterpriseLogin } from './modules/business-forms/source.ts'
+import { deleteSkillPackage, downloadSkillPackage, fetchSkillPackages, installSkillPackage, uploadLocalSkill, uploadSkillPackageFile } from './app/skill-store-api.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -107,6 +109,8 @@ export function apply(ctx: Context): void {
   const store = createWorkbenchStore()
   const references = new Map<string, SessionReference>()
   const sessionsByRole = readAssistantSessions()
+  // 用户在智能问答浮窗里切换选中的工作区；新建会话无来源工作区时归属这里。
+  let selectedAssistantWorkspace: WorkspaceId | undefined
   const getAssistantSession = async (role: string, prompt?: string): Promise<SessionReference> => {
     const signal = AbortSignal.timeout(15_000)
     // 日报后台不可用时仍允许开始新对话，但不能复用尚未核实归属的旧会话。
@@ -149,6 +153,9 @@ export function apply(ctx: Context): void {
     return reference
   }
   ctx.effect(function* () {
+    yield ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+      name: 'conversation.input.dock', id: 'yuanshu-assistant-workspace', order: 100,
+    }, AssistantWorkspaceDock))
     yield ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
       name: 'conversation.input.overlay', id: 'yuanshu-daily-report', locale: 'yuanshu.workbench',
     }, props => createElement(ConversationBusinessForms, {
@@ -156,8 +163,10 @@ export function apply(ctx: Context): void {
       onNewChat: async (signal: AbortSignal) => {
         const sameAccount = createCredentialGuard()
         const workspace = ctx.get('workspaces')?.list.getSnapshot().items.find(item => item.sessionIds.includes(props.sessionId))
+        // 来源会话无工作区时，回落到用户在智能问答浮窗里切换选中的工作区。
+        const workspaceId = workspace?.workspaceId ?? selectedAssistantWorkspace
         const id = await ctx.sessions.create({
-          ...(workspace === undefined ? {} : { workspaceId: workspace.workspaceId }),
+          ...(workspaceId === undefined ? {} : { workspaceId }),
           agentPreset: WORKBENCH_AGENT_PRESET,
         })
         signal.throwIfAborted()
@@ -181,8 +190,16 @@ export function apply(ctx: Context): void {
           store,
           inject: () => ({
             openAssistant: (role: string, prompt?: string) => getAssistantSession(role, prompt),
-            openWorkspace: (workspaceId: WorkspaceId) => ctx.uiWorkspace.openWorkspace(workspaceId),
-            openSession: (sessionId: SessionId) => Promise.resolve(ctx.uiWorkspace.openSession(sessionId)),
+            openWorkspace: (workspaceId: WorkspaceId) => {
+              // 只切换智能问答浮窗的当前工作区上下文（后续新建会话归属该工作区），
+              // 不调用宿主跳转，避免整个主区被切到默认对话页。
+              selectedAssistantWorkspace = workspaceId
+              return Promise.resolve()
+            },
+            openSession: (sessionId: SessionId) => {
+              ctx.uiWorkspace.openSession(sessionId)
+              return Promise.resolve()
+            },
             onReturn: () => {
               ctx.layout.selectPanel(null)
             },
@@ -231,7 +248,6 @@ export function apply(ctx: Context): void {
                 }
               } | undefined
               return {
-                repositories: ['https://registry.npmmirror.com', 'https://registry.npmjs.org'],
                 loadPlugins: async () => {
                   const manager = remote?.pluginManager
                   if (manager?.listBundles === undefined) return []
@@ -262,6 +278,14 @@ export function apply(ctx: Context): void {
                     ...(skill.path === undefined ? {} : { path: skill.path }),
                   }))
                 },
+                // 技能包走后端代理，与是否配置 remote 无关；清单与文件操作由宿主转发。
+                loadSkillPackages: () => fetchSkillPackages(),
+                downloadSkillPackage: (id: string, name: string) => downloadSkillPackage(id, name),
+                installSkillPackage: (id: string) => installSkillPackage(id),
+                uploadSkillPackage: (file: File) => uploadSkillPackageFile(file),
+                // 本机技能直接打包上传，避免用户先手动压缩。
+                uploadLocalSkill: (name: string) => uploadLocalSkill(name),
+                deleteSkillPackage: (id: string) => deleteSkillPackage(id),
               }
             })(),
           }),

@@ -14,6 +14,14 @@ export interface ApiParam {
   readonly description: string
 }
 
+/** 目录中声明的响应记录字段中文说明。 */
+export interface ApiField {
+  /** 字段名，与返回记录的键一致。 */
+  readonly name: string
+  /** 契约中的中文说明，用于界面展示。 */
+  readonly description: string
+}
+
 /** 目录中的一个只读 GET 接口。 */
 export interface ApiCatalogEntry {
   /** 接口路径，含 `{name}` 形式的路径参数占位。 */
@@ -24,6 +32,8 @@ export interface ApiCatalogEntry {
   readonly tag: string
   /** 路径与查询参数，不含鉴权相关请求头。 */
   readonly params: readonly ApiParam[]
+  /** 响应记录字段的中文说明，用于界面标签；无说明字段时为空。 */
+  readonly fields: readonly ApiField[]
 }
 
 /** 单次查询允许返回的最大记录数。 */

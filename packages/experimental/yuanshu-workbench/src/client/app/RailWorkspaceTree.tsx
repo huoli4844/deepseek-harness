@@ -1,8 +1,8 @@
-/** 对话栏右上角的工作区切换树：与官方侧栏一致的「工作区 → 会话」二级结构，支持切换工作区、打开会话与新建工作区。
+/** 输入框右上方的工作区切换树：与官方侧栏一致的「工作区 → 会话」二级结构，支持切换工作区、打开会话与新建工作区。
  * 新建走官方 workspace.picker 工厂（目录选择流 + 失败弹窗），本组件只负责树形展示与跳转。 */
 import { useRef, useState } from 'react'
 import {
-  IconChevronDownOutlineRegular, IconFolderCloseRegular, IconPlusOutlineRegular,
+  IconChevronDownOutlineRegular, IconFolderCloseRegular, IconPlusOutlineRegular, Menu,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRenderFactories } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -15,7 +15,7 @@ import shellCss from './shell.module.css'
 /** 会话行展示所需的最小字段。 */
 type SessionRow = { readonly displayTitle: string } | undefined
 
-/** 渲染工作区切换触发按钮与向下弹出的二级树面板。 */
+/** 渲染工作区切换触发按钮与向上弹出的二级树面板。 */
 export function RailWorkspaceTree({ t, workspaces, sessions, openWorkspace, openSession, renderFactorySlot }: {
   readonly t: WorkbenchT
   /** 工作区列表响应式快照（框架 useWorkspaces 席位结果）。 */
@@ -29,18 +29,19 @@ export function RailWorkspaceTree({ t, workspaces, sessions, openWorkspace, open
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState<ReadonlySet<WorkspaceId>>(new Set())
   const [flowOpen, setFlowOpen] = useState(false)
-  const addAnchor = useRef<HTMLButtonElement>(null)
+  const triggerAnchor = useRef<HTMLButtonElement>(null)
   const close = () => { setOpen(false); setFlowOpen(false) }
   return <div className={shellCss.railWorkspace}>
-    <button type="button" className={shellCss.railWorkspaceTrigger} aria-expanded={open}
-      onClick={() => { setOpen(value => !value) }}>
-      <IconFolderCloseRegular size={14} />
-      <span>{t('rail.workspaceBar')}</span>
-      <IconChevronDownOutlineRegular size={12} />
-    </button>
-    {open && <>
-      <div className={shellCss.railNavBackdrop} aria-hidden="true" onClick={close} />
-      <div className={shellCss.railWorkspacePanel} role="navigation" aria-label={t('rail.workspaceBar')}>
+    <Menu open={open} onClose={close} portal side="top" align="end" autoFocus
+      listClassName={shellCss.railWorkspacePanel} anchor={
+        <button ref={triggerAnchor} type="button" className={shellCss.railWorkspaceTrigger} aria-expanded={open || flowOpen}
+          onClick={() => { setOpen(value => !value) }}>
+          <IconFolderCloseRegular size={14} />
+          <span>{t('rail.workspaceBar')}</span>
+          <IconChevronDownOutlineRegular size={12} />
+        </button>
+      }>
+      <div role="navigation" aria-label={t('rail.workspaceBar')}>
         {workspaces.phase === 'pending' && <p className={shellCss.railWorkspaceState}>{t('conversation.loading')}</p>}
         {workspaces.items.map((workspace) => {
           const expanded = !collapsed.has(workspace.workspaceId)
@@ -80,17 +81,17 @@ export function RailWorkspaceTree({ t, workspaces, sessions, openWorkspace, open
             </div>}
           </div>
         })}
-        <button ref={addAnchor} type="button" className={shellCss.railWsAdd}
-          onClick={() => { setFlowOpen(true) }}>
+        <button type="button" className={shellCss.railWsAdd}
+          onClick={() => { setOpen(false); setFlowOpen(true) }}>
           <IconPlusOutlineRegular size={14} />
           <span>{t('rail.addWorkspace')}</span>
         </button>
       </div>
-    </>}
-    {/* 官方工作区选择菜单（含“添加工作区”目录流），由面板底部按钮锚定。 */}
+    </Menu>
+    {/* 目录选择流锚定常驻按钮，切换菜单关闭后锚点仍保留。 */}
     {renderFactorySlot('workspace.picker', {
       open: flowOpen,
-      anchorRef: addAnchor,
+      anchorRef: triggerAnchor,
       onPick: (id) => {
         setFlowOpen(false)
         void openWorkspace(id).then(close)

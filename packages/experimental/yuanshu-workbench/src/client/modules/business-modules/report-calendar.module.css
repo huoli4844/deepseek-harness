@@ -1,0 +1,154 @@
+/** 日报/周报切换器与日报日历专有样式；日历网格复用 project-registration 的 weekly 系列类。 */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 18px 20px;
+  overflow-y: auto;
+}
+
+/* 日报/周报切换胶囊组：样式对齐日程日历页的视角切换按钮。 */
+.modeGroup {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.modeButton,
+.modeButtonActive {
+  padding: 6px 14px;
+  border: 0.5px solid var(--dsw-alias-line-secondary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.modeButtonActive {
+  border-color: var(--dsw-alias-bg-brand-strong);
+  background: var(--dsw-alias-bg-brand-subtlest);
+  color: var(--dsw-alias-bg-brand-strong);
+  font-weight: 600;
+}
+
+/* 日历页头：切换胶囊与标题行顶部对齐，不随两行标题块垂直居中。 */
+.topbarTop {
+  align-items: flex-start;
+}
+
+.body {
+  min-height: 0;
+}
+
+/* 日报天格的定位容器：承载格级悬停提示。 */
+.dailyCell {
+  position: relative;
+  min-width: 0;
+}
+
+/* 日报日历悬停只作用于单个天格：关闭行级悬停背景，改为天格悬停底色。 */
+.dailyCalendar .weeklyCalendarRow:hover {
+  background: transparent;
+}
+
+.dailyCalendar .dailyCell:hover .weeklyCalendarCell,
+.dailyCalendar .dailyCell:focus-within .weeklyCalendarCell {
+  background: color-mix(in srgb, var(--work-accent) 8%, transparent);
+  border-radius: var(--dsw-radius-sm);
+}
+
+/* 天格选中态：与周报行选中观感一致。 */
+.dailyCellSelected {
+  box-shadow: inset 0 0 0 1px var(--work-accent);
+  border-radius: var(--dsw-radius-sm);
+}
+
+/* 天格悬停提示：视觉与 weeklyRowTooltip 一致，但锚定在单个天格上方。 */
+.dailyCellTooltip {
+  position: absolute;
+  inset-inline-start: 4px;
+  bottom: calc(100% - 8px);
+  z-index: 40;
+  display: none;
+  width: max-content;
+  max-width: min(320px, 100%);
+  max-height: 260px;
+  overflow: hidden;
+  padding: 9px 11px;
+  border: 1px solid var(--work-line);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 32%);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-line;
+  pointer-events: none;
+}
+
+.dailyCell:hover .dailyCellTooltip,
+.dailyCell:focus-within .dailyCellTooltip {
+  display: block;
+}
+
+/* 选中日期的只读日报详情面板。 */
+.dailyPanel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--work-line);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.dailyPanelHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dailyPanelTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dailyPanelMeta {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.dailySection {
+  display: grid;
+  gap: 4px;
+}
+
+.dailySectionLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dailySectionText {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.dailyState {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+}
+
+.dailyState[data-tone='error'] {
+  color: var(--dsw-alias-state-danger-primary);
+}

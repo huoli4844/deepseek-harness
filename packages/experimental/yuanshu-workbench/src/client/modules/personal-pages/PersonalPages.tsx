@@ -1,12 +1,12 @@
 /** 编排个人页的身份验证、恢复、注册和切换。 */
 import { useEffect, useState } from 'react'
-import { Button, IconSettingsOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconLayersOutlineRegular, IconSettingsOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { assistantAccountKey, createCredentialGuard } from '../business-forms/index.ts'
 import type { PersonalPage } from './model.ts'
-import { PersonalLabor } from './PersonalLabor.tsx'
+import { renderPersonalWidget } from './personal-widgets.tsx'
 import { PersonalPageSettings } from './PersonalPageSettings.tsx'
-import { personalPagesChanged, readPersonalPages, savePersonalPageSettings } from './source.ts'
+import { personalPagesChanged, clearPersonalPages, readPersonalPages, removePersonalPage, savePersonalPageSettings } from './source.ts'
 import css from './personal-pages.module.css'
 
 /** 统一呈现当前账号注册的页面，侧栏只保留一个入口。 */
@@ -21,10 +21,13 @@ export function PersonalPages({ t }: { readonly t: WorkbenchT }) {
     const controller = new AbortController()
     void assistantAccountKey(controller.signal).then((identity) => {
       if (controller.signal.aborted || !sameAccount()) return
-      try {
-        setPages(readPersonalPages(identity))
+      void readPersonalPages(identity).then((restored) => {
+        if (controller.signal.aborted || !sameAccount()) return
+        setPages(restored)
         setAccount(identity)
-      } catch { setError('storageError') }
+      }).catch(() => {
+        if (!controller.signal.aborted) setError('storageError')
+      })
     }).catch(() => {
       if (!controller.signal.aborted) setError('signIn')
     })
@@ -47,7 +50,9 @@ export function PersonalPages({ t }: { readonly t: WorkbenchT }) {
     if (!account) return
     const refresh = () => {
       if (!sameAccount()) return
-      try { setPages(readPersonalPages(account)) } catch { setError('storageError') }
+      void readPersonalPages(account).then((restored) => {
+        if (sameAccount()) setPages(restored)
+      }).catch(() => { setError('storageError') })
     }
     personalPagesChanged.addEventListener('change', refresh)
     return () => { personalPagesChanged.removeEventListener('change', refresh) }
@@ -67,14 +72,33 @@ export function PersonalPages({ t }: { readonly t: WorkbenchT }) {
       <Button size="sm" variant="outline" icon={<IconSettingsOutlineRegular />} aria-label={t('personalPages.settings')}
         title={t('personalPages.settings')} onClick={() => { setEditing(true) }} />
     </div>
-    {page ? <PersonalLabor key={page.id} page={page} userId={userId} t={t} /> : <p>{t(pages.length > 0 ? 'personalPages.allHidden' : 'personalPages.empty')}</p>}
+    {page ? <>
+      {page.widgets.map(widget => <section key={widget.id}>{renderPersonalWidget(widget, userId, t)}</section>)}
+    </> : pages.length > 0 ? <p>{t('personalPages.allHidden')}</p> : <div className={css.emptyCard}>
+      <div className={css.emptyIcon} aria-hidden="true"><IconLayersOutlineRegular size={22} /></div>
+      <h2 className={css.emptyTitle}>{t('personalPages.emptyTitle')}</h2>
+      <p className={css.emptyDesc}>{t('personalPages.emptyDesc')}</p>
+      <ol className={css.emptySteps}>
+        <li>{t('personalPages.emptyStep1')}</li>
+        <li>{t('personalPages.emptyStep2')}</li>
+        <li>{t('personalPages.emptyStep3')}</li>
+      </ol>
+    </div>}
     {editing && <PersonalPageSettings pages={pages} t={t} onClose={() => { setEditing(false) }} onSave={(settings) => {
-      if (!sameAccount()) return 'storageError'
-      try {
-        if (!savePersonalPageSettings(account, settings)) return 'duplicate'
+      if (!sameAccount()) return Promise.resolve('storageError')
+      return savePersonalPageSettings(account, settings).then((saved) => {
+        if (!saved) return 'duplicate'
         setEditing(false)
         return undefined
-      } catch { return 'storageError' }
+      }).catch(() => 'storageError')
+    }} onRemove={(id) => {
+      if (!sameAccount()) return
+      setActive(undefined)
+      void removePersonalPage(account, id).catch(() => { setError('storageError') })
+    }} onRemoveAll={() => {
+      if (!sameAccount()) return
+      setActive(undefined)
+      void clearPersonalPages(account).catch(() => { setError('storageError') })
     }} />}
   </section>
 }

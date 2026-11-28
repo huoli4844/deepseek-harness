@@ -82,6 +82,40 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 枚举值彩色胶囊：绿=正常、橙=待处理/警告、红=异常、灰=停用/缺失、蓝=中性分类。 */
+.archiveTag {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 8px;
+  border-radius: 999px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.archiveTag[data-tone='success'] {
+  color: var(--dsw-alias-state-success-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 12%, transparent);
+}
+
+.archiveTag[data-tone='warn'] {
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);
+}
+
+.archiveTag[data-tone='danger'] {
+  color: var(--dsw-alias-state-danger-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-danger-primary) 12%, transparent);
+}
+
+.archiveTag[data-tone='brand'] {
+  color: var(--work-accent);
+  background: color-mix(in srgb, var(--work-accent) 10%, transparent);
+}
 .archiveSort {
   display: inline-flex;
   align-items: center;

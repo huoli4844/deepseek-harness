@@ -105,6 +105,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-yuanshu-doclib": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
+    "fflate": "^0.8.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

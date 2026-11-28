@@ -26,6 +26,9 @@
   gap: 8px;
 }
 .statCard {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 1px;
   padding: 7px 10px;
@@ -129,15 +132,24 @@
   border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-bg-layer-1);
 }
+.recordToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.viewSwitch { display: flex; align-items: center; gap: 4px; }
 .filters {
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: end;
   gap: 8px;
 }
 .filters > label {
   display: grid;
+  flex: 0 1 360px;
   min-width: 0;
   gap: 4px;
   color: var(--dsw-alias-label-secondary);

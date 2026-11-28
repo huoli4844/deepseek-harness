@@ -45,6 +45,37 @@ function readParams(item, operation) {
 }
 
 const entries = []
+/** 解析 OpenAPI $ref 到组件 schema，限制深度防止循环引用。 */
+function resolveRef(schema, depth = 0) {
+  if (typeof schema !== 'object' || schema === null || depth > 4) return schema
+  const ref = typeof schema.$ref === 'string' ? schema.$ref : ''
+  if (ref.startsWith('#/components/schemas/')) {
+    const target = doc.components?.schemas?.[ref.slice('#/components/schemas/'.length)]
+    return resolveRef(target, depth + 1)
+  }
+  return schema
+}
+
+/** 从记录数组 schema 中提取字段的中文说明；无说明字段不收录。 */
+function readFields(operation) {
+  const content = operation.responses?.['200']?.content
+  const root = resolveRef(content?.['application/json']?.schema)
+  // 常见包装结构：data 直接是数组，或 data.items 是数组。
+  const data = resolveRef(root?.properties?.data)
+  const rowsSchema = resolveRef(data?.type === 'array' ? data.items : resolveRef(data?.properties?.items)?.items)
+  const properties = rowsSchema?.type === 'object' ? rowsSchema.properties : undefined
+  if (typeof properties !== 'object' || properties === null) return []
+  const fields = []
+  for (const [name, raw] of Object.entries(properties)) {
+    const description = text(resolveRef(raw)?.description, 40)
+    // 该后台泛型包装的响应多为「中文说明：字段 x / field x」样板文案，无信息量，跳过。
+    if (description === '' || /^中文说明：字段 \S+ \/ field/u.test(description)) continue
+    fields.push({ name, description })
+    if (fields.length >= 40) break
+  }
+  return fields
+}
+
 for (const [path, item] of Object.entries(paths)) {
   if (typeof item !== 'object' || item === null) continue
   if (!path.startsWith('/api/v1/')) continue
@@ -57,7 +88,7 @@ for (const [path, item] of Object.entries(paths)) {
     const content = operation.responses?.['200']?.content
     if (typeof content === 'object' && content !== null && !Object.hasOwn(content, 'application/json')) continue
     const tag = Array.isArray(operation.tags) && typeof operation.tags[0] === 'string' ? operation.tags[0] : ''
-    entries.push({ path, summary, tag, params: readParams(item, operation) })
+    entries.push({ path, summary, tag, params: readParams(item, operation), fields: readFields(operation) })
   }
 }
 
@@ -68,7 +99,8 @@ const quote = (value) => `'${JSON.stringify(value).slice(1, -1).replace(/'/gu, "
 /** 数据行保持单行，便于和 Swagger 快照逐行比对。 */
 const renderEntry = (entry) => {
   const params = entry.params.map(param => `{ name: ${quote(param.name)}, in: ${quote(param.in)}, type: ${quote(param.type)}, required: ${param.required}, description: ${quote(param.description)} }`)
-  return `  { path: ${quote(entry.path)}, summary: ${quote(entry.summary)}, tag: ${quote(entry.tag)}, params: [${params.join(', ')}] },`
+  const fields = entry.fields.map(field => `{ name: ${quote(field.name)}, description: ${quote(field.description)} }`)
+  return `  { path: ${quote(entry.path)}, summary: ${quote(entry.summary)}, tag: ${quote(entry.tag)}, params: [${params.join(', ')}], fields: [${fields.join(', ')}] },`
 }
 const lines = entries.map(renderEntry)
 const source = [

@@ -1,7 +1,7 @@
-/** 组织架构统计：指标卡与五张图表卡片（角色分布、全年入职、累计人员、在司时间分布、全年离职）。 */
+/** 组织架构统计：指标卡与四张图表卡片（角色分布、全年入职、累计人员、在司时间分布）。 */
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { OrganizationStats } from './organization-model.ts'
-import { OrganizationDepartedChart, OrganizationJoinedChart, OrganizationRoleChart, OrganizationTenureChart, OrganizationTotalChart } from './OrganizationCharts.tsx'
+import { OrganizationJoinedChart, OrganizationRoleChart, OrganizationTenureChart, OrganizationTotalChart } from './OrganizationCharts.tsx'
 import css from './organization.module.css'
 
 /** 渲染组织架构页统计条：上方指标卡，下方每个图表一张独立卡片。 */
@@ -11,6 +11,8 @@ export function OrganizationStatsPanel({ stats, departmentCount, unassignedCount
   readonly unassignedCount: number
   readonly t: WorkbenchT
 }) {
+  // 在司时间目前只能按账号创建时间估算（元枢无入职日期字段），成员集中在单段时无区分度，整卡隐藏。
+  const tenureDistributed = stats.tenure.filter(point => point.count > 0).length > 1
   return <>
     <section className={css.statsPanel} aria-label={t('organization.stat.label')}>
       <div className={css.statCards}>
@@ -37,14 +39,12 @@ export function OrganizationStatsPanel({ stats, departmentCount, unassignedCount
         <figcaption>{t('organization.stat.history')}</figcaption>
         <OrganizationTotalChart points={stats.monthly} t={t} />
       </figure>
-      <figure className={css.chartCard}>
-        <figcaption>{t('organization.stat.tenure')}</figcaption>
-        <OrganizationTenureChart points={stats.tenure} t={t} />
-      </figure>
-      <figure className={css.chartCard}>
-        <figcaption>{t('organization.stat.departed')}</figcaption>
-        <OrganizationDepartedChart points={stats.monthly} t={t} />
-      </figure>
+      {tenureDistributed && (
+        <figure className={css.chartCard}>
+          <figcaption>{t('organization.stat.tenure')}</figcaption>
+          <OrganizationTenureChart points={stats.tenure} t={t} />
+        </figure>
+      )}
     </section>
   </>
 }

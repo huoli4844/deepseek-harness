@@ -1,0 +1,190 @@
+/** 采购业务链路视图样式：横向链路卡片、条件分支与悬停高亮边框。 */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 6px 0 4px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.projectChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--work-line);
+  border-radius: 999px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.projectChip b {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+/* 项目下拉：与胶囊标签同风格的紧凑选择框。 */
+.projectSelect {
+  max-width: 220px;
+  padding: 3px 8px;
+  border: 1px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+}
+
+.nodeCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+/* 节点卡片：悬停高亮边框，为鼠标停留的核心反馈。 */
+.card {
+  position: relative;
+  flex: 1 0 128px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 128px;
+  padding: 12px 14px;
+  border: 1px solid var(--work-line);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--work-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--work-accent) 45%, transparent), 0 8px 18px rgb(0 0 0 / 14%);
+  outline: none;
+}
+
+/* 条件分支卡片：橙色主题，悬停同样高亮。 */
+.card[data-branch='true'] {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, var(--work-line));
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 5%, var(--dsw-alias-bg-layer-1));
+}
+
+.card[data-branch='true']:hover,
+.card[data-branch='true']:focus-visible {
+  border-color: var(--dsw-alias-state-warn-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, transparent), 0 8px 18px rgb(0 0 0 / 14%);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardIcon {
+  color: var(--work-accent);
+}
+
+.card[data-branch='true'] .cardIcon {
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cardDoc {
+  color: var(--work-accent);
+  font-size: 12px;
+}
+
+.card[data-branch='true'] .cardDoc {
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.cardDescription {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  color: var(--dsw-alias-label-tertiary);
+  flex: 0 0 auto;
+}
+
+.branchHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 分组行标题：与条件分支标题同版式，但用主色（如行政模板的验收、归档等分组）。 */
+.rowHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--work-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

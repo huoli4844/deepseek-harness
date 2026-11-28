@@ -28,12 +28,14 @@ import { recordListEn, recordListZh } from '../../modules/business-modules/recor
 import { materialEn, materialZh } from '../../modules/business-modules/material-locales.ts'
 import { equipmentEn, equipmentZh } from '../../modules/business-modules/equipment-locales.ts'
 import { contractEn, contractZh } from '../../modules/business-modules/contract-locales.ts'
+import { budgetEn, budgetZh } from '../../modules/business-modules/budget-locales.ts'
 import { projectIntakeEn, projectIntakeZh } from '../../modules/business-modules/project-intake-locales.ts'
 import { registrationEn, registrationZh } from '../../modules/business-modules/project-registration-locales.ts'
 import { weeklyItemsEn, weeklyItemsZh } from '../../modules/business-modules/weekly-items-locales.ts'
 import { organizationEn, organizationZh } from '../../modules/business-modules/organization-locales.ts'
 import { meetingEn, meetingZh } from '../../modules/business-modules/meeting-locales.ts'
 import { businessFormsEn, businessFormsZh } from '../../modules/business-forms/business-forms-locales.ts'
+import { procurementChainEn, procurementChainZh } from '../../modules/procurement-chain/procurement-chain-locales.ts'
 
 import { personalPagesEn, personalPagesZh } from '../../modules/personal-pages/personal-pages-locales.ts'
 import { todosEn, todosZh } from '../../modules/todos/todos-locales.ts'
@@ -43,6 +45,7 @@ export const en = {
   ...todosEn,
   ...personalPagesEn,
   ...businessFormsEn,
+  ...procurementChainEn,
   ...liveEn,
   ...shellEn,
   ...chartEn,
@@ -63,6 +66,7 @@ export const en = {
   ...materialEn,
   ...equipmentEn,
   ...contractEn,
+  ...budgetEn,
   ...projectIntakeEn,
   ...registrationEn,
   ...weeklyItemsEn,
@@ -83,6 +87,7 @@ export const zh: Record<keyof typeof en, string> = {
   ...todosZh,
   ...personalPagesZh,
   ...businessFormsZh,
+  ...procurementChainZh,
   ...liveZh,
   ...shellZh,
   ...chartZh,
@@ -103,6 +108,7 @@ export const zh: Record<keyof typeof en, string> = {
   ...materialZh,
   ...equipmentZh,
   ...contractZh,
+  ...budgetZh,
   ...projectIntakeZh,
   ...registrationZh,
   ...weeklyItemsZh,

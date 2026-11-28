@@ -32,12 +32,15 @@ export function ConversationPersonalPages({ session, t }: { readonly session: st
     void dismissPersonalPage(session, draft.id, AbortSignal.timeout(5000)).catch(() => undefined)
   }
   return <PersonalPageEditor key={draft.id} t={t} userId={Number(draft.account.split(':')[1])}
-    initialName={draft.name} onClose={close} onPublish={(page) => {
-      if (!sameAccount()) return 'storageError'
-      try {
-        if (!savePersonalPage(draft.account, { ...page, id: draft.id })) return 'duplicate'
+    initialName={draft.name}
+    {...('widgets' in draft && Array.isArray(draft.widgets) && draft.widgets.length > 0
+      ? { initialWidgets: draft.widgets, autoPreview: true } : {})}
+    onClose={close} onPublish={(page) => {
+      if (!sameAccount()) return Promise.resolve('storageError')
+      return savePersonalPage(draft.account, { ...page, id: draft.id }).then((published) => {
+        if (!published) return 'duplicate'
         close()
         return undefined
-      } catch { return 'storageError' }
+      }).catch(() => 'storageError')
     }} />
 }

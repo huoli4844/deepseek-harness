@@ -35,9 +35,16 @@ function unpack(body: unknown) {
   return { rows, total: typeof total === 'number' ? total : undefined }
 }
 
-/** 读取完整可见合同，超出分页保护上限时报错，避免将部分数据当成全量。 */
-export async function loadContractCatalog(api: string, headers: Readonly<Record<string, string>>,
-  signal: AbortSignal, request: typeof fetch = fetch): Promise<readonly ContractCatalogRow[]> {
+/** 一个已授权项目及其合同、财务汇总；财务接口不可用时不编造数据。 */
+export interface ProjectContractCatalog {
+  readonly project: ContractCatalogRow
+  readonly contracts: readonly ContractCatalogRow[]
+  readonly finance: ContractCatalogRow | undefined
+}
+
+/** 读取项目合同组合；财务权限由独立的财务接口再次校验。 */
+export async function loadContractPortfolio(api: string, headers: Readonly<Record<string, string>>,
+  signal: AbortSignal, request: typeof fetch = fetch, includeFinance = true): Promise<readonly ProjectContractCatalog[]> {
   async function all(path: string) {
     const result: ContractCatalogRow[] = []
     for (let page = 1; page <= 100; page++) {
@@ -57,7 +64,7 @@ export async function loadContractCatalog(api: string, headers: Readonly<Record<
 
   const projects = await all('/api/v1/apps/shaoshi/projects')
   const seenProjects = new Set<string>()
-  const rows: ContractCatalogRow[] = []
+  const portfolio: ProjectContractCatalog[] = []
   // 顺序请求避免大租户同时向后台发起大量项目查询。
   for (const project of projects) {
     const code = project.code
@@ -65,12 +72,37 @@ export async function loadContractCatalog(api: string, headers: Readonly<Record<
     if (seenProjects.has(code)) continue
     seenProjects.add(code)
     const contracts = await all(`/api/v1/apps/shaoshi/projects/${encodeURIComponent(code)}/contracts`)
+    const rows: ContractCatalogRow[] = []
     for (const contract of contracts) {
       if (typeof contract.id !== 'number' || !Number.isSafeInteger(contract.id) || contract.id <= 0) {
         throw new ContractCatalogError(502)
       }
       rows.push({ ...contract, project_code: code, project_name: contract.project_name ?? project.name })
     }
+    let finance: ContractCatalogRow | undefined
+    if (includeFinance) {
+      try {
+        const url = new URL(`/api/v1/apps/shaoshi/projects/${encodeURIComponent(code)}/finance-summary`, api)
+        const response = await request(url, { headers, signal, redirect: 'error' })
+        if (response.ok) {
+          const body: unknown = await response.json()
+          const data = object(body) ? body.data ?? body : undefined
+          const status = object(body) ? body.code : undefined
+          if (object(data) && (status === undefined || [0, 200, '0', '200'].some(success => success === status))) finance = data
+        }
+        if (!finance) console.warn('yuanshu: project finance summary unavailable', response.status)
+      } catch (error) {
+        if (signal.aborted) throw error
+        console.warn('yuanshu: project finance summary request failed')
+      }
+    }
+    portfolio.push({ project, contracts: rows, finance })
   }
-  return rows
+  return portfolio
+}
+
+/** 读取完整可见合同；不额外申请财务权限，兼容仅需要合同清单的调用方。 */
+export async function loadContractCatalog(api: string, headers: Readonly<Record<string, string>>,
+  signal: AbortSignal, request: typeof fetch = fetch): Promise<readonly ContractCatalogRow[]> {
+  return (await loadContractPortfolio(api, headers, signal, request, false)).flatMap(item => item.contracts)
 }

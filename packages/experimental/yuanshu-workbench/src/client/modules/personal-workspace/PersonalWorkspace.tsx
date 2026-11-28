@@ -255,7 +255,8 @@ export function PersonalWorkspace({ t, section }: PropsLocale<'yuanshu.workbench
   </section>
 
   if (section === 'tasks') return <section className={css.card}>
-    <div className={css.sectionHeading}><Button variant="primary" onClick={() => { setEditingTask(undefined); setTaskForm(initialTask()); setShowTaskForm(true) }}>{t('personal.newTask')}</Button></div>
+    {/* 空态时标题行收紧，避免按钮与提示文案之间出现大片空白。 */}
+    <div className={tasks.length === 0 ? `${css.sectionHeading} ${css.headingTight}` : css.sectionHeading}><Button variant="primary" onClick={() => { setEditingTask(undefined); setTaskForm(initialTask()); setShowTaskForm(true) }}>{t('personal.newTask')}</Button></div>
     {showTaskForm && <div className={css.personalForm}>
       <Input aria-label={t('personal.taskTitle')} placeholder={t('personal.taskTitle')} value={taskForm.title} onChange={(event) => { setTaskForm({ ...taskForm, title: event.target.value }) }} />
       <Input aria-label={t('personal.taskDescription')} placeholder={t('personal.taskDescription')} value={taskForm.description} onChange={(event) => { setTaskForm({ ...taskForm, description: event.target.value }) }} />
@@ -263,7 +264,7 @@ export function PersonalWorkspace({ t, section }: PropsLocale<'yuanshu.workbench
       <label>{t('personal.dueAt')}<input type="datetime-local" value={taskForm.dueAt} onChange={(event) => { setTaskForm({ ...taskForm, dueAt: event.target.value }) }} /></label>
       <div className={css.personalActions}><Button variant="primary" disabled={busy || !taskForm.title.trim()} onClick={() => { void saveTask() }}>{t('personal.save')}</Button><Button variant="outline" onClick={() => { setShowTaskForm(false) }}>{t('cancel')}</Button></div>
     </div>}
-    {tasks.length === 0 && <p className={css.empty}>{t('personal.noTasks')}</p>}
+    {tasks.length === 0 && <p className={css.emptyCompact}>{t('personal.noTasks')}</p>}
     <div className={css.personalList}>{tasks.map(task => <article className={`${css.personalRow} ${task.status === 'done' ? css.personalCompleted : ''}`} key={task.id}>
       <input type="checkbox" checked={task.status === 'done'} aria-label={task.title} onChange={() => { void toggleTask(task) }} />
       <div><h2>{task.title}</h2>{task.description && <p>{task.description}</p>}<small>{t(`personal.priority.${task.priority}`)}{task.due_at ? ` · ${formatDate(task.due_at)}` : ''}</small></div>

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** 验证合同管理页从同源代理加载并渲染真实字段。 */
 import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { ContractManagementScreen } from '../src/client/modules/business-modules/ContractManagementScreen.tsx'
 import { zh } from '../src/client/core/locales/locales.ts'
@@ -24,17 +24,25 @@ afterEach(() => {
   localStorage.clear()
 })
 
-it('加载合同分页并展示编号、项目、金额和状态', async () => {
+it('默认显示项目卡片，切换列表并通过宿主搜索和分页', async () => {
   localStorage.setItem('workbench-client-token', 'token')
   const paths: URL[] = []
   vi.stubGlobal('fetch', vi.fn<typeof fetch>(async (input) => {
     if (typeof input !== 'string') throw new Error('预期使用同源代理字符串')
     const path = new URL(input, 'https://workbench.test')
     paths.push(path)
-    return Response.json({ data: { items: [contract], total: 1, archive_total: 1, page_size: 20 } })
+    return Response.json({ data: { items: [contract],
+      projects: [{ project: { code: 'P-10', name: '项目甲', contract_amount: 200, budget_amount: 100 },
+        contracts: [contract], finance: { actual_cost: 80, gross_margin: 120, gross_margin_rate: 60 } }],
+      finance: { gross_margin: 120, gross_margin_rate: 60 }, total: 1, archive_total: 1, page_size: 20 } })
   }))
   render(<ContractManagementScreen t={t} />)
 
+  const project = await screen.findByRole('article', { name: '项目甲' })
+  expect(screen.getByRole('button', { name: '卡片显示' }).getAttribute('aria-pressed')).toBe('true')
+  expect(within(project).getByText('¥200.00')).toBeDefined()
+  expect(paths.some(path => path.searchParams.get('view') === 'cards')).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: '列表显示' }))
   await screen.findByText('C-A')
   expect(screen.getByText('采购合同')).toBeDefined()
   expect(screen.getByText('项目甲')).toBeDefined()
@@ -44,4 +52,11 @@ it('加载合同分页并展示编号、项目、金额和状态', async () => {
   expect(screen.getByText('第 1 页，共 1 页')).toBeDefined()
   expect(paths[0]?.pathname).toBe('/yuanshu-workbench/contracts')
   expect(paths[0]?.searchParams.get('page_size')).toBe('20')
+  fireEvent.change(screen.getByRole('textbox', { name: '关键字' }), { target: { value: '项目甲' } })
+  fireEvent.submit(screen.getByRole('form', { name: '合同筛选' }))
+  await screen.findByText('C-A')
+  expect(paths.some(path => path.searchParams.get('keyword') === '项目甲')).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: '卡片显示' }))
+  await screen.findByRole('article', { name: '项目甲' })
+  expect(screen.getByRole('textbox', { name: '关键字' })).toHaveProperty('value', '项目甲')
 })

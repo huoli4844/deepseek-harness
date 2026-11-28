@@ -56,6 +56,10 @@ pnpm dsh web
 
 Open the local entry URL printed by DSH. Loading the plugin opens **YuanShu workbench** on **Today’s work**, with only its own navigation and content visible. The page surfaces the next action and its reason for the selected role; **Position dashboard** opens charts and comparisons. Return to the original DSH interface with the workbench footer button; the current Session remains selected. Demo records persist in this browser profile across page refreshes and plugin reloads; clearing site data removes them.
 
+The right-hand conversation places the workspace switcher above the input box, aligned to its right edge. Its menu opens upward and supports switching workspaces, opening their conversations, and creating a workspace.
+
+Contract management opens project cards by default, supports server-side search and switching to the contract list, and shows project financial summaries with contract details. Gross profit uses the cloud project finance summary; its overall margin is weighted by project revenue. Missing financial values remain unavailable. Statistic cards center both their labels and values.
+
 ### Employee daily report workflow
 
 Target users are employees preparing their own daily report, including technical and management positions that require reporting. The assistant reads only the current employee's verified active workbench conversations for the Beijing business day. It cannot use this workflow to query another employee's reports or company financial summaries. The employee skill contains business procedure only; runtime tool bindings, field contracts and backend access belong to the Host plugin.

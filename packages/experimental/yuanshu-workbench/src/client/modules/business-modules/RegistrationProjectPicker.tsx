@@ -9,12 +9,13 @@ import { projectChoices } from './project-registration-viewmodel.ts'
 import css from './project-registration.module.css'
 
 /** 呈现可搜索和分页的项目选择；紧凑模式把搜索框收进同一行。 */
-export function RegistrationProjectPicker({ selected, onSelect, disabled, t, compact = false }: {
+export function RegistrationProjectPicker({ selected, onSelect, disabled, t, compact = false, initialSelection = false }: {
   readonly selected: RegistrationProject | undefined
   readonly onSelect: (project: RegistrationProject | undefined) => void
   readonly disabled: boolean
   readonly t: WorkbenchT
   readonly compact?: boolean
+  readonly initialSelection?: boolean
 }) {
   const [query, setQuery] = useState({ keyword: '', page: 1 })
   const [result, setResult] = useState<RegistrationPage<RegistrationProject>>()
@@ -30,6 +31,9 @@ export function RegistrationProjectPicker({ selected, onSelect, disabled, t, com
     return () => { controller.abort() }
   }, [query])
   const choices = projectChoices(result?.items ?? [], selected)
+  useEffect(() => {
+    if (initialSelection && !selected && result?.items[0]) onSelect(result.items[0])
+  }, [initialSelection, onSelect, result, selected])
   const search = <form className={css.inline} onSubmit={(event) => {
     event.preventDefault()
     setQuery({ keyword: readFormText(new FormData(event.currentTarget), 'keyword').trim(), page: 1 })

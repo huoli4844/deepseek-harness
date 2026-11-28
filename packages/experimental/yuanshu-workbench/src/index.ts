@@ -26,6 +26,10 @@ import { registerMcpCapabilities } from './mcp-capabilities.ts'
 import { registerTodoRoutes } from './todos/routes.ts'
 import { TodoStore } from './todos/store.ts'
 import { registerTodoTools } from './todos/tools.ts'
+import { registerPersonalPageRoutes } from './personal-pages/routes.ts'
+import { PersonalPageStore } from './personal-pages/store.ts'
+import { registerDataQueryRoute } from './data-query-proxy.ts'
+import { registerSkillStoreRoutes } from './skill-store/routes.ts'
 import z from '@deepseek-ai/schemastery'
 
 /** Stable plugin name shown by the Loader. */
@@ -362,6 +366,18 @@ export function apply(ctx: Context, config: Config): void {
   ctx.inject(['webServer'], (scope) => {
     registerTodoRoutes(scope, new TodoStore())
     scope.logger.info('yuanshu: local todo routes registered')
+    // 个人页配置：按账号落在本机固定目录，浏览器清空数据不丢失。
+    registerPersonalPageRoutes(scope, new PersonalPageStore())
+    scope.logger.info('yuanshu: personal page routes registered')
+    // 个人页数据卡片：按只读数据目录代理后台查询。
+    registerDataQueryRoute(scope, config.data.apiUrl.replace(/\/+$/u, ''))
+    scope.logger.info('yuanshu: data query routes registered')
+    // 技能包：从元枢后台读取清单，支持下载、本机安装与上传。
+    registerSkillStoreRoutes(scope, {
+      api: config.data.apiUrl.replace(/\/+$/u, ''),
+      bundledSkillsRoot: fileURLToPath(new URL('../skills', import.meta.url)),
+    })
+    scope.logger.info('yuanshu: skill store routes registered')
   })
   ctx.inject(['tools'], (scope) => {
     registerTodoTools(scope, new TodoStore())
@@ -382,7 +398,9 @@ export function apply(ctx: Context, config: Config): void {
       description: '引导员工确认名称并发布个人动态页面，从我的个人页按名称切换。',
       path: fileURLToPath(new URL('../skills/yuanshu-custom-page-create/SKILL.md', import.meta.url)),
       rank: 580,
-      guidance: '收到创建个人项目工时页的意图时调用 personal_pages_open_draft，员工明确提供的名称和时间范围才预填。请员工在对话弹窗内选择项目、预览及发布。',
+      guidance: '收到创建个人页面意图时调用 personal_pages_open_draft，页面内容由 widgets 自由组装：'
+        + '固定卡片（工时/人员概览）或 data-query 数据卡（path 来自 yuanshu_api_search 检索的只读接口）。'
+        + '请员工在对话弹窗内核对卡片数据、预览及发布。',
     })
     registerBusinessSkill(scope, {
       name: 'yuanshu-api-query',
@@ -852,6 +870,7 @@ export function apply(ctx: Context, config: Config): void {
       ['user-positions', 'YuanShu user position API unavailable'],
       ['projects', 'YuanShu project API unavailable'],
       ['weekly-reports', 'YuanShu weekly report API unavailable'],
+      ['daily-reports', 'YuanShu daily report API unavailable'],
     ] as const) {
       scope.effect(() => scope.webServer.register({
         kind: 'prefix',

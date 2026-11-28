@@ -12,10 +12,16 @@ export interface ArchiveColumn {
   readonly sortable?: boolean
 }
 
-/** 记录进入表格前已格式化的单元格内容。 */
+/** 带颜色的枚举单元格：以胶囊标签呈现，tone 决定颜色语义。 */
+export interface ArchiveCellTag {
+  readonly text: string
+  readonly tone: 'success' | 'warn' | 'danger' | 'muted' | 'brand'
+}
+
+/** 记录进入表格前已格式化的单元格内容；枚举值可传标签对象获得颜色区分。 */
 export interface ArchiveRow {
   readonly key: number | string
-  readonly cells: Readonly<Record<string, string | number | undefined>>
+  readonly cells: Readonly<Record<string, string | number | ArchiveCellTag | undefined>>
 }
 
 /** 表格当前由后台执行的排序。 */
@@ -106,10 +112,14 @@ export function ArchiveTable({ columns, rows, sort, onSort, actionsLabel, render
       </tr></thead>
       <tbody>{rows.map(row => <tr key={row.key}>
         {columns.map((column) => {
-          const value = row.cells[column.key]
-          const display = value === undefined || value === '' ? '—' : String(value)
+          const raw = row.cells[column.key]
+          const tag = typeof raw === 'object' ? raw : undefined
+          const display = tag !== undefined ? tag.text
+            : typeof raw === 'number' ? String(raw)
+              : typeof raw === 'string' && raw !== '' ? raw : '—'
           return <Tooltip key={column.key} label={display} side="top" portal delayMs={250}>
-            <td><span className={css.archiveValue}>{display}</span></td>
+            <td><span className={tag === undefined ? css.archiveValue : css.archiveTag}
+              data-tone={tag?.tone}>{display}</span></td>
           </Tooltip>
         })}
         {renderActions !== undefined && <td className={css.actionCell}>{renderActions(row.key)}</td>}

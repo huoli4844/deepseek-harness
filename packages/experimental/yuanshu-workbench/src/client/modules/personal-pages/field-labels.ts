@@ -1,0 +1,46 @@
+/** 常见业务字段中文词典：数据卡未提供标签时的兜底展示名，键为 snake_case 字段名。 */
+export const FIELD_LABELS: Readonly<Record<string, string>> = {
+  id: '编号', name: '名称', code: '编码', title: '标题', status: '状态', state: '状态', type: '类型',
+  level: '等级', grade: '等级', stage: '阶段', phase: '阶段', category: '分类', priority: '优先级',
+  description: '描述', remark: '备注', notes: '备注', reason: '原因', solution: '解决方案', result: '结果',
+  created_at: '创建时间', updated_at: '更新时间', create_time: '创建时间', update_time: '更新时间',
+  start_time: '开始时间', end_time: '结束时间', start_date: '开始日期', end_date: '结束日期',
+  deadline: '截止日期', due_date: '到期日', plan_date: '计划日期', actual_date: '实际日期',
+  approval_date: '审批日期', finish_time: '完成时间', finish_date: '完成日期',
+  date: '日期', time: '时间', month: '月份', week: '周', year: '年度', days: '天数', hours: '工时',
+  owner: '负责人', owner_name: '负责人', manager: '负责人', manager_name: '负责人', leader: '负责人',
+  assignee: '经办人', handler: '经办人', creator: '创建人', creator_name: '创建人', updater: '更新人',
+  applicant: '申请人', approver: '审批人', inspector: '检验员', operator: '操作人',
+  user_name: '姓名', employee_name: '员工姓名', phone: '电话', email: '邮箱', address: '地址',
+  department: '部门', department_name: '部门', tenant: '租户', enabled: '启用', sort: '排序',
+  project_name: '项目名称', project_code: '项目编码', task_name: '任务名称', task_code: '任务编码',
+  material_name: '物料名称', material_code: '物料编码', supplier_name: '供应商', customer_name: '客户',
+  product_name: '产品名称', equipment_name: '设备名称', equipment_code: '设备编码',
+  amount: '金额', total_amount: '总金额', price: '单价', unit_price: '单价', quantity: '数量',
+  plan_quantity: '计划数量', actual_quantity: '实际数量', count: '数量', total: '总数',
+  unit: '单位', unit_name: '单位', cost: '成本', budget: '预算', plan_cost: '计划成本',
+  actual_cost: '实际成本', difference: '差异', variance: '差异',
+  progress: '进度', progress_percent: '进度', percent: '百分比', completion_rate: '完成率',
+  pass_rate: '合格率', ratio: '比率', rate: '比率', score: '得分',
+  work_hours: '工时', standard_hours: '标准工时', actual_hours: '实际工时', remaining_hours: '剩余工时',
+  risk_level: '风险等级', risk: '风险', risk_count: '风险数', defect_count: '缺陷数', defect_code: '缺陷代码',
+  spec: '规格', specification: '规格', model: '型号', version: '版本',
+  batch_no: '批次号', batch: '批次', warehouse: '仓库', warehouse_name: '仓库', location: '库位',
+  stock: '库存', inventory: '库存', arrival_date: '到货日期', delivery_date: '交付日期',
+  order_no: '单号', order_number: '单号', order_type: '单据类型', document_no: '单号',
+  approval_status: '审批状态', approve_time: '审批时间', apply_date: '申请日期',
+  inspection_date: '检验日期', plan_name: '计划名称', plan_no: '计划单号',
+  contract_no: '合同编号', contract_name: '合同名称', contract_amount: '合同金额',
+  signed_date: '签订日期', paid_amount: '已付金额', unpaid_amount: '未付金额',
+  payment_amount: '付款金额', payment_date: '付款日期', apply_amount: '申请金额',
+  approved_amount: '审批金额', invoice_amount: '开票金额', tax_amount: '税额',
+  received_amount: '已收金额', receivable_amount: '应收金额', received_date: '收款日期',
+  cost_amount: '成本金额', total_cost: '总成本', budget_amount: '预算金额',
+  settlement_amount: '结算金额', payable_amount: '应付款', ledger_date: '台账日期',
+  parent_id: '上级', parent_name: '上级名称', sort_order: '排序', remark_text: '备注内容',
+}
+
+/** 字段展示名兜底：命中词典用中文，否则下划线转空格。 */
+export function fieldLabel(key: string): string {
+  return FIELD_LABELS[key] ?? key.replaceAll('_', ' ')
+}

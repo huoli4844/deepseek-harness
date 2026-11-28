@@ -1,5 +1,6 @@
 /** 合同列表同源只读适配。后台按当前凭证授权项目及合同，失败时不返回部分数据。 */
-import { ContractCatalogError, loadContractCatalog } from './contract-catalog.ts'
+import { ContractCatalogError, loadContractPortfolio } from './contract-catalog.ts'
+import { contractProjectPage, portfolioFinance } from './contract-projects.ts'
 import { contractListPage, contractListQuery } from './contract-list.ts'
 
 /** 汇总云端项目合同并投影为工作台分页，不暴露凭据。 */
@@ -18,8 +19,10 @@ export async function proxyContractList(req: { readonly url?: string | undefined
   const query = contractListQuery(new URL(req.url ?? '/', 'http://localhost').searchParams)
   if (!query) { send(400, { error: 'Invalid contract query' }); return }
   try {
-    const rows = await loadContractCatalog(api, headers, signal)
-    send(200, { code: 200, data: contractListPage(rows, query) })
+    const portfolio = await loadContractPortfolio(api, headers, signal)
+    const rows = portfolio.flatMap(item => item.contracts)
+    const page = query.view === 'cards' ? contractProjectPage(portfolio, query) : contractListPage(rows, query)
+    send(200, { code: 200, data: { ...page, finance: portfolioFinance(portfolio) } })
   } catch (error) {
     if (!(error instanceof ContractCatalogError)) throw error
     send(error.status, { error: 'YuanShu contract catalog unavailable' })

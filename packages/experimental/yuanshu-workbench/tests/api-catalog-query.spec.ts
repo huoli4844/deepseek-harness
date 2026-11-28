@@ -10,6 +10,7 @@ const entry: ApiCatalogEntry = {
   path: '/api/v1/apps/shaoshi/mes/equipments/{id}',
   summary: '查询设备台账详情',
   tag: 'apps/shaoshi',
+  fields: [],
   params: [
     { name: 'id', in: 'path', type: 'integer', required: true, description: '设备标识' },
     { name: 'status', in: 'query', type: 'string', required: false, description: '状态' },

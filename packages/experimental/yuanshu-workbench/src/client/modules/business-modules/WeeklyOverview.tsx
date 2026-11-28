@@ -45,7 +45,8 @@ export function WeeklyOverview({ snapshot, summary, draft, actions, t }: {
         </div>
         <div className={css.weeklyKpi} data-tone="red">
           <span>{t('weekly.riskCount')}</span>
-          <p><strong>{risks ?? '— — —'}</strong>{risks !== undefined && <em>{t('weekly.riskUnit')}</em>}</p>
+          {/* 风险项来自草稿解析，恒为数值，直接展示。 */}
+          <p><strong>{risks}</strong><em>{t('weekly.riskUnit')}</em></p>
         </div>
       </div>
       <div className={css.weeklyProgress}>

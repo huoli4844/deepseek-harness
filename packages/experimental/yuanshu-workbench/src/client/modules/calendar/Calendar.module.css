@@ -148,6 +148,21 @@
   font-weight: 600;
 }
 
+/* 公历日号与农历日名的成组排布：农历紧随日号，弱化显示。 */
+.dayHeadDate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+.dayLunar {
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--work-muted);
+  white-space: nowrap;
+}
+
 .dayAdd {
   width: 20px;
   height: 20px;

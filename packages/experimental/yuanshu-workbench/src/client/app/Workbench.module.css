@@ -12,7 +12,9 @@ div.surface {
 .root {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  grid-template-columns: 184px minmax(0, 1fr) auto;
+  /* 第一列跟随内联 --nav-width：菜单栏拖宽时内容区起点同步右移，拖拽分隔条始终贴在交界处。
+     窄窗口抽屉模式下由 TSX 将该变量置 0，菜单栏浮层不占轨。 */
+  grid-template-columns: var(--nav-width, 184px) minmax(0, 1fr) auto;
   position: relative;
   height: 100%;
   min-width: 0;
@@ -124,7 +126,8 @@ div.surface {
 .navigation {
   grid-row: 2;
   grid-column: 1;
-  width: 184px;
+  /* 宽度由内联 --nav-width 驱动：可拖拽调整，最小化时收成 64px 图标栏。 */
+  width: var(--nav-width, 184px);
   flex: none;
   display: flex;
   flex-direction: column;
@@ -260,6 +263,38 @@ div.surface {
   padding-block: 0;
   font-size: 11px;
 }
+/* 图标模式（最小化或宽度 <100px）：只留图标，隐藏文字与子菜单，按钮居中。 */
+.iconNav nav button {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+.iconNav nav button span,
+.iconNav nav button b,
+.iconNav nav .submenu {
+  display: none;
+}
+.iconNav .return {
+  justify-content: center;
+}
+/* 菜单栏与内容页之间的拖拽分隔条：贴在内容区左缘，视觉上就是两条栏的接缝。 */
+.navResizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 30;
+  cursor: col-resize;
+}
+.navResizer:hover,
+.navResizer:focus-visible {
+  background: color-mix(in srgb, var(--work-accent) 28%, transparent);
+}
+/* 内容页或问答栏挤占后内容区过窄（<150px）：直接隐藏内容区，拖回分隔条可恢复。 */
+.contentHidden {
+  display: none;
+}
 .main {
   grid-row: 2;
   grid-column: 2;
@@ -269,6 +304,8 @@ div.surface {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  /* 供左缘的菜单栏拖拽分隔条绝对定位。 */
+  position: relative;
 }
 .topbar {
   /* 全局顶栏：品牌 / KPI / 状态横跨整窗，同时作为桌面窗口拖拽区。 */
@@ -384,9 +421,11 @@ div.surface {
   margin-bottom: 28px;
 }
 .metric {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   background: transparent;
   border: 0;
-  text-align: start;
   padding: 18px;
   color: inherit;
 }
@@ -1420,6 +1459,16 @@ div.surface {
   color: var(--work-muted);
   padding: 25px 0;
 }
+
+/* 空态紧贴标题行：避免「新建任务」与提示文案之间出现大片空白。 */
+.headingTight {
+  margin-bottom: 8px;
+}
+
+.emptyCompact {
+  color: var(--work-muted);
+  padding: 6px 0 10px;
+}
 .versionSelect {
   display: flex;
   gap: 8px;
@@ -2419,6 +2468,9 @@ div.surface {
   margin-block: 16px;
 }
 .projectOpsMetric {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -2479,6 +2531,9 @@ div.surface {
   margin-block: 14px;
 }
 .projectSummaryGrid > div {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 3px;
   padding: 10px 12px;

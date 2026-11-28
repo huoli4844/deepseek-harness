@@ -44,6 +44,12 @@ export const weeklyItemsEn = {
   'weekly.submittedAt': 'Submitted {time}', 'weekly.noReport': 'No weekly report for this week',
   'weekly.emptyContent': 'This weekly report has no content yet',
   'weekly.weekTooltip': 'Week {number} · {start} to {end} · {status}',
+  'weekly.panelTitle': 'Week {number} ({start} ~ {end})',
+  'reportCalendar.mode': 'Report view', 'reportCalendar.daily': 'Daily', 'reportCalendar.weekly': 'Weekly',
+  'dailyCalendar.title': 'Daily report calendar', 'dailyCalendar.subtitle': 'Hover a day for its report, click to select.',
+  'dailyCalendar.dayTooltip': '{date} · {status}', 'dailyCalendar.clickHint': 'Click for details',
+  'dailyCalendar.noReport': 'No daily report for this day', 'dailyCalendar.loadError': 'Failed to load daily report',
+  'dailyCalendar.completed': 'Completed work', 'dailyCalendar.inProgress': 'Work in progress', 'dailyCalendar.planned': 'Planned work',
 } as const
 
 /** 中文文案与英文使用同一键集。 */
@@ -92,4 +98,10 @@ export const weeklyItemsZh: Record<keyof typeof weeklyItemsEn, string> = {
   'weekly.submittedAt': '提交于 {time}', 'weekly.noReport': '该周暂无周报',
   'weekly.emptyContent': '该周周报暂无正文内容',
   'weekly.weekTooltip': '第 {number} 周 · {start} 至 {end} · {status}',
+  'weekly.panelTitle': '第 {number} 周（{start} ~ {end}）',
+  'reportCalendar.mode': '报告视图', 'reportCalendar.daily': '日报', 'reportCalendar.weekly': '周报',
+  'dailyCalendar.title': '日报日历', 'dailyCalendar.subtitle': '悬停某天查看当天日报，点击选中日期。',
+  'dailyCalendar.dayTooltip': '{date} · {status}', 'dailyCalendar.clickHint': '点击查看详情',
+  'dailyCalendar.noReport': '该日暂无日报', 'dailyCalendar.loadError': '日报加载失败',
+  'dailyCalendar.completed': '完成工作', 'dailyCalendar.inProgress': '进行中工作', 'dailyCalendar.planned': '后续计划',
 }

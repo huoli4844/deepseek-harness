@@ -20,6 +20,9 @@
   gap: 8px;
 }
 .statCard {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 1px;
   padding: 7px 10px;

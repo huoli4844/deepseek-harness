@@ -1,6 +1,7 @@
 /** 编排合同台账查询，不渲染页面。 */
 import { useEffect, useState } from 'react'
 import { fetchContractCatalog, fetchContractPage } from './contract-api.ts'
+import type { ContractView } from './contract-project-model.ts'
 import type { ContractFilters, ContractPage, ContractSort } from './contract-model.ts'
 import { contractStats, nextContractSort, type ContractStats } from './contract-viewmodel.ts'
 import { RECORD_PAGE_SIZE, recordPageCount } from './record-list-viewmodel.ts'
@@ -22,10 +23,11 @@ function requestError(error: unknown): RequestError {
 /** 加载合同台账，任何筛选或排序变化都从第一页开始。 */
 export function useContracts() {
   const [query, setQuery] = useState<{
+    readonly view: ContractView
     readonly page: number
     readonly filters: ContractFilters
     readonly sort: ContractSort | undefined
-  }>({ page: 1, filters: { keyword: '' }, sort: undefined })
+  }>({ view: 'cards', page: 1, filters: { keyword: '' }, sort: undefined })
   const [retry, setRetry] = useState(0)
   const [result, setResult] = useState<ContractPage>()
   const [error, setError] = useState<RequestError>()
@@ -56,6 +58,11 @@ export function useContracts() {
 
   const pageCount = recordPageCount(result?.total, result?.pageSize ?? RECORD_PAGE_SIZE)
   return {
+    view: query.view,
+    changeView: (view: ContractView) => {
+      setResult(undefined)
+      setQuery(previous => ({ ...previous, view, page: 1 }))
+    },
     page: query.page, sort: query.sort, pageCount, loading, error, result,
     search: (filters: ContractFilters) => {
       setQuery(previous => ({ ...previous, filters, page: 1 }))
@@ -81,7 +88,7 @@ export function useContractStats() {
     setStatus('loading')
     void fetchContractCatalog(controller.signal).then((catalog) => {
       if (controller.signal.aborted) return
-      setStats(contractStats(catalog.items, catalog.total, catalog.truncated))
+      setStats(contractStats(catalog.items, catalog.total, catalog.truncated, undefined, catalog.finance))
       setStatus('ready')
     }).catch(() => {
       if (controller.signal.aborted) return

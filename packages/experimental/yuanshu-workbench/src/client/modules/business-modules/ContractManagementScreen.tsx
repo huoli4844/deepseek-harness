@@ -14,7 +14,8 @@ export function ContractManagementScreen({ t }: { readonly t: WorkbenchT }) {
   const stats = useContractStats()
   return <div className={css.screen}>
     <ContractStatsPanel stats={stats.stats} status={stats.status} t={t} />
-    <ContractRecords result={contracts.result} loading={contracts.loading} error={contracts.error}
+    <ContractRecords view={contracts.view} onView={contracts.changeView} result={contracts.result}
+      loading={contracts.loading} error={contracts.error}
       page={contracts.page} pageCount={contracts.pageCount} sort={contracts.sort} t={t}
       onSearch={contracts.search} onSort={contracts.sortBy} onPage={contracts.goToPage} onRetry={contracts.retry} />
   </div>

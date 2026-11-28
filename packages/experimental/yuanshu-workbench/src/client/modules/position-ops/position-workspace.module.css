@@ -1,0 +1,24 @@
+/** 岗位工作台切换容器样式：按钮行靠右上，下方为当前视图。 */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.barSpacer {
+  flex: 1 1 auto;
+}
+
+.switcher {
+  display: inline-flex;
+  gap: 6px;
+}

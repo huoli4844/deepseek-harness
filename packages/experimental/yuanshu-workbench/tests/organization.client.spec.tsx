@@ -167,10 +167,4 @@ it('统计图表悬停时显示对应月份的数据提示', async () => {
   fireEvent.mouseEnter(marchHit!)
   expect(joinedChart.querySelector('[role="status"]')?.textContent).toContain('2人')
   fireEvent.mouseLeave(joinedChart)
-
-  // 悬停离职曲线：5 月入职的陈三当前已停用，提示离职 1 人
-  const departedChart = screen.getByRole('img', { name: '全年离职曲线' })
-  fireEvent.mouseEnter(within(departedChart)
-    .getAllByRole('button', { name: `${new Date().getFullYear()}-05 · 1人` })[0]!)
-  expect(departedChart.querySelector('[role="status"]')?.textContent).toContain('1人')
 })

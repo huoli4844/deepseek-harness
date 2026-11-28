@@ -1,5 +1,7 @@
 /** 合同台账的列定义、类型与状态枚举，不依赖界面或网络。 */
 
+import type { ContractFinanceTotals, ContractProjectRecord } from './contract-project-model.ts'
+
 /** 合同列表展示并可排序的字段，顺序与后台排序白名单一致。 */
 export const contractColumns = [
   { key: 'code', width: 170 }, { key: 'contract_type', width: 110 },
@@ -27,6 +29,8 @@ export interface ContractRecord {
 
 /** 来自后台的当前页、匹配总数与合同档案总数。 */
 export interface ContractPage {
+  readonly projects?: readonly ContractProjectRecord[]
+  readonly finance?: ContractFinanceTotals
   readonly items: readonly ContractRecord[]
   readonly total: number
   readonly archiveTotal: number

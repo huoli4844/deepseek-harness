@@ -26,14 +26,25 @@
 }
 .day {
   min-width: 0;
-  min-height: 30px;
-  padding: 0;
+  min-height: 36px;
+  padding: 2px 0;
   border: 0;
   border-radius: var(--dsw-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font: inherit;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+/* 公历号下方的农历小字；初一显示农历月名。 */
+.dayLunar {
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--dsw-alias-label-tertiary);
 }
 .day[data-outside='true'] {
   color: var(--dsw-alias-label-secondary);

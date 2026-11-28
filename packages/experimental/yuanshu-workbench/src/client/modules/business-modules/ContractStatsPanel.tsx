@@ -1,7 +1,7 @@
 /** 合同统计：总量、到期与金额指标，以及类型/状态分布，数据来自全量合同聚合。 */
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { ContractStatBucket, ContractStats } from './contract-viewmodel.ts'
-import { contractAmount, contractStatusLabel } from './contract-viewmodel.ts'
+import { contractAmount, contractPercent, contractStatusLabel } from './contract-viewmodel.ts'
 import css from './contract-management.module.css'
 
 /** 后台合同类型编码到简短名称；未知编码原样展示。 */
@@ -42,8 +42,12 @@ export function ContractStatsPanel({ stats, status, t }: {
       <div className={css.statCard}><b>{String(stats.active)}</b><span>{t('contract.statsActive')}</span></div>
       <div className={css.statCard} data-tone="warn"><b>{String(stats.expiringSoon)}</b><span>{t('contract.statsExpiring')}</span></div>
       <div className={css.statCard} data-tone="warn"><b>{String(stats.expired)}</b><span>{t('contract.statsExpired')}</span></div>
-      <div className={css.statCard}><b>{contractAmount(stats.totalAmount)}</b><span>{t('contract.statsTotalAmount')}</span></div>
-      <div className={css.statCard}><b>{contractAmount(stats.owedAmount)}</b><span>{t('contract.statsOwedAmount')}</span></div>
+      <div className={css.statCard}><b>{contractAmount(stats.totalAmount) ?? '—'}</b><span>{t('contract.statsTotalAmount')}</span></div>
+      <div className={css.statCard}><b>{contractAmount(stats.owedAmount) ?? '—'}</b><span>{t('contract.statsOwedAmount')}</span></div>
+      <div className={css.statCard}><b>{contractAmount(stats.taxAmount) ?? '—'}</b><span>{t('contract.statsTaxAmount')}</span></div>
+      <div className={css.statCard}><b>{contractAmount(stats.warrantyAmount) ?? '—'}</b><span>{t('contract.warranty_amount')}</span></div>
+      <div className={css.statCard}><b>{contractAmount(stats.grossMargin) ?? '—'}</b><span>{t('contract.grossMargin')}</span></div>
+      <div className={css.statCard}><b>{contractPercent(stats.grossMarginRate) ?? '—'}</b><span>{t('contract.grossMarginRate')}</span></div>
     </div>
     <div className={css.statBars}>
       <h3>{t('contract.statsByType')}</h3>

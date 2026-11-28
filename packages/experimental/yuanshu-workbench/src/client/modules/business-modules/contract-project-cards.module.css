@@ -1,0 +1,68 @@
+/** 项目卡片组独立滚动，保留顶部筛选与底部分页，窄容器自动改为单列。 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.card {
+  min-width: 0;
+  padding: 12px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.header > div { min-width: 0; }
+.header h3 {
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.header small { color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+.status {
+  flex: none;
+  border-radius: var(--dsw-radius-sm);
+  padding: 3px 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+.fields, .metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+.fields > div, .metrics > div { min-width: 0; }
+.fields dt, .metrics dt { color: var(--dsw-alias-label-secondary); }
+.fields dd, .metrics dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 108px), 1fr)); }
+.metrics > div {
+  display: grid;
+  align-content: center;
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+}
+.metrics dd { font-variant-numeric: tabular-nums; font-weight: 600; }
+.details { margin-top: 12px; font-size: 12px; }
+.details summary { cursor: pointer; color: var(--dsw-alias-label-secondary); }
+.details h4 { margin: 12px 0 8px; font-size: inherit; }
+.contracts { list-style: none; margin: 0; padding: 0; }
+.contracts li { display: grid; gap: 4px; padding-block: 8px; border-top: 0.5px solid var(--work-line); }
+.contracts li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.contracts span { color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+.contracts strong { overflow-wrap: anywhere; }

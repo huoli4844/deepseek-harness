@@ -74,6 +74,9 @@
 }
 
 .kpiCard {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -83,7 +86,6 @@
   background: var(--dsw-alias-bg-primary);
   color: inherit;
   font: inherit;
-  text-align: left;
 }
 
 /* 可交互 KPI（人员总工时）渲染为按钮：hover 反馈提示可点击。 */

@@ -11,3 +11,9 @@ export function weeksInMonth(month: string): readonly string[] {
   }
   return weeks
 }
+
+/** 月份加减，返回 yyyy-MM；供周报与日报日历共用。 */
+export function moveMonth(month: string, delta: number): string {
+  const [year = 1970, value = 1] = month.split('-').map(Number)
+  return new Date(Date.UTC(year, value - 1 + delta, 1)).toISOString().slice(0, 7)
+}

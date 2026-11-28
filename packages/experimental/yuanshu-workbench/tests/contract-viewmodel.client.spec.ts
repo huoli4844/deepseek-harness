@@ -46,3 +46,14 @@ it('同一合同表头在升降序之间切换', () => {
   expect(nextContractSort(nextContractSort(undefined, 'code'), 'code')).toEqual({ key: 'code', direction: 'desc' })
   expect(nextContractSort({ key: 'code', direction: 'desc' }, 'status')).toEqual({ key: 'status', direction: 'asc' })
 })
+
+it('税额和质保金缺失时保持未知，毛利金额使用项目财务汇总', async () => {
+  const { contractStats } = await import('../src/client/modules/business-modules/contract-viewmodel.ts')
+  const values = { total_amount: 100, tax_amount: 10, warranty_amount: 5 }
+  const ready = contractStats([{ id: 1, values }], 1, false, '2026-11-27', { grossMargin: 40, grossMarginRate: 20 })
+  expect(ready).toMatchObject({ taxAmount: 10, warrantyAmount: 5, grossMargin: 40, grossMarginRate: 20 })
+  const missing = contractStats([{ id: 1, values: {} }], 1, false, '2026-11-27')
+  expect(missing.taxAmount).toBeUndefined()
+  expect(missing.warrantyAmount).toBeUndefined()
+  expect(missing.totalAmount).toBeUndefined()
+})

@@ -23,8 +23,9 @@ import { VersionsScreen } from '../modules/versions/VersionsScreen.tsx'
 import { GroupsScreen } from '../modules/groups/GroupsScreen.tsx'
 import { NotificationsScreen } from '../modules/notifications/NotificationsScreen.tsx'
 import { TodosCard } from '../modules/todos/TodosCard.tsx'
+import { ReportTasks } from '../modules/business-forms/index.ts'
 import { TaskWorkScreen } from '../modules/task-work/TaskWorkScreen.tsx'
-import { ExecutionSnapshot, MethodCards, MethodChecks, TaskRows } from './page-parts.tsx'
+import { ExecutionSnapshot, MethodCards, MethodChecks } from './page-parts.tsx'
 import {
   Button,
   Input,
@@ -37,6 +38,7 @@ import {
   IconArchiveOutlineRegular,
   IconPaperclipOutlineRegular,
   IconPanelLeftOutlineRegular,
+  IconChevronLeftOutlineRegular,
   IconNewChatOutlineRegular,
   IconFolderOpenRegular,
   IconAgentPresetOutlineRegular,
@@ -46,6 +48,26 @@ import {
   IconDatabaseOutlineRegular,
   IconFullscreenOutlineRegular,
   IconCompactOutlineRegular,
+  IconGaugeOutlineRegular,
+  IconThinkOutlineRegular,
+  IconGoalOutlineRegular,
+  IconBranchOutlineRegular,
+  IconSlidersTwoOutlineRegular,
+  IconUserOutlineRegular,
+  IconUsersOutlineRegular,
+  IconDataOutlineRegular,
+  IconPinOutlineRegular,
+  IconFolderCloseRegular,
+  IconPlanOutlineRegular,
+  IconInspectOutlineRegular,
+  IconGlobeOutlineRegular,
+  IconLinkOutlineRegular,
+  IconDeliverDocRegular,
+  IconCompareSplitOutlineRegular,
+  IconAlarmClockOutlineRegular,
+  IconEditOutlineRegular,
+  IconMicrophoneOutlineRegular,
+  IconWorkspaceTreeOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
@@ -71,6 +93,7 @@ import { OperatorWorkbench, screenOfView, viewOfScreen } from '../operator/index
 import { ProfileContainer, useIdentity } from '../identity/index.ts'
 import { OemBrandMark } from './OemBrand.tsx'
 import { RailWorkspaceTree } from './RailWorkspaceTree.tsx'
+import { AssistantWorkspaceProvider } from './AssistantWorkspace.tsx'
 import {
   SettingsDialog, type WorkbenchSettingsSource, type WorkbenchTextSize, type WorkbenchTheme,
 } from './SettingsDialog.tsx'
@@ -78,6 +101,7 @@ import { IntegrationStatusDialog } from './IntegrationStatusDialog.tsx'
 import { fetchIntegrationStatus, testIntegration, type IntegrationSnapshot, type IntegrationTarget } from './integration-api.ts'
 import { useHostTheme } from './use-host-theme.ts'
 import { PositionOperations } from '../modules/position-ops/index.ts'
+import { PositionWorkspaceToggle } from '../modules/position-ops/PositionWorkspaceToggle.tsx'
 import {
   accessRoleOf,
   BudgetCostScreen,
@@ -139,33 +163,34 @@ const TEXT_SIZE_VARS: Record<
   large: { chat: '13px' },
 }
 
+/* 菜单图标按业务含义逐项指定，全部来自 ui-primitives 本地打包的 SVG 组件；各项互不重复。 */
 const navIcons: Record<string, typeof IconLayersOutlineRegular> = {
-  'operator-overview': IconLayersOutlineRegular,
-  'operator-decisions': IconArchiveOutlineRegular,
-  'operator-projects': IconChecklistOutlineRegular,
-  'operator-functional': IconLayersOutlineRegular,
+  'operator-overview': IconGaugeOutlineRegular,
+  'operator-decisions': IconThinkOutlineRegular,
+  'operator-projects': IconGoalOutlineRegular,
+  'operator-functional': IconSlidersTwoOutlineRegular,
   'operator-evidence': IconPaperclipOutlineRegular,
-  profile: IconLayersOutlineRegular,
-  assistant: IconLayersOutlineRegular,
-  dashboard: IconLayersOutlineRegular,
-  priorities: IconArchiveOutlineRegular,
+  profile: IconUserOutlineRegular,
+  assistant: IconNewChatOutlineRegular,
+  dashboard: IconDataOutlineRegular,
+  priorities: IconPinOutlineRegular,
   tasks: IconChecklistOutlineRegular,
   calendar: IconClockOutlineRegular,
-  groups: IconNewChatOutlineRegular,
-  files: IconPaperclipOutlineRegular,
-  methods: IconLayersOutlineRegular,
-  'project-operations': IconChecklistOutlineRegular,
-  'position-operations': IconChecklistOutlineRegular,
-  'customer-resources': IconLayersOutlineRegular,
-  'material-management': IconLayersOutlineRegular,
-  'supplier-management': IconLayersOutlineRegular,
-  'equipment-ledger': IconLayersOutlineRegular,
-  'contract-management': IconChecklistOutlineRegular,
-  'budget-cost': IconLayersOutlineRegular,
-  'work-hours': IconClockOutlineRegular,
-  'weekly-daily-reports': IconArchiveOutlineRegular,
-  'meeting-rooms': IconClockOutlineRegular,
-  organization: IconLayersOutlineRegular,
+  groups: IconUsersOutlineRegular,
+  files: IconFolderCloseRegular,
+  methods: IconPlanOutlineRegular,
+  'project-operations': IconBranchOutlineRegular,
+  'position-operations': IconInspectOutlineRegular,
+  'customer-resources': IconGlobeOutlineRegular,
+  'material-management': IconArchiveOutlineRegular,
+  'supplier-management': IconLinkOutlineRegular,
+  'equipment-ledger': IconSettingsOutlineRegular,
+  'contract-management': IconDeliverDocRegular,
+  'budget-cost': IconCompareSplitOutlineRegular,
+  'work-hours': IconAlarmClockOutlineRegular,
+  'weekly-daily-reports': IconEditOutlineRegular,
+  'meeting-rooms': IconMicrophoneOutlineRegular,
+  organization: IconWorkspaceTreeOutlineRegular,
   doclib: IconFolderOpenRegular,
 }
 
@@ -213,6 +238,10 @@ export function Workbench(props: WorkbenchProps) {
   const fixture = roleFixtures[role]
   const [milestoneOpen, setMilestoneOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
+  // 左侧菜单栏宽度：可拖拽调整；最小化时收成图标栏，拖窄到 100px 以下自动转图标模式。
+  const [navWidth, setNavWidth] = useState(184)
+  const [navMinimized, setNavMinimized] = useState(false)
+  const [resizingNav, setResizingNav] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<ReadonlySet<string>>(() => new Set())
   const [query, setQuery] = useState('')
   const [laborLink, setLaborLink] = useState<Parameters<typeof WorkHoursScreen>[0]['initial']>()
@@ -233,6 +262,8 @@ export function Workbench(props: WorkbenchProps) {
   const [assistantFull, setAssistantFull] = useState(false)
   const [assistantWidth, setAssistantWidth] = useState(320)
   const [resizingRail, setResizingRail] = useState(false)
+  // 主区总宽：用于判断内容页是否被挤到 150px 以下（是则整页隐藏）。
+  const [rootWidth, setRootWidth] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   // 数据同步状态：顶栏图标弹窗读取，定时五分钟刷新；测试成功才更新同步时间。
   const [integrationOpen, setIntegrationOpen] = useState(false)
@@ -421,13 +452,19 @@ export function Workbench(props: WorkbenchProps) {
     resizeStart.current = { x: event.clientX, width: assistantWidth, max: available > 0 ? available : 560 }
     setResizingRail(true)
   }
-  // 右栏与内容区之间的拖拽分隔条：调整问答栏宽度，可拖到任一侧完全占满。
+  // 右栏与内容区之间的拖拽分隔条：调整问答栏宽度，拖窄到 150px 以下直接收起整栏。
   useEffect(() => {
     if (!resizingRail) return
     const handleMove = (event: PointerEvent) => {
       const start = resizeStart.current
       if (start === undefined) return
       const next = Math.min(start.max, Math.max(0, start.width + (start.x - event.clientX)))
+      if (next < 150) {
+        setAssistantRailOpen(false)
+        setAssistantExpanded(false)
+        setAssistantFull(false)
+        return
+      }
       setAssistantWidth(next)
     }
     const handleUp = () => {
@@ -441,6 +478,49 @@ export function Workbench(props: WorkbenchProps) {
       window.removeEventListener('pointerup', handleUp)
     }
   }, [resizingRail])
+  // 菜单栏与内容区之间的拖拽分隔条：调整菜单宽度；最小化状态往右拖即恢复。
+  const beginNavResize = (event: ReactPointerEvent): void => {
+    event.preventDefault()
+    const root = rootRef.current
+    const rail = root?.querySelector<HTMLElement>(`.${shell.assistantRail}`)?.offsetWidth ?? 0
+    const navMaxWidth = (root?.clientWidth ?? 0) - rail - 64
+    resizeStart.current = { x: event.clientX, width: navMinimized ? 64 : navWidth, max: Math.max(184, navMaxWidth) }
+    setResizingNav(true)
+  }
+  useEffect(() => {
+    if (!resizingNav) return
+    const handleMove = (event: PointerEvent) => {
+      const start = resizeStart.current
+      if (start === undefined) return
+      const next = Math.min(start.max, Math.max(64, start.width + (event.clientX - start.x)))
+      if (navMinimized && next > 72) setNavMinimized(false)
+      setNavWidth(next)
+    }
+    const handleUp = () => {
+      resizeStart.current = undefined
+      setResizingNav(false)
+    }
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+    return () => {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+  }, [resizingNav, navMinimized])
+  // 主区总宽测量：内容页可用宽度小于 150px 时整页隐藏，让菜单栏占满。
+  useEffect(() => {
+    const root = rootRef.current
+    if (root === null) return
+    const observer = new ResizeObserver((entries) => { setRootWidth(entries[0]?.contentRect.width ?? 0) })
+    observer.observe(root)
+    return () => { observer.disconnect() }
+  }, [])
+  const navIconOnly = navMinimized || navWidth < 100
+  const navEffective = navMinimized ? 64 : navWidth
+  const railEffective = assistantRailOpen && !assistantFull ? assistantWidth : 0
+  // 窄窗口（≤900px）时菜单栏是抽屉浮层，不占内容宽度。
+  const navConsumed = rootWidth > 0 && rootWidth <= 900 ? 0 : navEffective
+  const contentHidden = rootWidth > 0 && rootWidth - navConsumed - railEffective < 150
   const toggleAssistantRail = () => {
     setAssistantExpanded(value => !value)
     setAssistantRailOpen(true)
@@ -611,6 +691,10 @@ export function Workbench(props: WorkbenchProps) {
           data-theme={resolvedTheme}
           style={{
             '--dsh-chat-font-size': TEXT_SIZE_VARS[textSize].chat,
+            /* 网格第一列与菜单栏共用同一宽度变量；窄窗口抽屉模式下置 0，浮层菜单不占轨。 */
+            '--nav-width': rootWidth > 0 && rootWidth <= 900
+              ? '0px'
+              : (navMinimized ? '64px' : `${String(navWidth)}px`),
           } as CSSProperties}
         >
           {/* 全局顶栏：品牌 + 本地 KPI 计数 + 日期/窄屏开关，横跨整窗。 */}
@@ -622,7 +706,7 @@ export function Workbench(props: WorkbenchProps) {
                 {!liveHome && <small>{t('tenant')}</small>}
               </div>
             </div>
-            <div className={shell.kpiStrip}>
+            {view !== 'tasks' && <div className={shell.kpiStrip}>
               <div className={shell.kpiCell}>
                 <span className={shell.kpiLabel}>{t('header.kpi.open')}</span>
                 <span className={shell.kpiValue}>{openWorkItems.length}</span>
@@ -639,7 +723,7 @@ export function Workbench(props: WorkbenchProps) {
                 <span className={shell.kpiLabel}>{t('header.kpi.events')}</span>
                 <span className={shell.kpiValue}>{todayEventCount}</span>
               </div>
-            </div>
+            </div>}
             <div className={shell.headerMeta}>
               <button
                 type="button"
@@ -648,7 +732,7 @@ export function Workbench(props: WorkbenchProps) {
                 onClick={() => { selectView('tasks') }}
               >
                 <IconMailUnreadOutlineRegular size={16} />
-                {unread > 0 ? <b className={shell.badge}>{unread}</b> : null}
+                {view !== 'tasks' && unread > 0 ? <b className={shell.badge}>{unread}</b> : null}
               </button>
               <button
                 type="button"
@@ -669,7 +753,12 @@ export function Workbench(props: WorkbenchProps) {
                 className={shell.iconButton}
                 aria-label={t('header.settings')}
                 title={t('header.settings')}
-                onClick={() => { setSettingsOpen(true) }}
+                onClick={() => {
+                  setSettingsOpen(true)
+                  // 刚启动时会话可能尚未建立（或上次创建失败）：补建一次，
+                  // 让设置里的「技能」页签有会话可挂载，目录随会话就绪自动刷新。
+                  if (liveHome && assistantReference === undefined && !assistantLoading) startAssistantSession()
+                }}
               >
                 <IconSettingsOutlineRegular size={16} />
               </button>
@@ -718,52 +807,63 @@ export function Workbench(props: WorkbenchProps) {
               />
             </div>
           </header>
-          <aside className={`${css.navigation} ${navOpen ? css.openNavigation : ''}`} aria-label={t('navLabel')}>
+          <aside
+            className={`${css.navigation} ${navOpen ? css.openNavigation : ''} ${navIconOnly && !navOpen ? css.iconNav : ''}`}
+            aria-label={t('navLabel')}
+          >
             {/* 左上方模块入口统一使用工作台导航。 */}
-            <div className={shell.modules}>
+            <div className={`${shell.modules} ${navIconOnly ? shell.modulesIcon : ''}`}>
               {canSeeAiCenter && (
                 <button
                   type="button"
                   className={`${shell.module} ${shell.moduleAi} ${view === 'dashboard' ? shell.moduleActive : ''}`}
+                  aria-label={t('module.ai')}
+                  title={t('module.ai')}
                   onClick={() => { selectView('dashboard') }}
                 >
                   <span className={shell.moduleIcon}><IconAgentPresetOutlineRegular size={16} /></span>
-                  <span className={shell.moduleText}>
+                  {!navIconOnly && <span className={shell.moduleText}>
                     <strong>{t('module.ai')}</strong>
-                  </span>
-                  <span className={shell.moduleBadge}>{t('module.aiBadge')}</span>
+                  </span>}
+                  {!navIconOnly && <span className={shell.moduleBadge}>{t('module.aiBadge')}</span>}
                 </button>
               )}
               <button
                 type="button"
                 className={`${shell.module} ${shell.moduleProjects} ${view === 'project-operations' ? shell.moduleActive : ''}`}
+                aria-label={t('module.projects')}
+                title={t('module.projects')}
                 onClick={() => { selectView('project-operations') }}
               >
                 <span className={shell.moduleIcon}><IconProjectAddOutlineRegular size={16} /></span>
-                <span className={shell.moduleText}>
+                {!navIconOnly && <span className={shell.moduleText}>
                   <strong>{t('module.projects')}</strong>
-                </span>
-                <span className={shell.moduleBadge}>
+                </span>}
+                {!navIconOnly && <span className={shell.moduleBadge}>
                   {t('module.projectsCount', { count: projectRecords.length })}
-                </span>
+                </span>}
               </button>
               <button
                 type="button"
                 className={`${shell.module} ${shell.moduleKnowledge} ${view === 'doclib' ? shell.moduleActive : ''}`}
+                aria-label={t('module.knowledge')}
+                title={t('module.knowledge')}
                 onClick={() => { selectView('doclib') }}
               >
                 <span className={shell.moduleIcon}><IconLightOutlineRegular size={16} /></span>
-                <span className={shell.moduleText}>
+                {!navIconOnly && <span className={shell.moduleText}>
                   <strong>{t('module.knowledge')}</strong>
-                </span>
+                </span>}
               </button>
               <button type="button" className={`${shell.module} ${view === 'personal-pages' ? shell.moduleActive : ''}`}
+                aria-label={t('personalPages.nav')}
+                title={t('personalPages.nav')}
                 aria-current={view === 'personal-pages' ? 'page' : undefined} onClick={() => { selectView('personal-pages') }}>
                 <span className={shell.moduleIcon}><IconLayersOutlineRegular size={16} /></span>
-                <span className={shell.moduleText}><strong>{t('personalPages.nav')}</strong></span>
+                {!navIconOnly && <span className={shell.moduleText}><strong>{t('personalPages.nav')}</strong></span>}
               </button>
             </div>
-            {!liveHome && <label className={css.roleSelect}>
+            {!liveHome && !navIconOnly && <label className={css.roleSelect}>
               {t('role')}
               <select
                 aria-label={t('role')}
@@ -786,11 +886,11 @@ export function Workbench(props: WorkbenchProps) {
                 ))}
               </select>
             </label>}
-            {!liveHome && <small className={css.positionCount}>{t('roleCount')}</small>}
+            {!liveHome && !navIconOnly && <small className={css.positionCount}>{t('roleCount')}</small>}
             <nav>
               {menuSections.map(section => (
                 <div key={section.id}>
-                  <p className={css.groupLabel}>{t(section.label)}</p>
+                  {!navIconOnly && <p className={css.groupLabel}>{t(section.label)}</p>}
                   {section.entries.map((n) => {
                     const Icon = navIcons[n.id] ?? IconLayersOutlineRegular
                     const parentActive = view === n.id || n.children?.some(child => child.id === view) === true
@@ -809,12 +909,14 @@ export function Workbench(props: WorkbenchProps) {
                               })
                             }
                           }}
+                          aria-label={t(n.label)}
+                          title={t(n.label)}
                           aria-current={parentActive || (view === 'team' && n.id === 'groups') ? 'page' : undefined}
                           aria-expanded={n.children === undefined ? undefined : expandedMenus.has(n.id)}
                         >
                           <Icon size={17} />
                           <span>{t(n.label)}</span>
-                          {!liveHome && n.id === 'assistant' && unread > 0 && <b>{unread}</b>}
+                          {view !== 'tasks' && !liveHome && n.id === 'assistant' && unread > 0 && <b>{unread}</b>}
                         </button>
                         {n.children !== undefined && expandedMenus.has(n.id) && (
                           <div className={css.submenu} aria-label={t(n.label)}>
@@ -839,7 +941,7 @@ export function Workbench(props: WorkbenchProps) {
               ))}
             </nav>
             {/* 底部工作量摘要：对应原型左轨底部的状态卡。 */}
-            <div className={shell.railSummary}>
+            {view !== 'tasks' && !navIconOnly && <div className={shell.railSummary}>
               <div className={shell.railSummaryHead}>
                 <span>{t('rail.workload')}</span>
                 <b>{openWorkItems.length}/{workItems.length}</b>
@@ -848,22 +950,38 @@ export function Workbench(props: WorkbenchProps) {
                 <span style={{ width: `${workItems.length === 0 ? 0 : Math.round((openWorkItems.length / workItems.length) * 100)}%` }} />
               </div>
               <small>{t('rail.workloadHint', { active: openWorkItems.length, total: workItems.length })}</small>
-            </div>
-            {/* 底部只保留紧凑的「返回本地工作台」，人员信息移到右上角。 */}
+            </div>}
+            {/* 底部两键：左侧最小化菜单（仅图标），右侧返回本地工作台（图标模式下隐藏）。 */}
             <div className={css.return}>
               <Button
                 size="sm"
                 icon={<IconPanelLeftOutlineRegular size={15} />}
+                aria-pressed={navMinimized}
+                onClick={() => { setNavMinimized(!navMinimized) }}
+                title={t('navMinimize')}
+                aria-label={t('navMinimize')}
+              />
+              {!navIconOnly && <Button
+                size="sm"
+                icon={<IconChevronLeftOutlineRegular size={15} />}
                 onClick={onReturn}
                 title={t('returnLocal')}
                 aria-label={t('returnLocal')}
               >
                 {t('returnLocal')}
-              </Button>
+              </Button>}
             </div>
           </aside>
           <div className={css.main}>
-            <div ref={contentRef} className={css.content}>
+            {/* 菜单栏与内容页之间的拖拽分隔条：可把菜单拖窄到图标模式或拖宽挤占内容页。 */}
+            <div
+              className={css.navResizer}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t('rail.resize')}
+              onPointerDown={beginNavResize}
+            />
+            <div ref={contentRef} className={`${css.content} ${contentHidden ? css.contentHidden : ''}`}>
               {/* 各页不再渲染顶部大标题，内容直接从顶部开始。 */}
               {view === 'personal-pages' ? <PersonalPages t={t} /> : view === 'doclib' ? (
                 doclib === undefined
@@ -897,6 +1015,12 @@ export function Workbench(props: WorkbenchProps) {
                 <MeetingRoomsScreen t={t} />
               ) : view === 'organization' ? (
                 <OrganizationScreen t={t} />
+              ) : view === 'tasks' ? (
+                <>
+                  <TodosCard />
+                  {liveHome && <PersonalWorkspace key={view} t={t} section={view} />}
+                  <ReportTasks t={t} />
+                </>
               ) : liveHome ? (
                 view === 'assistant' ? (
                   <>
@@ -904,76 +1028,63 @@ export function Workbench(props: WorkbenchProps) {
                     <NotificationsScreen t={t} />
                   </>
                 ) : view === 'dashboard' ? (
-                  <>
-                    {/* AI 中心：直接展示密集总览，不占用顶部标题空间。 */}
+                  /* 岗位工作台（dashboard）：右上角切换查看岗位图表或采购业务链路静态模板。 */
+                  <PositionWorkspaceToggle t={t}>
                     <DashboardScreen t={t} />
-                  </>
-                ) : ['priorities', 'methods', 'project-operations', 'position-operations'].includes(view)
+                  </PositionWorkspaceToggle>
+                ) : view === 'position-operations' ? (
+                  /* 首页模式下岗位操作台同样提供右上角切换（岗位工作 / 采购业务链路）。 */
+                  <PositionWorkspaceToggle t={t}>
+                    <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
+                  </PositionWorkspaceToggle>
+                ) : ['priorities', 'methods', 'project-operations'].includes(view)
                   ? <PlatformHome key={view} t={t} section={view} onAnalyze={openRoleConversation} />
-                  : view === 'tasks'
-                    ? <>
-                      {/* 本地待办：对话工具写入的待办清单（与个人任务并列展示）。 */}
-                      <TodosCard />
-                      <PersonalWorkspace key={view} t={t} section={view} />
-                      <NotificationsScreen t={t} />
-                    </>
-                    : view === 'calendar'
-                      ? <ProjectCalendar t={t} />
-                      : view === 'files'
-                        ? <FilesScreen t={t} />
-                        : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
+                  : view === 'calendar'
+                    ? <ProjectCalendar t={t} />
+                    : view === 'files'
+                      ? <FilesScreen t={t} />
+                      : <section className={css.card}><h1>{title}</h1><p>{t('live.unavailable')}</p></section>
               ) : view === 'assistant' ? (
                 <>
                   <WorkHomeScreen t={t} />
                   <NotificationsScreen t={t} />
                 </>
               ) : view === 'dashboard' ? (
-                <DashboardScreen t={t} />
+                <PositionWorkspaceToggle t={t}>
+                  <DashboardScreen t={t} />
+                </PositionWorkspaceToggle>
               ) : view === 'project-operations' ? (
                 <ProjectOpsScreen t={t} />
               ) : view === 'position-operations' ? (
-                role === 'project' ? (
-                  <section className={css.card}>
-                    <p>{t('position.module.pending')}</p>
-                  </section>
-                ) : (
-                  <PositionOperations
-                    key={role}
-                    t={t}
-                    role={role}
-                    record={positionCase}
-                    delivery={positionDelivery}
-                    myTasks={<TaskRows compact />}
-                    onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
-                    onGroup={openWorkgroup}
-                    onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
-                    onReview={(note, outcome, checks) => {
-                      const reviewText = outcome === 'rework'
-                        ? t('position.returned', { note })
-                        : `${t('position.status.accepted')} · ${note}`
-                      actions.reviewPositionCase(role, note, outcome, checks, reviewText)
-                    }}
-                  />
-                )
+                /* 岗位工作台：右上角切换查看岗位工作或采购业务链路静态模板（测试阶段不限角色）。 */
+                <PositionWorkspaceToggle t={t}>
+                  {role === 'project' ? (
+                    <section className={css.card}>
+                      <p>{t('position.module.pending')}</p>
+                    </section>
+                  ) : (
+                    <PositionOperations
+                      key={role}
+                      t={t}
+                      role={role}
+                      record={positionCase}
+                      delivery={positionDelivery}
+                      onMethod={() => { openTask(roleFixtures[role].tasks[positionSignals[role].taskIndex]) }}
+                      onGroup={openWorkgroup}
+                      onDispatch={(option, assignment) => { actions.dispatchPositionCase(role, option, assignment) }}
+                      onReview={(note, outcome, checks) => {
+                        const reviewText = outcome === 'rework'
+                          ? t('position.returned', { note })
+                          : `${t('position.status.accepted')} · ${note}`
+                        actions.reviewPositionCase(role, note, outcome, checks, reviewText)
+                      }}
+                    />
+                  )}
+                </PositionWorkspaceToggle>
               ) : view === 'priorities' ? (
                 <PrioritiesScreen t={t} />
               ) : view === 'agent' ? (
                 <AgentScreen t={t} />
-              ) : view === 'tasks' ? (
-                <>
-                  <TodosCard />
-                  <p className={css.intro}>{t('task.owner')}</p>
-                  <Input
-                    aria-label={t('task.search')}
-                    placeholder={t('task.search')}
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value)
-                    }}
-                  />
-                  <section className={css.card}><TaskRows /></section>
-                  <NotificationsScreen t={t} />
-                </>
               ) : view === 'versions' ? (
                 <VersionsScreen t={t} />
               ) : view === 'calendar' ? (
@@ -1032,9 +1143,6 @@ export function Workbench(props: WorkbenchProps) {
                   onClick={() => { setAssistantTab('advice') }}
                 >{t('rail.advice')}</button>
               </div>
-              {/* 对话栏右上角工作区切换：二级树展示工作区与其会话，支持新建工作区。 */}
-              <RailWorkspaceTree t={t} workspaces={workspaceSnapshot} sessions={sessionsById}
-                openWorkspace={openWorkspace} openSession={openSession} renderFactorySlot={renderFactorySlot} />
               <button
                 type="button"
                 className={shell.railClose}
@@ -1083,22 +1191,17 @@ export function Workbench(props: WorkbenchProps) {
               </div>
             ) : assistantReference !== undefined ? (
               <div className={shell.railSession}>
-                <SessionProvider session={assistantReference}>
-                  {renderSlot('yuanshu.assistant.conversation', {})}
-                </SessionProvider>
+                <AssistantWorkspaceProvider control={
+                  <RailWorkspaceTree t={t} workspaces={workspaceSnapshot} sessions={sessionsById}
+                    openWorkspace={openWorkspace} openSession={openSession} renderFactorySlot={renderFactorySlot} />
+                }>
+                  <SessionProvider session={assistantReference}>
+                    {renderSlot('yuanshu.assistant.conversation', {})}
+                  </SessionProvider>
+                </AssistantWorkspaceProvider>
               </div>
             ) : null}
           </aside>
-          {/* 右栏被拖到完全收起时，在窗口右缘保留一条可再次拖出的分隔条。 */}
-          {assistantRailOpen && !assistantFull && assistantWidth <= 4 && (
-            <div
-              className={shell.railRestore}
-              role="separator"
-              aria-orientation="vertical"
-              aria-label={t('rail.resize')}
-              onPointerDown={beginRailResize}
-            />
-          )}
           <Modal
             open={dialog !== null}
             className={`${css.detailDialog}`}

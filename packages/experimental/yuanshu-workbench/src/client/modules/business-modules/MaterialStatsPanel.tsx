@@ -4,7 +4,7 @@ import type { MaterialStatBucket, MaterialStats } from './material-viewmodel.ts'
 import css from './material-management.module.css'
 
 /** 后台物料类型编码到中文名称；未知编码原样展示。 */
-function typeLabel(code: string, t: WorkbenchT): string {
+export function typeLabel(code: string, t: WorkbenchT): string {
   switch (code) {
     case '': return t('material.statsUnspecified')
     case 'component': return t('material.type.component')
@@ -20,7 +20,7 @@ function typeLabel(code: string, t: WorkbenchT): string {
 }
 
 /** 关键等级编码到中文名称；未知编码原样展示。 */
-function levelLabel(code: string, t: WorkbenchT): string {
+export function levelLabel(code: string, t: WorkbenchT): string {
   switch (code) {
     case '': return t('material.statsUnspecified')
     case 'critical': return t('material.level.critical')

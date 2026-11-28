@@ -3,13 +3,26 @@ import {
   Button, IconEditOutlineRegular, IconSearchOutlineRegular, IconTrashOutlineRegular, Input, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
-import { ArchiveTable } from '../../shared/ArchiveTable.tsx'
+import { ArchiveTable, type ArchiveCellTag } from '../../shared/ArchiveTable.tsx'
 import { readFormText } from '../../shared/form-data.ts'
 import { materialColumns, type MaterialFilters, type MaterialPage, type MaterialRecord, type MaterialSort } from './material-model.ts'
 import { materialCells } from './material-viewmodel.ts'
+import { levelLabel, typeLabel } from './MaterialStatsPanel.tsx'
 import { ArchiveListFooter } from './ArchiveListFooter.tsx'
 import businessCss from './business-modules.module.css'
 import css from './material-management.module.css'
+
+/** 关键等级编码到中文彩色标签；未知编码原样返回。 */
+function levelTag(code: string, t: WorkbenchT): ArchiveCellTag | string {
+  if (code === 'critical') return { text: t('material.level.critical'), tone: 'danger' }
+  if (code === 'high' || code === 'important') {
+    return { text: t(`material.level.${code}`), tone: 'warn' }
+  }
+  if (code === 'medium') return { text: t('material.level.medium'), tone: 'brand' }
+  if (code === 'normal') return { text: t('material.level.normal'), tone: 'success' }
+  if (code === 'low') return { text: t('material.level.low'), tone: 'muted' }
+  return code
+}
 
 /** 渲染物料查询条件、当前页记录及分页。 */
 export function MaterialRecords({
@@ -49,6 +62,17 @@ export function MaterialRecords({
 }) {
   const columns = materialColumns.map(({ key, width }) => ({ key, width, label: t(`material.${key}`) }))
   const records = new Map<number | string, MaterialRecord>(result?.items.map(record => [record.id, record]) ?? [])
+  // 类型用中文文本展示，关键等级用彩色标签区分严重度。
+  const rows = (result?.items ?? []).map((item) => {
+    const cells = materialCells(item)
+    const type = cells.material_type
+    const level = cells.critical_level
+    return { key: item.id, cells: {
+      ...cells,
+      material_type: typeof type === 'string' && type !== '' ? typeLabel(type, t) : type,
+      critical_level: typeof level === 'string' && level !== '' ? levelTag(level, t) : level,
+    } }
+  })
   return <section className={css.records} aria-label={t('material.filters')}>
     <MaterialSearchForm result={result} typeOptions={typeOptions} levelOptions={levelOptions} onSearch={onSearch} t={t} />
     {loading && <p role="status" className={css.recordStatus}>{t('material.loading')}</p>}
@@ -57,7 +81,7 @@ export function MaterialRecords({
       <Button type="button" size="sm" variant="outline" onClick={onRetry}>{t('material.retry')}</Button>
     </div>}
     {result !== undefined && <div className={css.recordsTable} aria-busy={loading}>
-      <ArchiveTable stickyHeader columns={columns} rows={result.items.map(item => ({ key: item.id, cells: materialCells(item) }))}
+      <ArchiveTable stickyHeader columns={columns} rows={rows}
         sort={sort} onSort={onSort} actionsLabel={t('material.actions')} renderActions={(key) => {
           const record = records.get(key)
           if (record === undefined) return null
@@ -104,13 +128,14 @@ function MaterialSearchForm({ result, typeOptions, levelOptions, onSearch, t }: 
       <label className={businessCss.businessModuleSelect}>{t('material.material_type')}
         <select name="materialType">
           <option value="">{t('material.allOptions')}</option>
-          {types.map(option => <option value={option} key={option}>{option}</option>)}
+          {/* 下拉选项用中文名称展示，保留原编码作为提交值。 */}
+          {types.filter(option => option !== '').map(option => <option value={option} key={option}>{typeLabel(option, t)}</option>)}
         </select>
       </label>
       <label className={businessCss.businessModuleSelect}>{t('material.critical_level')}
         <select name="criticalLevel">
           <option value="">{t('material.allOptions')}</option>
-          {levels.map(option => <option value={option} key={option}>{option}</option>)}
+          {levels.filter(option => option !== '').map(option => <option value={option} key={option}>{levelLabel(option, t)}</option>)}
         </select>
       </label>
     </div>

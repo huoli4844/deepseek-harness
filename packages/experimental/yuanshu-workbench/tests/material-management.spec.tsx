@@ -133,7 +133,8 @@ it('后端搜索分类并在弹窗中新增当前分类的子分类', async () =
   vi.stubGlobal('fetch', mock)
   render(<MaterialManagementScreen t={t} />)
   fireEvent.change(screen.getByRole('textbox', { name: '分类编码或名称' }), { target: { value: '钢' } })
-  fireEvent.click(screen.getByRole('button', { name: '搜索分类' }))
+  // 分类搜索按钮与物料列表搜索按钮同名，需在分类面板范围内查询。
+  fireEvent.click(within(screen.getByRole('region', { name: '物料分类' })).getByRole('button', { name: '搜索' }))
   fireEvent.click(await screen.findByRole('button', { name: '钢材' }))
   expect(mock).toHaveBeenCalledWith('/yuanshu-workbench/material-categories?keyword=%E9%92%A2', expect.anything())
   fireEvent.click(screen.getByRole('button', { name: '新增分类' }))

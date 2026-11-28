@@ -1,5 +1,5 @@
 /** 物料分类树与分类新增表单的展示层，不读写后台。 */
-import { Button, IconChevronRightOutlineRegular, Input, Modal, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconChevronRightOutlineRegular, IconPlusOutlineRegular, Input, Modal, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import { readFormText } from '../../shared/form-data.ts'
 import type { MaterialCategory, MaterialCategoryDraft } from './material-model.ts'
@@ -56,7 +56,8 @@ export function MaterialCategoryPanel({ status, keyword, onKeyword, onSearch, on
   return <section className={css.categories} aria-label={t('material.categories')}>
     <div className={css.categoryHeader}>
       <h2>{t('material.categories')}</h2>
-      <Button type="button" size="sm" variant="outline" disabled={status !== 'ready'} onClick={onAdd}>{t('material.addCategory')}</Button>
+      <Button type="button" size="sm" variant="outline" disabled={status !== 'ready'} aria-label={t('material.addCategory')}
+        icon={<IconPlusOutlineRegular size={14} />} onClick={onAdd} />
     </div>
     <form className={css.categorySearch} onSubmit={(event) => {
       event.preventDefault()

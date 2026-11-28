@@ -1,0 +1,14 @@
+.screen { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; min-width: 0; }
+.screen > :first-child { flex: none; flex-wrap: wrap; }
+.panel, .trend { padding: 12px; background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--work-line); border-radius: var(--dsw-radius-md); }
+.panel h2, .trend h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; }
+.screen small, .figures span { display: block; font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.figures { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 8px; }
+.figures > div { text-align: center; }
+.figures strong, .trend strong { font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.trend { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.trend ol { display: grid; gap: 8px; margin: 0 0 12px; padding: 0; }
+.trend li { display: grid; align-items: center; grid-template-columns: 7ch minmax(20px,1fr) minmax(10ch,auto); gap: 12px; }
+.trend meter { width: 100%; accent-color: var(--dsw-alias-brand-primary); }
+.trend li strong { text-align: right; }
+@media (max-width: 880px) { .screen { height: auto; } }

@@ -26,6 +26,9 @@
   gap: 8px;
 }
 .statCard {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
   display: grid;
   gap: 1px;
   padding: 7px 10px;
@@ -156,11 +159,12 @@
   font-size: 13px;
   font-weight: 500;
 }
+/* 搜索输入与按钮保持同一行，按钮位于输入框之后。 */
 .categorySearch {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .categorySearch > :first-child {
-  flex: 1 0 124px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 .categoryBody {
@@ -235,10 +239,17 @@
 }
 .filterFields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
-  flex: 1 1 480px;
+  /* 四个搜索条件默认一行，每个条件收窄到可阅读宽度，窄屏降为两列。 */
+  grid-template-columns: repeat(4, minmax(110px, 200px));
+  justify-content: start;
+  flex: 1 1 auto;
   min-width: 0;
   gap: 8px;
+}
+@media (max-width: 720px) {
+  .filterFields {
+    grid-template-columns: repeat(2, minmax(0, 200px));
+  }
 }
 .filterActions {
   display: flex;

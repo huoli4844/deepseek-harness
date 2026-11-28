@@ -29,6 +29,17 @@
   gap: var(--dsw-space-2, 8px);
 }
 
+/* 卡片组装区：已添加卡片行 + 可添加类型按钮，纵向排列。 */
+.widgetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dsw-space-2, 8px);
+  padding: 6px 10px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-md, 8px);
+}
+
 .scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -53,4 +64,187 @@
   align-items: center;
   gap: var(--dsw-space-2, 8px);
   align-self: center;
+}
+
+/* 对话预填卡片的构建进度：文本提示 + 不定长动画条，全部卡片就绪后整行消失。 */
+.building {
+  display: grid;
+  gap: var(--dsw-space-2, 8px);
+  margin: 0 0 var(--dsw-space-3, 12px);
+}
+
+.building > span {
+  color: var(--work-text-secondary, var(--dsh-text-secondary, #667085));
+  font-size: 12px;
+}
+
+.buildingBar {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--work-line);
+}
+
+.buildingBar::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: -40%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--dsh-primary, #4c6ef5);
+  animation: buildingSlide 1.2s ease-in-out infinite;
+}
+
+@keyframes buildingSlide {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+
+/* 空态引导卡：居中图标 + 标题 + 说明 + 三步引导。 */
+.emptyCard {
+  display: grid;
+  justify-items: center;
+  flex: 1 1 auto;
+  align-content: center;
+  gap: 6px;
+  margin-top: 6vh;
+  padding: 36px 28px;
+  border: 1px dashed var(--work-line);
+  border-radius: 12px;
+  background: var(--work-bg, var(--dsh-layer-1, transparent));
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dsh-primary, #4c6ef5) 10%, transparent);
+  color: var(--dsh-primary, #4c6ef5);
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary, var(--work-text, #1f2937));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emptyDesc {
+  margin: 0;
+  max-width: 100%;
+  color: var(--work-text-secondary, var(--dsh-text-secondary, #667085));
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.emptySteps {
+  counter-reset: step;
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: start;
+}
+
+.emptySteps > li {
+  position: relative;
+  padding-left: 30px;
+  color: var(--work-text-secondary, var(--dsh-text-secondary, #667085));
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* 步骤序号圆点。 */
+.emptySteps > li::before {
+  content: counter(step);
+  counter-increment: step;
+  position: absolute;
+  left: 0;
+  top: 3px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dsh-primary, #4c6ef5) 10%, transparent);
+  color: var(--dsh-primary, #4c6ef5);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 数字统计卡视图：数值列求和后以大数字平铺展示。 */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--dsw-space-2, 8px);
+}
+
+.statTile {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--work-line);
+  border-radius: 8px;
+  background: var(--work-bg, var(--dsh-layer-1, transparent));
+}
+
+.statValue {
+  color: var(--dsh-primary, #4c6ef5);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.statLabel {
+  color: var(--work-text-secondary, var(--dsh-text-secondary, #667085));
+  font-size: 11px;
+}
+
+/* 条形图视图：按数值降序的横向条形对比。 */
+.barList {
+  display: grid;
+  gap: 6px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 1fr max-content;
+  align-items: center;
+  gap: 8px;
+}
+
+.barLabel {
+  overflow: hidden;
+  max-width: 180px;
+  color: var(--work-text, var(--dsh-text, #1f2937));
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barTrack {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--work-line);
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dsh-primary, #4c6ef5);
+}
+
+.barValue {
+  color: var(--work-text-secondary, var(--dsh-text-secondary, #667085));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }

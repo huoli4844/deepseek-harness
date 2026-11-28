@@ -1,10 +1,18 @@
 /** 展示当前页供应商记录与操作入口，不持有状态或请求后台。 */
 import { Button, IconEditOutlineRegular, IconTrashOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkbenchT } from '../../app/page-api.ts'
-import { ArchiveTable, type ArchiveSort } from '../../shared/ArchiveTable.tsx'
+import { ArchiveTable, type ArchiveCellTag, type ArchiveSort } from '../../shared/ArchiveTable.tsx'
 import { formatBeijingDateTime } from '../../shared/beijing-time.ts'
 import css from './business-modules.module.css'
 import type { SupplierRecord } from './supplier-model.ts'
+
+/** 准入状态编码到中文彩色标签；未知编码原样返回。 */
+function admissionTag(code: string, t: WorkbenchT): ArchiveCellTag | string {
+  if (code === 'approved') return { text: t('supplier.statsApproved'), tone: 'success' }
+  if (code === 'pending') return { text: t('supplier.statsPending'), tone: 'warn' }
+  if (code === 'rejected') return { text: t('supplier.statsRejected'), tone: 'danger' }
+  return code
+}
 
 const columns = [
   'code', 'name', 'shortName', 'supplierType', 'category', 'contactPerson', 'contactPhone', 'contactEmail',
@@ -30,7 +38,10 @@ export function SupplierTable({ suppliers, t, onEdit, onDelete, disabled, sort, 
     createdAt: formatBeijingDateTime(item.createdAt),
     updatedAt: formatBeijingDateTime(item.updatedAt),
     deletedAt: formatBeijingDateTime(item.deletedAt),
-    status: item.status === 1 ? t('supplier.active') : item.status === 0 ? t('supplier.inactive') : item.status,
+    admissionStatus: admissionTag(item.admissionStatus, t),
+    status: item.status === 1
+      ? { text: t('supplier.active'), tone: 'success' } as const
+      : item.status === 0 ? { text: t('supplier.inactive'), tone: 'muted' } as const : item.status,
   } }))
   return <ArchiveTable stickyHeader columns={columns.map(key => ({
     key, label: t(`supplier.${key}`), width: key === 'name' || key.endsWith('At') ? 184 : 132,

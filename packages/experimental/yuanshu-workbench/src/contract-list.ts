@@ -12,9 +12,10 @@ export function contractListQuery(params: URLSearchParams) {
   const pageSize = Number(params.get('page_size') ?? 20)
   const sortBy = params.get('sort_by') ?? 'code'
   const direction = params.get('sort_direction') ?? 'asc'
+  const view = params.get('view') ?? 'list'
   if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 200
-    || !sortable.has(sortBy) || !['asc', 'desc'].includes(direction)) return undefined
-  return { page, pageSize, sortBy, direction, keyword: (params.get('keyword') ?? '').trim().toLowerCase() }
+    || !sortable.has(sortBy) || !['asc', 'desc'].includes(direction) || !['cards', 'list'].includes(view)) return undefined
+  return { page, pageSize, sortBy, direction, view, keyword: (params.get('keyword') ?? '').trim().toLowerCase() }
 }
 
 /** 对完整可见合同先搜索排序，再截取页码，同时保留未筛选的总数。 */

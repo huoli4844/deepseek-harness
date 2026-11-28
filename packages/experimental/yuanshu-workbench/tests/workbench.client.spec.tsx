@@ -74,7 +74,7 @@ it('shows every business module in the project position view', async () => {
   // 业务模块按岗位平铺在「业务应用」分组，不再挂在岗位运营二级菜单下。
   expect(within(navigation).queryByRole('button', { name: '岗位运营' })).toBeNull()
 
-  for (const label of ['客户资源', '物料管理', '供应商管理', '设备台账', '合同管理', '预算与成本', '工时填报', '周报管理/登记']) {
+  for (const label of ['客户资源', '物料管理', '供应商管理', '设备台账', '合同管理', '预算与成本', '工时填报', '工作记录']) {
     expect(within(navigation).getByText(label)).toBeDefined()
     fireEvent.click(within(navigation).getByRole('button', { name: label }))
     const search = new Map([['客户资源', '搜索客户'], ['供应商管理', '搜索供应商'], ['物料管理', '物料筛选'], ['合同管理', '合同筛选']]).get(label)
@@ -88,7 +88,10 @@ it('shows every business module in the project position view', async () => {
       expect(within(dialog).getAllByRole('button', { name: '添加项目' })).toHaveLength(7)
       expect(within(dialog).getByText('本周工时汇总')).toBeDefined()
       expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
-    } else if (label === '周报管理/登记') {
+    } else if (label === '预算与成本') {
+      expect(within(dialog).getByRole('heading', { name: '统计面板' })).toBeDefined()
+      expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
+    } else if (label === '工作记录') {
       expect(within(dialog).getByRole('button', { name: zh['weekly.previousMonth'] })).toBeDefined()
       expect(within(dialog).queryByRole('heading', { name: label })).toBeNull()
     } else {
@@ -202,10 +205,14 @@ it('retains method records across navigation and includes them in saved version 
   const comparison = screen.getByRole('dialog', { name: '比较版本' })
   expect(within(comparison).getByText('材料核对记录: 核对本季度到货台账 v2，缺少两项响应记录。')).toBeDefined()
   fireEvent.click(within(comparison).getByRole('button', { name: '关闭' }))
-  // 岗位运营不再占菜单：「岗位工作台 → 查看场景」进入后直接点击任务行。
-  fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: '岗位工作台' }))
-  fireEvent.click(screen.getByRole('button', { name: '查看场景' }))
-  fireEvent.click(screen.getByRole('button', { name: /供应商季度评价/ }))
+  // 离开工作事项后经岗位方法卡重新进入，验证本地草稿跨页面导航保留。
+  const navigation = within(screen.getByRole('navigation'))
+  fireEvent.click(navigation.getByRole('button', { name: '我的任务' }))
+  fireEvent.click(navigation.getByRole('button', { name: '岗位工作台' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看岗位方法' }))
+  const supplierMethod = screen.getByRole('heading', { name: '供应商季度评价' }).closest('article')
+  if (supplierMethod === null) throw new Error('supplier method must remain available after navigation')
+  fireEvent.click(within(supplierMethod).getByRole('button', { name: '按此方法开展' }))
   fireEvent.click(screen.getByRole('button', { name: '1 · 材料' }))
   expect(screen.getByRole('textbox', { name: '材料核对记录' })).toHaveProperty('value', '核对本季度到货台账 v2，缺少两项响应记录。')
   expect(screen.getByRole('checkbox', { name: '已完成本阶段自查' })).toHaveProperty('checked', true)
@@ -291,8 +298,8 @@ it('十九个岗位按当前菜单画像显示业务项，共享任务、周报�
 
 it('默认进入任务页，业务入口不显示旧演示收件箱', async () => {
   await bench()
-  expect(screen.getByRole('textbox', { name: zh['task.search'] })).toBeDefined()
+  expect(screen.getByRole('heading', { name: '我的待办' })).toBeDefined()
   expect(screen.queryByRole('region', { name: '建议优先处理' })).toBeNull()
   fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: '我的任务' }))
-  expect(screen.getByRole('textbox', { name: zh['task.search'] })).toBeDefined()
+  expect(screen.getByRole('heading', { name: '我的待办' })).toBeDefined()
 })

@@ -13,6 +13,7 @@ import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import { taskTitles } from '../../core/fixtures.ts'
 import type { TaskId } from '../../core/model.ts'
 import { isoOf, useCalendarItems, type CalendarItem } from './calendar-shared.ts'
+import { lunarLabel } from '../../core/lunar.ts'
 import { CalendarItemForm } from './CalendarItemForm.tsx'
 import css from './Calendar.module.css'
 
@@ -150,7 +151,11 @@ export function ProjectCalendar({ t }: { readonly t: WorkbenchT }) {
               onClick={() => { setSelectedIso(cell.iso) }}
             >
               <div className={css.dayHead}>
-                <span className={css.dayNumber}>{cell.date.getDate()}</span>
+                <span className={css.dayHeadDate}>
+                  <span className={css.dayNumber}>{cell.date.getDate()}</span>
+                  {/* 农历日名紧随公历日号；初一显示农历月名（如「正月」）。 */}
+                  <span className={css.dayLunar}>{lunarLabel(cell.date)}</span>
+                </span>
                 <button
                   type="button"
                   className={css.dayAdd}

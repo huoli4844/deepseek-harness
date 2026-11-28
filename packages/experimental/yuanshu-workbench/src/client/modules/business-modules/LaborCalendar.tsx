@@ -3,6 +3,7 @@ import { Button, IconChevronLeftOutlineRegular, IconChevronRightOutlineRegular, 
 import type { WorkbenchT } from '../../app/page-api.ts'
 import type { HolidayCalendar } from './holiday-calendar-api.ts'
 import { laborDayState, moveDate, shiftMonth, weekStart } from './project-registration-viewmodel.ts'
+import { isoLunarLabel } from '../../core/lunar.ts'
 import type { LaborDayState } from './project-registration-viewmodel.ts'
 import css from './daily-labor.module.css'
 
@@ -53,7 +54,11 @@ export function LaborCalendar({ date, month, today, filledDays, holidays, disabl
         const state = laborDayState(day, month, today, calendar)
         return <button type="button" key={day} className={css.day} aria-pressed={day === date}
           data-outside={state === 'outside'} data-state={state} aria-label={dayLabel(day, state, t)} disabled={disabled}
-          onClick={() => { onDate(day) }}>{state === 'rest' ? t('labor.calendarRest') : Number(day.slice(8))}</button>
+          onClick={() => { onDate(day) }}>
+          {state === 'rest' ? t('labor.calendarRest') : Number(day.slice(8))}
+          {/* 农历日名小字随公历号展示；初一显示农历月名。 */}
+          <span className={css.dayLunar}>{isoLunarLabel(day)}</span>
+        </button>
       })}
     </div>
   </section>

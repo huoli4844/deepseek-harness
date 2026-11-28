@@ -1,4 +1,5 @@
 /** 整理合同台账的展示字段和排序切换，不依赖 React 或请求。 */
+import type { ContractFinanceTotals } from './contract-project-model.ts'
 import type { WorkbenchT } from '../../app/page-api.ts'
 import {
   contractColumns, contractStatuses, contractTypes, type ContractRecord, type ContractSort,
@@ -59,8 +60,12 @@ export interface ContractStats {
   readonly active: number
   readonly expiringSoon: number
   readonly expired: number
-  readonly totalAmount: number
-  readonly owedAmount: number
+  readonly taxAmount: number | undefined
+  readonly warrantyAmount: number | undefined
+  readonly grossMargin: number | undefined
+  readonly grossMarginRate: number | undefined
+  readonly totalAmount: number | undefined
+  readonly owedAmount: number | undefined
   readonly types: readonly ContractStatBucket[]
   readonly statuses: readonly ContractStatBucket[]
   readonly truncated: boolean
@@ -82,12 +87,6 @@ function shiftDate(value: string, days: number): string {
   const parsed = Date.parse(`${value}T00:00:00Z`)
   if (!Number.isFinite(parsed)) return value
   return new Date(parsed + days * 86_400_000).toISOString().slice(0, 10)
-}
-
-/** 汇总金额，非数值按零处理。 */
-function amount(value: string | number | undefined): number {
-  const parsed = typeof value === 'number' ? value : value === undefined || value.trim() === '' ? NaN : Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function countBy(records: readonly ContractRecord[], key: 'contract_type' | 'status'): readonly ContractStatBucket[] {
@@ -114,13 +113,12 @@ export function contractStats(
   total: number,
   truncated: boolean,
   today: string = beijingDate.format(new Date()),
+  finance: ContractFinanceTotals = {},
 ): ContractStats {
   const horizon = shiftDate(today, 30)
   let active = 0
   let expiringSoon = 0
   let expired = 0
-  let totalAmount = 0
-  let owedAmount = 0
   for (const record of records) {
     if (record.values.status === 'active') active += 1
     const expiry = datePart(record.values.expiry_date)
@@ -128,18 +126,36 @@ export function contractStats(
       if (expiry < today) expired += 1
       else if (expiry <= horizon) expiringSoon += 1
     }
-    totalAmount += amount(record.values.total_amount)
-    owedAmount += amount(record.values.owed_amount)
   }
   return {
     total,
     active,
     expiringSoon,
     expired,
-    totalAmount,
-    owedAmount,
+    totalAmount: sumContractAmount(records, 'total_amount'),
+    owedAmount: sumContractAmount(records, 'owed_amount'),
+    taxAmount: sumContractAmount(records, 'tax_amount'),
+    warrantyAmount: sumContractAmount(records, 'warranty_amount'),
+    grossMargin: finance.grossMargin,
+    grossMarginRate: finance.grossMarginRate,
     types: countBy(records, 'contract_type'),
     statuses: countBy(records, 'status'),
     truncated,
   }
+}
+
+/** 求和仅使用完整的数值列；任一合同未返回该字段时，汇总保持未知。 */
+export function sumContractAmount(records: readonly ContractRecord[], key: 'total_amount' | 'tax_amount' | 'owed_amount' | 'warranty_amount'): number | undefined {
+  let total = 0
+  for (const record of records) {
+    const value = record.values[key]
+    if (value === undefined || (typeof value === 'string' && !value.trim()) || !Number.isFinite(Number(value))) return undefined
+    total += Number(value)
+  }
+  return total
+}
+
+/** 百分比字段按后台的百分数口径展示，不再次乘以一百。 */
+export function contractPercent(value: number | undefined): string | undefined {
+  return value === undefined || !Number.isFinite(value) ? undefined : `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
 }

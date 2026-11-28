@@ -193,14 +193,3 @@ export function OrganizationTotalChart({ points, t }: {
 }) {
   return <MetricChart points={points} metric="total" label={t('organization.stat.history')} t={t} />
 }
-
-/** 全年离职折线图：按各月入职且当前已离职的人数统计。 */
-export function OrganizationDepartedChart({ points, t }: {
-  readonly points: readonly OrganizationMonthlyPoint[]
-  readonly t: WorkbenchT
-}) {
-  return <div className={chartsCss.chartFigureBody}>
-    <MetricChart points={points} metric="departed" label={t('organization.stat.departed')} t={t} />
-    <ChartHint text={t('organization.stat.departedHint')} />
-  </div>
-}

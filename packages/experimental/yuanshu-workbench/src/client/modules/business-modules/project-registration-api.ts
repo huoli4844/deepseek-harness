@@ -37,12 +37,21 @@ function list(value: unknown, key: string): readonly unknown[] {
   throw new Error('Invalid response list')
 }
 
-function page<T>(value: unknown, parse: (item: unknown) => T): RegistrationPage<T> {
+/** 分页回退：线上旧版响应可能缺 page/page_size，此时回退到客户端请求值。 */
+function page<T>(value: unknown, parse: (item: unknown) => T, fallback?: {
+  readonly page: number
+  readonly pageSize: number
+}): RegistrationPage<T> {
   const total = integer(value, 'total')
   if (total === undefined) throw new Error('Invalid response total')
   const archiveTotal = integer(value, 'archive_total')
+  const requestPage = integer(value, 'page')
+  const requestPageSize = integer(value, 'page_size')
+  const pageNumber = requestPage !== undefined && requestPage > 0 ? requestPage : fallback?.page
+  const pageSize = requestPageSize !== undefined && requestPageSize > 0 ? requestPageSize : fallback?.pageSize
+  if (pageNumber === undefined || pageSize === undefined) throw new Error('Invalid response pagination')
   return {
-    items: list(value, 'items').map(parse), total, page: id(value, 'page'), pageSize: id(value, 'page_size'),
+    items: list(value, 'items').map(parse), total, page: pageNumber, pageSize,
     ...(archiveTotal === undefined ? {} : { archiveTotal }),
   }
 }
@@ -102,6 +111,7 @@ function weekly(value: unknown): WeeklySnapshot {
   }
 }
 
+/** 通过宿主携带当前租户身份读取或写入项目业务。 */
 async function request(path: string, signal: AbortSignal, method = 'GET', body?: object): Promise<unknown> {
   const token = localStorage.getItem('workbench-client-token')
   if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401 })
@@ -116,10 +126,12 @@ async function request(path: string, signal: AbortSignal, method = 'GET', body?:
   return field(await response.json(), 'data')
 }
 
+export { request as requestProject }
+
 /** 查询租户内可选择的项目。 */
 export async function listRegistrationProjects(keyword: string, pageNumber: number, signal: AbortSignal) {
   const query = new URLSearchParams({ keyword, page: String(pageNumber), page_size: '20' })
-  return page(await request(`?${query}`, signal), project)
+  return page(await request(`?${query}`, signal), project, { page: pageNumber, pageSize: 20 })
 }
 
 /** 查询选定项目可登记的工作事项。 */
@@ -129,7 +141,7 @@ export async function listProjectTasks(
   const query = new URLSearchParams({ keyword, page: String(pageNumber), page_size: '20' })
   return page(await request(`/${encodeURIComponent(projectCode)}/tasks?${query}`, signal), value => ({
     ...project(value), status: string(value, 'status'),
-  }))
+  }), { page: pageNumber, pageSize: 20 })
 }
 
 /** 按日期和当前排序获取项目工时页。 */
@@ -146,7 +158,8 @@ export async function listLabor(range: RegistrationRange, pageNumber: number, so
     query.set('sort_by', sort.key)
     query.set('sort_dir', sort.direction)
   }
-  return page(await request(`/${encodeURIComponent(range.projectCode)}/labor-hours?${query}`, signal), labor)
+  return page(await request(`/${encodeURIComponent(range.projectCode)}/labor-hours?${query}`, signal), labor,
+    { page: pageNumber, pageSize: 20 })
 }
 
 /** 某月本人工时记录与项目目录；供月历着色、月度汇总和当日明细共用一次加载。 */
@@ -167,7 +180,9 @@ export interface LaborBatchEntry {
  *
  * 后台只有按项目的工时列表，因此先取全部项目，再按项目各查一次整月数据；
  * 单页上限 200 条，逐页取完即可，不会为每个日历格单独请求。
- * 任一项目失败时返回 undefined，调用方据此放弃“缺填”标红和月度汇总，避免显示假数据。
+ * 项目工时改为小批次串行读取：并行几十个请求会触发后台限流（429），
+ * 导致整次汇总随机失败。任一项目失败时仍返回 undefined，调用方据此放弃
+ * “缺填”标红和月度汇总，避免显示假数据；失败项目会写入 console.warn 供排查。
  */
 export async function listLaborMonth(
   range: { readonly dateFrom: string; readonly dateTo: string; readonly userId?: number | undefined },
@@ -176,16 +191,25 @@ export async function listLaborMonth(
   const projects: RegistrationProject[] = []
   for (let pageNumber = 1; pageNumber <= 5; pageNumber++) {
     const query = new URLSearchParams({ keyword: '', page: String(pageNumber), page_size: '100' })
-    const value = page(await request(`?${query}`, signal), project)
+    const value = page(await request(`?${query}`, signal), project, { page: pageNumber, pageSize: 100 })
     projects.push(...value.items)
     if (value.items.length < value.pageSize || projects.length >= value.total) break
   }
-  const results = await Promise.allSettled(projects.map(item => laborMonthRecords(item.code, range, signal)))
-  if (results.some(result => result.status === 'rejected')) return undefined
   const records: LaborRecord[] = []
-  for (const result of results) {
-    if (result.status === 'fulfilled') records.push(...result.value)
+  let failures = 0
+  // 每批 4 个项目，批与批之间串行，控制并发量避免 429。
+  for (let start = 0; start < projects.length; start += 4) {
+    const batch = projects.slice(start, start + 4)
+    const results = await Promise.allSettled(batch.map(item => laborMonthRecords(item.code, range, signal)))
+    for (const [index, result] of results.entries()) {
+      if (result.status === 'fulfilled') records.push(...result.value)
+      else {
+        failures++
+        console.warn(`[yuanshu] 项目 ${batch[index]?.code ?? '?'} 整月工时读取失败`, result.reason)
+      }
+    }
   }
+  if (failures > 0) return undefined
   return { projects, records }
 }
 
@@ -200,7 +224,8 @@ async function laborMonthRecords(
       page: String(pageNumber), page_size: '100', date_from: range.dateFrom, date_to: range.dateTo,
     })
     if (range.userId !== undefined) query.set('user_id', String(range.userId))
-    const value = page(await request(`/${encodeURIComponent(code)}/labor-hours?${query}`, signal), labor)
+    const value = page(await request(`/${encodeURIComponent(code)}/labor-hours?${query}`, signal), labor,
+      { page: pageNumber, pageSize: 100 })
     records.push(...value.items)
     if (value.items.length < value.pageSize) break
   }

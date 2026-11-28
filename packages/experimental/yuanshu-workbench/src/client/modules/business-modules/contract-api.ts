@@ -1,4 +1,5 @@
 /** 通过工作台同源代理读取合同台账，不依赖 React。 */
+import { contractFinanceFields, contractProjectFields, type ContractProjectRecord, type ContractView, type ContractFinanceTotals } from './contract-project-model.ts'
 import {
   contractFields, type ContractFilters, type ContractPage, type ContractRecord, type ContractSort,
 } from './contract-model.ts'
@@ -32,6 +33,35 @@ function parseContract(value: unknown): ContractRecord {
   return { id, values }
 }
 
+function numeric(value: unknown): number | undefined {
+  if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function parseProject(value: unknown): ContractProjectRecord {
+  const project = field(value, 'project')
+  const code = field(project, 'code')
+  if (typeof code !== 'string' || !code) throw new Error('Invalid project contract record')
+  const values: Partial<Record<typeof contractProjectFields[number], string | number>> = {}
+  for (const key of contractProjectFields) {
+    const entry = cell(field(project, key))
+    if (entry !== undefined) values[key] = entry
+  }
+  const finance: Partial<Record<typeof contractFinanceFields[number], number>> = {}
+  for (const key of contractFinanceFields) {
+    const entry = numeric(field(field(value, 'finance'), key))
+    if (entry !== undefined) finance[key] = entry
+  }
+  return { code, values, finance, contracts: list(field(value, 'contracts')).map(parseContract) }
+}
+
+function financeTotals(value: unknown): ContractFinanceTotals {
+  const grossMargin = numeric(field(value, 'gross_margin'))
+  const grossMarginRate = numeric(field(value, 'gross_margin_rate'))
+  return { ...(grossMargin === undefined ? {} : { grossMargin }), ...(grossMarginRate === undefined ? {} : { grossMarginRate }) }
+}
+
 async function request(path: string, init: RequestInit): Promise<unknown> {
   const token = localStorage.getItem('workbench-client-token')
   if (!token) throw Object.assign(new Error('YuanShu login required'), { status: 401, kind: 'missingToken' })
@@ -55,6 +85,7 @@ export interface ContractCatalog {
   readonly items: readonly ContractRecord[]
   readonly total: number
   readonly truncated: boolean
+  readonly finance: ContractFinanceTotals
 }
 
 /** 读取全部合同（每页 200 条，最多 20 页），供页面统计聚合。 */
@@ -67,18 +98,21 @@ export async function fetchContractCatalog(signal: AbortSignal): Promise<Contrac
   return {
     items: [first, ...rest].flatMap(page => page.items),
     total: first.total,
+    finance: first.finance ?? {},
     truncated: first.total > lastPage * STATS_PAGE_SIZE,
   }
 }
 
 /** 获取后台过滤和排序后的合同分页。 */
 export async function fetchContractPage(query: {
+  readonly view?: ContractView
   readonly page: number
   readonly pageSize: number
   readonly filters: ContractFilters
   readonly sort: ContractSort | undefined
 }, signal: AbortSignal): Promise<ContractPage> {
   const params = new URLSearchParams({ page: String(query.page), page_size: String(query.pageSize) })
+  if (query.view !== undefined) params.set('view', query.view)
   const keyword = query.filters.keyword.trim()
   if (keyword !== '') params.set('keyword', keyword)
   if (query.sort !== undefined) {
@@ -90,5 +124,7 @@ export async function fetchContractPage(query: {
   const archiveTotal = integer(field(data, 'archive_total'))
   const pageSize = integer(field(data, 'page_size'))
   if (total === undefined || archiveTotal === undefined || !pageSize) throw new Error('Invalid YuanShu contract pagination')
-  return { items: list(field(data, 'items')).map(parseContract), total, archiveTotal, pageSize }
+  return { items: list(field(data, 'items')).map(parseContract), total, archiveTotal, pageSize,
+    projects: query.view === 'cards' ? list(field(data, 'projects')).map(parseProject) : [],
+    finance: financeTotals(field(data, 'finance')) }
 }

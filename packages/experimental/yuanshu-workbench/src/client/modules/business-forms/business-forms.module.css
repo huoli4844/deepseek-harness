@@ -30,8 +30,18 @@
 .weeklyItemGrid select { min-height: 30px; padding: 4px 8px; border: 1px solid var(--dsw-alias-border-l4); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; }
 @media (max-width: 640px) { .weeklyItemGrid { grid-template-columns: 1fr; } .weeklyItemGrid .field:last-child, .weeklyItemGrid .field:nth-last-child(2) { grid-column: auto; } }
 
+/* 报表回执与待办：与「我的任务」页其他卡片一致的容器观感。 */
 .reportTasks {
-  padding: var(--dsw-business-form-space-3);
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 0.5px solid var(--work-line);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.reportTasks h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
 }
 
 .reportTask {
@@ -40,4 +50,30 @@
   justify-content: space-between;
   gap: var(--dsw-business-form-space-3);
   padding-block: var(--dsw-business-form-space-3);
+}
+
+.reportTask + .reportTask {
+  border-top: 0.5px solid var(--work-line);
+}
+
+.reportTask strong {
+  font-size: 13px;
+}
+
+.reportTask time {
+  display: block;
+  margin-top: 2px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.reportTask > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reportTask > div > div {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
 }

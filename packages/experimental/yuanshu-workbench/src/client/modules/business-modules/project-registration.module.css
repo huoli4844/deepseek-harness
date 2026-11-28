@@ -355,13 +355,17 @@
 .weeklySubmitActions { display: flex; justify-content: flex-end; gap: 8px; padding-block-start: 4px; }
 .weeklySubmitHint { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 11px; line-height: 1.5; }
 @container (max-width: 680px) {
-  .weeklyTopbar, .weeklyCardHeader, .weeklyHeaderRight, .weeklyHeaderLeft { align-items: stretch; flex-direction: column; }
-  .weeklyHeaderRight { width: 100%; }
+  .weeklyCardHeader, .weeklyHeaderLeft { align-items: stretch; flex-direction: column; }
   .weeklyWeekBar { justify-content: space-between; }
   .weeklyWeekSelect { width: 100%; min-width: 0; }
   .weeklyRepeatGrid { grid-template-columns: minmax(0, 1fr); }
   .pickerCompact { flex-direction: column; align-items: stretch; }
   .pickerCompact > .inline { flex-wrap: wrap; }
+}
+/* 标题与日报/周报切换胶囊在极窄容器才堆叠；680px 时两者同行仍放得下。 */
+@container (max-width: 480px) {
+  .weeklyTopbar { align-items: stretch; flex-direction: column; }
+  .weeklyHeaderRight { width: 100%; }
 }
 @container (max-width: 1000px) {
   .weeklyLayout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; flex: none; }
@@ -390,6 +394,7 @@
 .weeklyCalendarCell { display: grid; align-content: start; justify-items: start; gap: 6px; min-height: 66px; padding: 9px 12px; }
 .weeklyCalendarCell[data-outside='true'] { opacity: .4; }
 .weeklyCalendarDay { color: var(--dsw-alias-label-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.weeklyCalendarLunar { color: var(--dsw-alias-label-tertiary); font-size: 10px; line-height: 1.2; }
 .weeklyCalendarCell[data-today='true'] .weeklyCalendarDay { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; padding: 0 5px; border-radius: 999px; background: var(--dsw-alias-brand-primary); color: #fff; }
 .weeklyStatusTag[data-status='missing'] { color: var(--dsw-alias-label-tertiary); background: color-mix(in srgb, var(--dsw-alias-label-tertiary) 12%, transparent); }
 /* 周报悬停卡：在日历行内部渲染，颜色跟随工作台主题。 */
